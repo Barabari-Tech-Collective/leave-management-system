@@ -1,0 +1,47 @@
+@import "tailwindcss";
+body {
+  background-color: #FDFBFB;
+  color: #3F3928;
+  font-family: Inter, sans-serif;
+}
+html {
+  scroll-behavior: smooth;
+}
+@theme {
+  --color-primary: #4F46E5; /* Indigo 600 */
+  --color-darkBg: #0F172A; /* Slate 900 */
+  --color-softBg: #F8FAFC; /* Slate 50 */
+  --color-cardBg: #ffffff; /* Pure white */
+  --color-accent: #E11D48; /* Rose 600 - modern red */
+  --color-textDark: #0F172A; /* Deep slate */
+}
+@custom-variant dark (&:where(.dark, .dark *));
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease forwards;
+}
+@keyframes dropdownEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown {
+  animation: dropdownEnter 0.25s ease forwards;
+}
