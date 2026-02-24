@@ -3,6 +3,7 @@ body {
   background-color: #FDFBFB;
   color: #3F3928;
   font-family: Inter, sans-serif;
+  @apply transition-colors duration-300 dark:bg-neutral-950 dark:text-gray-100;
 }
 html {
   scroll-behavior: smooth;

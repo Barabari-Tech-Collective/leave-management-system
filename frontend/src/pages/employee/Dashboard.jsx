@@ -11,10 +11,10 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fadeIn">
       <div className="flex justify-between items-end mb-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
+          <h1 className="text-4xl font-extrabold text-textDark dark:text-white tracking-tight drop-shadow-sm transition-colors">
             Dashboard Overview
           </h1>
-          <p className="text-slate-500 mt-2 font-medium">
+          <p className="text-slate-500 dark:text-gray-400 mt-2 font-medium transition-colors">
             Here's a summary of your leave balances.
           </p>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 export default function ApplyLeave() {
   const leaveLimits = {
@@ -65,21 +66,27 @@ export default function ApplyLeave() {
         {/* Leave Type */}
         <div className="space-y-4">
           <label className="block mb-2 font-bold text-slate-700">Leave Type</label>
-          <select
-            className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
-            value={form.type}
-            onChange={(e) =>
-              setForm({ ...form, type: e.target.value })
-            }
-          >
-            <option value="">Select Leave Type</option>
-            <option value="Casual">Casual (10)</option>
-            <option value="Sick">Sick (8)</option>
-            <option value="Flexible Cultural">
-              Flexible Cultural (5)
-            </option>
-            <option disabled>National (Disabled)</option>
-          </select>
+          <div className="relative">
+            <select
+              className="w-full appearance-none pr-10 p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium cursor-pointer"
+              value={form.type}
+              onChange={(e) =>
+                setForm({ ...form, type: e.target.value })
+              }
+            >
+              <option value="">Select Leave Type</option>
+              <option value="Casual">Casual Leave</option>
+              <option value="Sick">Sick Leave</option>
+              <option value="Flexible Cultural">
+                Flexible Cultural Leave
+              </option>
+              <option disabled>National Leave (Disabled)</option>
+            </select>
+            <ChevronDown
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              size={20}
+            />
+          </div>
         </div>
 
         {/* Dates */}

@@ -54,9 +54,9 @@ export default function EmployeeDetail() {
         prev.map((leave) =>
           leave.title === leaveItem.type
             ? {
-                ...leave,
-                taken: leave.taken + leaveItem.days,
-              }
+              ...leave,
+              taken: leave.taken + leaveItem.days,
+            }
             : leave,
         ),
       );
@@ -68,7 +68,7 @@ export default function EmployeeDetail() {
 
   return (
     <div className="space-y-10">
-      <h1 className="text-3xl font-bold text-textDark">Employee Details</h1>
+      <h1 className="text-3xl font-bold text-textDark dark:text-white transition-colors">Employee Details</h1>
 
       <div className="grid md:grid-cols-3 gap-6">
         {totalLeaves.map((leave, index) => (
@@ -76,9 +76,9 @@ export default function EmployeeDetail() {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md overflow-hidden transition-colors overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
+          <thead className="bg-gray-50 dark:bg-neutral-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
             <tr>
               <th className="p-4 text-left">Month</th>
               <th className="p-4 text-left">Type</th>
@@ -88,19 +88,18 @@ export default function EmployeeDetail() {
             </tr>
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
             {history.map((item) => (
               <tr
                 key={item.id}
-                className={`border-t transition ${
-                  item.status !== "Pending"
-                    ? "bg-green-50/40"
-                    : "hover:bg-gray-50"
-                }`}
+                className={`transition-colors duration-200 ${item.status !== "Pending"
+                  ? "bg-green-50/40 dark:bg-green-900/10"
+                  : "hover:bg-gray-50 dark:hover:bg-neutral-800/50"
+                  }`}
               >
-                <td className="p-4">{item.month}</td>
-                <td className="p-4">{item.type}</td>
-                <td className="p-4">{item.days}</td>
+                <td className="p-4 font-medium text-gray-800 dark:text-gray-200">{item.month}</td>
+                <td className="p-4 text-gray-600 dark:text-gray-400">{item.type}</td>
+                <td className="p-4 text-gray-600 dark:text-gray-400">{item.days}</td>
 
                 <td className="p-4">
                   <StatusBadge status={item.status} />
@@ -136,7 +135,7 @@ export default function EmployeeDetail() {
                       </button>
                     </>
                   ) : (
-                    <span className="text-gray-400 text-xs">Completed</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">Completed</span>
                   )}
                 </td>
               </tr>

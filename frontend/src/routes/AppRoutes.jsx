@@ -9,6 +9,8 @@ import History from "../pages/employee/History";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import EmployeeDetail from "../pages/admin/EmployeeDetail";
 import ProtectedRoute from "./protectedRoutes";
+import AllEmployees from "../pages/admin/AllEmployees";
+import AdminHistory from "../pages/admin/AdminHistory";
 
 export default function AppRoutes() {
   return (
@@ -41,8 +43,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<AdminDashboard />} />
-        <Route path="employees" element={<EmployeeLayout />} />
-        <Route path="history" element={<History />} />
+        <Route path="employees" element={<AllEmployees />} />
+        <Route path="history" element={<AdminHistory />} />
         <Route path="employee/:id" element={<EmployeeDetail />} />
       </Route>
     </Routes>

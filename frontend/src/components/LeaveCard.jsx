@@ -25,12 +25,12 @@ export default function LeaveCard({ title, total, taken }) {
   }, [remaining]);
 
   return (
-    <div className="bg-white rounded-3xl p-7 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 transition-all duration-500 space-y-5 relative group overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div className="bg-white dark:bg-neutral-900 rounded-3xl p-7 shadow-sm border border-slate-100 dark:border-neutral-800 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 transition-all duration-500 space-y-5 relative group overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
       <div className="flex justify-between items-center relative z-10">
-        <h2 className="font-bold text-lg text-textDark tracking-tight">{title}</h2>
-        <span className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+        <h2 className="font-bold text-lg text-textDark dark:text-white tracking-tight">{title}</h2>
+        <span className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-neutral-800 px-3 py-1 rounded-full border border-slate-100 dark:border-neutral-700">
           {taken}/{total} used
         </span>
       </div>
@@ -41,7 +41,7 @@ export default function LeaveCard({ title, total, taken }) {
 
       {/* Progress Bar */}
       <div className="space-y-2 relative z-10">
-        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner flex">
+        <div className="w-full bg-slate-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden shadow-inner flex">
           <div
             className="h-2.5 rounded-full transition-all duration-1000 ease-out bg-gradient-to-r from-primary to-indigo-400 relative"
             style={{ width: `${percentage}%` }}
@@ -49,7 +49,7 @@ export default function LeaveCard({ title, total, taken }) {
             <div className="absolute inset-0 bg-white/20"></div>
           </div>
         </div>
-        <p className="text-sm font-medium text-slate-500">Remaining Leaves</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Remaining Leaves</p>
       </div>
     </div>
   );
