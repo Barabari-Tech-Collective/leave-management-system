@@ -15,15 +15,15 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:5173/"
+    failureRedirect: "https://main.d3s5m69z7c8esz.amplifyapp.com/"
   }),
   (req, res) => {
     console.log("SUCCESS USER:", req.user);
     // res.redirect("http://localhost:5173/employee");
     if (req.user.role === "admin") {
-  res.redirect("http://localhost:5173/admin");
+  res.redirect(process.env.FRONTEND_URL + "/admin");
 } else {
-  res.redirect("http://localhost:5173/employee");
+  res.redirect(process.env.FRONTEND_URL + "/employee");
 }
   }
 );
@@ -37,7 +37,7 @@ router.get("/me", (req, res) => {
 // Logout
 router.get("/logout", (req, res) => {
   req.logout(() => {
-    res.redirect("http://localhost:5173");
+    res.redirect(process.env.FRONTEND_URL);
   });
 });
 

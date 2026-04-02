@@ -13,7 +13,7 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors({
-  origin: "*",
+  origin: "https://main.d3s5m69z7c8esz.amplifyapp.com",
   credentials: true
 }));
 
