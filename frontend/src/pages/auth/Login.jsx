@@ -3,7 +3,7 @@ import { useEffect } from "react";
 export default function Login() {
 
   const handleGoogleLogin = () => {
-    window.open("http://localhost:3000/auth/google", "_self");
+    window.open("https://leave-management-system-5m02.onrender.com/auth/google", "_self");
   };
 
   return (
