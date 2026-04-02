@@ -21,9 +21,9 @@ router.get(
     console.log("SUCCESS USER:", req.user);
     // res.redirect("http://localhost:5173/employee");
     if (req.user.role === "admin") {
-  res.redirect(process.env.FRONTEND_URL + "/admin");
+  res.redirect("https://main.d3s5m69z7c8esz.amplifyapp.com/admin");
 } else {
-  res.redirect(process.env.FRONTEND_URL + "/employee");
+  res.redirect("https://main.d3s5m69z7c8esz.amplifyapp.com/employee");
 }
   }
 );
