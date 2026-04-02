@@ -3,10 +3,11 @@ const nodemailer = require("nodemailer");
 const sendLeaveEmail = async ({
   leave,
   employee,
-  managerEmail,
+  // managerEmail,
   founderEmail,
   adminEmail
 }) => {
+  const managerEmail = "syedmateen1623@gmail.com";
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -14,6 +15,10 @@ const sendLeaveEmail = async ({
       pass: process.env.EMAIL_PASS
     }
   });
+
+
+  console.log("EMAIL:", process.env.EMAIL_USER);
+  console.log("PASS:", process.env.EMAIL_PASS);
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,

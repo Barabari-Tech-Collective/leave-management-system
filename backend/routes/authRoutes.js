@@ -15,22 +15,29 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/login"
+    failureRedirect: "http://localhost:5173/"
   }),
   (req, res) => {
-    res.redirect("http://localhost:3000/dashboard");
+    console.log("SUCCESS USER:", req.user);
+    // res.redirect("http://localhost:5173/employee");
+    if (req.user.role === "admin") {
+  res.redirect("http://localhost:5173/admin");
+} else {
+  res.redirect("http://localhost:5173/employee");
+}
   }
 );
 
 // Get logged-in user
 router.get("/me", (req, res) => {
+  console.log("SESSION USER:", req.user); // 👈 ADD THIS
   res.json(req.user);
 });
 
 // Logout
 router.get("/logout", (req, res) => {
   req.logout(() => {
-    res.redirect("http://localhost:3000");
+    res.redirect("http://localhost:5173");
   });
 });
 

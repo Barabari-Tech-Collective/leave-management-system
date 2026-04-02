@@ -5,15 +5,15 @@ const cors = require("cors");
 require("dotenv").config();
 require("./config/passport");
 
-const authRoutes = require("./routes/auth.routes");
-const leaveRoutes = require("./routes/leave.routes");
-const userRoutes = require("./routes/user.routes");
+const authRoutes = require("./routes/authRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: "http://localhost:5173",
   credentials: true
 }));
 
@@ -23,7 +23,12 @@ app.use(
   session({
     secret: "supersecret",
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+    httpOnly: true,
+    secure: false, // true only in production (HTTPS)
+    sameSite: "lax" // 🔥 IMPORTANT
+  }
   })
 );
 

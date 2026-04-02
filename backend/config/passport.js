@@ -11,15 +11,18 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        console.log("Step - 1 PROFILE:", profile); // 👈 ADD THIS
+
         // Restrict login to your org domain
         const email = profile.emails[0].value;
 
-        if (!email.endsWith("@yourorg.com")) {
-          return done(null, false);
-        }
+        // if (!email.endsWith("@yourorg.com")) {
+        //   return done(null, false);
+        // }
 
         // Check if user exists
         let user = await User.findOne({ googleId: profile.id });
+        console.log("step - 2 Checking if user exists")
 
         if (!user) {
           // Create new user if not exists
@@ -28,10 +31,12 @@ passport.use(
             email,
             googleId: profile.id
           });
+          console.log("Setp - 3 USER CREATED:", user);
         }
 
         return done(null, user);
       } catch (error) {
+        console.log("🔥 PASSPORT ERROR:", err);
         return done(error, null);
       }
     }
