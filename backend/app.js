@@ -18,7 +18,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -26,8 +26,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
     httpOnly: true,
-    secure: false, // true only in production (HTTPS)
-    sameSite: "lax" // 🔥 IMPORTANT
+    secure: true, // true only in production (HTTPS)
+    sameSite: "none" // 🔥 IMPORTANT
   }
   })
 );
