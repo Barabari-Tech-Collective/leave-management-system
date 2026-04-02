@@ -48,8 +48,8 @@ exports.applyLeave = async (req, res) => {
       leave,
       employee: user,
       // managerEmail: manager.email,
-      founderEmail: "asiyabarbari@gmail.com",
-      adminEmail: "farhath.barabari@gmail.com"
+      founderEmail: "harihar@barabaricollective.org",
+      adminEmail: "info@gmail.com"
     });
 
     res.json({ message: "Leave applied successfully" });
