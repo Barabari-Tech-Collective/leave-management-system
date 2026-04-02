@@ -40,7 +40,7 @@ export default function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-lg focus:outline-none"
+        className="w-11 h-11 rounded-full bg-linear-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-lg focus:outline-none"
       >
         {user?.email?.charAt(0).toUpperCase() || "E"}
       </button>
@@ -56,20 +56,34 @@ export default function ProfileDropdown() {
             </p>
           </div>
 
-          <div className="space-y-3 text-sm font-medium text-slate-600">
-            <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <span>Casual Leaves</span>
-              <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">10</span>
-            </div>
-            <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <span>Sick Leaves</span>
-              <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">8</span>
-            </div>
-            <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-              <span>Flexible</span>
-              <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">5</span>
-            </div>
-          </div>
+         <div className="space-y-3 text-sm font-medium text-slate-600">
+  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
+    <span>Casual Leaves</span>
+    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+      {user?.leaveBalance?.casual
+        ? user.leaveBalance.casual.total - user.leaveBalance.casual.taken
+        : 0}
+    </span>
+  </div>
+
+  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
+    <span>Sick Leaves</span>
+    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+      {user?.leaveBalance?.sick
+        ? user.leaveBalance.sick.total - user.leaveBalance.sick.taken
+        : 0}
+    </span>
+  </div>
+
+  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
+    <span>Flexible</span>
+    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+      {user?.leaveBalance?.flexible
+        ? user.leaveBalance.flexible.total - user.leaveBalance.flexible.taken
+        : 0}
+    </span>
+  </div>
+</div>
 
           <div className="pt-2">
             <button

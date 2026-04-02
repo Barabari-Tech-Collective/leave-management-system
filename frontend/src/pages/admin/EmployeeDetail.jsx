@@ -1,35 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import LeaveCard from "../../components/LeaveCard";
 import StatusBadge from "../../components/StatusBadge";
 import ConfirmModal from "../../components/ConfirmModal";
 import toast from "react-hot-toast";
+import API from "../../api/axiosConfig";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
 
-  const [totalLeaves, setTotalLeaves] = useState([
-    { title: "Casual Leave", total: 15, taken: 5 },
-    { title: "Sick Leave", total: 10, taken: 2 },
-    { title: "Flexible Cultural", total: 5, taken: 1 },
-  ]);
+  const [totalLeaves, setTotalLeaves] = useState([]);
 
-  const [history, setHistory] = useState([
-    {
-      id: 1,
-      month: "Jan",
-      type: "Casual Leave",
-      days: 3,
-      status: "Pending",
-    },
-    {
-      id: 2,
-      month: "Feb",
-      type: "Sick Leave",
-      days: 2,
-      status: "Pending",
-    },
-  ]);
+  const [history, setHistory] = useState([]);
 
   const [modal, setModal] = useState({
     open: false,
@@ -37,37 +19,43 @@ export default function EmployeeDetail() {
     action: "",
   });
 
-  const handleDecision = () => {
-    const { leaveId, action } = modal;
+  useEffect(() => {
+  const fetchLeaves = async () => {
+    const res = await API.get(`/leave/employee/${id}`);
+    setHistory(res.data);
+    setTotalLeaves([
+  {
+    title: "Casual Leave",
+    total: res.data.leaveBalance.casual.total,
+    taken: res.data.leaveBalance.casual.taken,
+  },
+  ]);
+};
 
-    setHistory((prev) =>
-      prev.map((item) =>
-        item.id === leaveId ? { ...item, status: action } : item,
-      ),
-    );
+  fetchLeaves();
+}, [id]);
 
-    // Deduct leave only if approved
-    if (action === "Approved") {
-      const leaveItem = history.find((item) => item.id === leaveId);
+  
 
-      setTotalLeaves((prev) =>
-        prev.map((leave) =>
-          leave.title === leaveItem.type
-            ? {
-                ...leave,
-                taken: leave.taken + leaveItem.days,
-              }
-            : leave,
-        ),
-      );
-    }
+   const handleDecision = async () => {
+  const { leaveId, action } = modal;
+
+  try {
+    await API.put(`/leave/status/${leaveId}`, {
+      status: action.toLowerCase()
+    });
 
     toast.success(`Leave ${action}`);
-    setModal({ open: false, leaveId: null, action: "" });
-  };
+  } catch (err) {
+    toast.error("Failed");
+    console.log(err, "Error updating leave status");
+  }
+
+  setModal({ open: false, leaveId: null, action: "" });
+};
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-7">
       <h1 className="text-3xl font-bold text-textDark">Employee Details</h1>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -83,38 +71,49 @@ export default function EmployeeDetail() {
               <th className="p-4 text-left">Month</th>
               <th className="p-4 text-left">Type</th>
               <th className="p-4 text-left">Days</th>
+              <th className="p-4 text-left">From</th>
+              <th className="p-4 text-left">To</th>
+              <th className="p-4 text-left">Reason</th>
               <th className="p-4 text-left">Status</th>
               <th className="p-4 text-left">Action</th>
             </tr>
           </thead>
-
           <tbody>
-            {history.map((item) => (
-              <tr
-                key={item.id}
-                className={`border-t transition ${
-                  item.status !== "Pending"
-                    ? "bg-green-50/40"
-                    : "hover:bg-gray-50"
-                }`}
-              >
+  {history.length === 0 ? (
+    <tr>
+      <td colSpan="8" className="text-center p-6 text-gray-400">
+        No leave history found
+      </td>
+    </tr>
+  ) : (
+    history.map((item) => (
+      <tr
+        key={item._id}
+        className={`border-t transition ${
+          item.status !== "pending"
+            ? "bg-green-50/40"
+            : "hover:bg-gray-50"
+        }`}
+      >
                 <td className="p-4">{item.month}</td>
                 <td className="p-4">{item.type}</td>
                 <td className="p-4">{item.days}</td>
-
+                <td className="p-4">{item.from}</td>
+                <td className="p-4">{item.to}</td>
+                <td className="p-4 max-w-xs truncate">{item.reason}</td>
                 <td className="p-4">
                   <StatusBadge status={item.status} />
                 </td>
 
                 <td className="p-4 space-x-2">
-                  {item.status === "Pending" ? (
+                  {item.status === "pending" ? (
                     <>
                       <button
                         onClick={() =>
                           setModal({
                             open: true,
-                            leaveId: item.id,
-                            action: "Approve",
+                            leaveId: item._id,
+                            action: "approved",
                           })
                         }
                         className="px-3 py-1 text-xs bg-green-500 text-white rounded-lg hover:scale-105 transition"
@@ -126,8 +125,8 @@ export default function EmployeeDetail() {
                         onClick={() =>
                           setModal({
                             open: true,
-                            leaveId: item.id,
-                            action: "Reject",
+                            leaveId: item._id,
+                            action: "rejected",
                           })
                         }
                         className="px-3 py-1 text-xs bg-red-500 text-white rounded-lg hover:scale-105 transition"
@@ -140,7 +139,7 @@ export default function EmployeeDetail() {
                   )}
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

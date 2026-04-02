@@ -1,35 +1,18 @@
 import StatusBadge from "../../components/StatusBadge";
+import { useEffect, useState } from "react";
+import API from "../../api/axiosConfig";
 
 export default function History() {
-  const historyData = [
-    {
-      month: "Jan",
-      type: "Casual",
-      from: "2026-01-10",
-      to: "2026-01-12",
-      days: 3,
-      reason: "Family trip",
-      status: "Approved",
-    },
-    {
-      month: "Feb",
-      type: "Sick",
-      from: "2026-02-03",
-      to: "2026-02-04",
-      days: 2,
-      reason: "Fever",
-      status: "Pending",
-    },
-    {
-      month: "Mar",
-      type: "Casual",
-      from: "2026-03-15",
-      to: "2026-03-15",
-      days: 1,
-      reason: "Personal work",
-      status: "Rejected",
-    },
-  ];
+  const [historyData, setHistoryData] = useState([]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const res = await API.get("/leave/myleaves");
+      setHistoryData(res.data);
+    };
+
+    fetchHistory();
+  }, []);
 
   return (
     <div className="space-y-8 animate-fadeIn">

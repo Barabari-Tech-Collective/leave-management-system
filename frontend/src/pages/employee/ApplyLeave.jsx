@@ -1,11 +1,23 @@
 import { useState } from "react";
+import API from "../../api/axiosConfig";
 
 export default function ApplyLeave() {
-  const leaveLimits = {
-    Casual: 10,
-    Sick: 8,
-    "Flexible Cultural": 5,
-  };
+  // const [managers, setManagers] = useState([]);
+
+  // useEffect(() => {
+  //   const fetchManagers = async () => {
+  //     const res = await API.get("/users/managers");
+  //     setManagers(res.data);
+  //   };
+
+  //   fetchManagers();
+  // }, []);
+
+  // const leaveLimits = {
+  //   Casual: 10,
+  //   Sick: 8,
+  //   "Flexible Cultural": 5,
+  // };
 
   const [form, setForm] = useState({
     type: "",
@@ -25,24 +37,28 @@ export default function ApplyLeave() {
     return days > 0 ? days : 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const days = calculateDays();
 
-    if (!form.type || !form.from || !form.to || !form.reason) {
-      return setError("All fields are required.");
+    const typeMap = {
+"Casual": "casual",
+"Sick": "sick",
+"Flexible Cultural": "flexible"
+};
+    try {
+      await API.post("/leave/apply", {
+
+type: typeMap[form.type],
+        fromDate: form.from,
+        toDate: form.to,
+        reason: form.reason,
+        // managerId: "PUT_MANAGER_ID_HERE"
+      });
+
+      alert("Leave Applied Successfully 🚀");
+    } catch (err) {
+      setError(err.response?.data?.message);
     }
-
-    if (new Date(form.to) < new Date(form.from)) {
-      return setError("To date cannot be before From date.");
-    }
-
-    if (days > leaveLimits[form.type]) {
-      return setError("Not enough remaining leaves.");
-    }
-
-    setError("");
-    alert("Leave Applied Successfully 🚀");
   };
 
   return (
@@ -51,10 +67,10 @@ export default function ApplyLeave() {
         onSubmit={handleSubmit}
         className="relative bg-white w-full max-w-2xl p-10 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 space-y-8 animate-fadeIn overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-indigo-400 to-indigo-600"></div>
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary via-indigo-400 to-indigo-600"></div>
 
         <div>
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600 tracking-tight text-center">
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary to-indigo-600 tracking-tight text-center">
             Apply for Leave
           </h2>
           <p className="text-center text-slate-500 mt-2 font-medium">
@@ -141,9 +157,18 @@ export default function ApplyLeave() {
           </div>
         )}
 
+        {/* <select onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
+          <option>Select Manager</option>
+          {managers.map(m => (
+            <option key={m._id} value={m._id}>
+              {m.name}
+            </option>
+          ))}
+        </select> */}
+
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-primary to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 cursor-pointer text-lg tracking-wide"
+          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 cursor-pointer text-lg tracking-wide"
         >
           Submit Leave Request
         </button>

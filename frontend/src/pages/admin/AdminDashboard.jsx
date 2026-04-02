@@ -1,34 +1,22 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import API from "../../api/axiosConfig";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
 
-  const employees = [
-    {
-      id: 1,
-      name: "Bhaskar",
-      email: "bhaskar@mail.com",
-      casual: 5,
-      sick: 2,
-    },
-    {
-      id: 2,
-      name: "Rahul",
-      email: "rahul@mail.com",
-      casual: 3,
-      sick: 1,
-    },
-    {
-      id: 3,
-      name: "Sneha",
-      email: "sneha@mail.com",
-      casual: 7,
-      sick: 4,
-    },
-  ];
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+  const fetchEmployees = async () => {
+    const res = await API.get("/users/all");
+    setEmployees(res.data);
+  };
+
+  fetchEmployees();
+}, []);
 
   const filteredEmployees = employees.filter((emp) =>
     emp.name.toLowerCase().includes(search.toLowerCase()),
@@ -62,14 +50,14 @@ export default function AdminDashboard() {
 
           <tbody>
             {filteredEmployees.map((emp) => (
-              <tr key={emp.id} className="border-t hover:bg-gray-50 transition">
+              <tr key={emp._id} className="border-t hover:bg-gray-50 transition">
                 <td className="p-4 font-medium">{emp.name}</td>
                 <td className="p-4">{emp.email}</td>
-                <td className="p-4">{emp.casual}</td>
-                <td className="p-4">{emp.sick}</td>
+                <td className="p-4">{emp.leaveBalance.casual.taken}</td>
+                <td className="p-4">{emp.leaveBalance.sick.taken}</td>
                 <td className="p-4">
                   <button
-                    onClick={() => navigate(`/admin/employee/${emp.id}`)}
+                    onClick={() => navigate(`/admin/employee/${emp._id}`)}
                     className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 transition"
                   >
                     View

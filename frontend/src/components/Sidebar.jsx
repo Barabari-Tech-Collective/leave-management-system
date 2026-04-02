@@ -53,24 +53,6 @@ export default function Sidebar() {
               All Employees
             </div>
           </NavLink>
-
-          <NavLink
-            to="/admin/history"
-            className={({ isActive }) =>
-              `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
-            }
-          >
-            <div className={linkInner}>
-              <History size={18} />
-              Leave History
-            </div>
-
-            {pendingCount > 0 && (
-              <span className="bg-accent text-xs px-2 py-1 rounded-full">
-                {pendingCount}
-              </span>
-            )}
-          </NavLink>
         </nav>
       </div>
 

@@ -1,11 +1,44 @@
 import LeaveCard from "../../components/LeaveCard";
+import { useEffect, useState } from "react";
+import API from "../../api/axiosConfig";
+
 
 export default function Dashboard() {
-  const leaveData = [
-    { title: "Casual Leave", total: 15, taken: 5 },
-    { title: "Sick Leave", total: 10, taken: 2 },
-    { title: "Flexible Cultural", total: 5, taken: 0 },
-  ];
+  const [leaveData, setLeaveData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await API.get("/users/me");
+
+      const data = res.data.leaveBalance;
+
+      setLeaveData([
+        {
+          title: "Casual Leave",
+          total: data.casual.total,
+          taken: data.casual.taken
+        },
+        {
+          title: "Sick Leave",
+          total: data.sick.total,
+          taken: data.sick.taken
+        },
+        {
+          title: "Flexible Cultural",
+          total: data.flexible.total,
+          taken: data.flexible.taken
+        }
+      ]);
+    };
+
+    fetchData();
+  }, []);
+  // const leaveData = [
+  //   { title: "Casual Leave", total: 15, taken: 5 },
+  //   { title: "Sick Leave", total: 10, taken: 2 },
+  //   { title: "Flexible Cultural", total: 5, taken: 0 },
+  // ]; Static Data
+
 
   return (
     <div className="space-y-8 animate-fadeIn">
