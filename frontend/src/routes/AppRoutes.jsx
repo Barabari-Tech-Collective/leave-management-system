@@ -30,6 +30,8 @@ export default function AppRoutes() {
         <Route path="history" element={<History />} />
       </Route>
 
+      <Route path="/employee/" element={<Employee />} />
+
       {/* Admin */}
       <Route
         path="/admin"
