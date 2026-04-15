@@ -15,15 +15,15 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "https://main.d3s5m69z7c8esz.amplifyapp.com/"
+    failureRedirect: "https://main.dj1fda2afc0ys.amplifyapp.com/"
   }),
   (req, res) => {
     console.log("SUCCESS USER:", req.user);
     // res.redirect("http://localhost:5173/employee");
     if (req.user.role === "admin") {
-  res.redirect("https://main.d3s5m69z7c8esz.amplifyapp.com/admin");
+  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/admin");
 } else {
-  res.redirect("https://main.d3s5m69z7c8esz.amplifyapp.com/employee");
+  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/employee");
 }
   }
 );
