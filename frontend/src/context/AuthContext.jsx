@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/axiosConfig";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +14,13 @@ export function AuthProvider({ children }) {
       const res = await API.get("/auth/me");
       console.log("User from API:", res.data);
        if (res.data && res.data._id) {
+
       setUser(res.data);
+      if (res.data.role === "admin") {
+    navigate("/admin");
+  } else {
+    navigate("/employee");
+  }
     } else {
       setTimeout(fetchUser, 500); // 🔥 retry once
     }
