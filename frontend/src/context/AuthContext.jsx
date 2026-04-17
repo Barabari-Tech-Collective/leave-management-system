@@ -26,7 +26,10 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    fetchUser();
+    setTimeout(() => {
+      fetchUser();
+      console.log("Initial user state:", user);
+    }, 3000);
   }, []);
 
   const logout = async () => {
