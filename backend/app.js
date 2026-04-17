@@ -14,7 +14,8 @@ const app = express();
 
 app.use(cors({
   origin: "https://main.dj1fda2afc0ys.amplifyapp.com",
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 
 app.use(express.json());
@@ -33,8 +34,13 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 app.use("/auth", authRoutes);
 app.use("/leave", leaveRoutes);
