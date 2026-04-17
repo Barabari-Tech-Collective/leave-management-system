@@ -11,6 +11,11 @@ export function AuthProvider({ children }) {
     try {
       const res = await API.get("/auth/me");
       console.log("User from API:", res.data);
+       if (res.data && res.data._id) {
+      setUser(res.data);
+    } else {
+      setTimeout(fetchUser, 500); // 🔥 retry once
+    }
       setUser(res.data);
     } catch (error) {
       console.log("Error fetching user:", error);
