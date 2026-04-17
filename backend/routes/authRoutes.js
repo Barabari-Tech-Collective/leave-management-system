@@ -31,6 +31,9 @@ router.get(
 // Get logged-in user
 router.get("/me", (req, res) => {
   console.log("SESSION USER:", req.user); // 👈 ADD THIS
+  if (!req.user) {
+    return res.status(401).json(null); // ✅ instead of undefined
+  }
   res.json(req.user);
 });
 
