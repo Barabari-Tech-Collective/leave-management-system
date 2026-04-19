@@ -1,12 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, History, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const pendingCount = 2; // Later from API
 
   const baseStyle =
     "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium group";
@@ -53,6 +52,18 @@ export default function Sidebar() {
               All Employees
             </div>
           </NavLink>
+          <NavLink
+            to="/admin/managers"
+            className={({ isActive }) =>
+              `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
+            }
+          >
+            <div className={linkInner}>
+              <Users size={18} />
+              Manage Managers
+            </div>
+          </NavLink>
+
         </nav>
       </div>
 

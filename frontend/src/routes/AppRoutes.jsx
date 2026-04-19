@@ -43,6 +43,7 @@ export default function AppRoutes() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="employees" element={<AllEmployee />} />
+        <Route path="managers" element={<AdminManagers />} />
         <Route path="history" element={<History />} />
         <Route path="employee/:id" element={<EmployeeDetail />} />
       </Route>

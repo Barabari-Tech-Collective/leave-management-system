@@ -179,6 +179,7 @@ type: typeMap[form.type],
       </option>
     ))}
   </select>
+  
 </div>
 
         {/* <select onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
