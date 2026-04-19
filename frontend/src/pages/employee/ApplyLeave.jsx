@@ -1,17 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../../api/axiosConfig";
 
 export default function ApplyLeave() {
-  // const [managers, setManagers] = useState([]);
+  const [managers, setManagers] = useState([]);
+  const [selectedManagers, setSelectedManagers] = useState([])
 
-  // useEffect(() => {
-  //   const fetchManagers = async () => {
-  //     const res = await API.get("/users/managers");
-  //     setManagers(res.data);
-  //   };
+  useEffect(() => {
+    const fetchManagers = async () => {
+      const res = await API.get("/users/managers");
+      setManagers(res.data);
+    };
 
-  //   fetchManagers();
-  // }, []);
+    fetchManagers();
+  }, []);
 
   // const leaveLimits = {
   //   Casual: 10,
@@ -52,6 +53,7 @@ type: typeMap[form.type],
         fromDate: form.from,
         toDate: form.to,
         reason: form.reason,
+        managerIds: selectedManagers
         // managerId: "PUT_MANAGER_ID_HERE"
       });
 
@@ -156,6 +158,28 @@ type: typeMap[form.type],
             {error}
           </div>
         )}
+
+        <div>
+  <label className="block mb-2 font-bold text-slate-700">
+    Select Managers
+  </label>
+
+  <select
+    multiple
+    className="w-full p-4 border border-slate-200 rounded-2xl"
+    value={selectedManagers}
+    onChange={(e) => {
+      const values = Array.from(e.target.selectedOptions, (opt) => opt.value);
+      setSelectedManagers(values);
+    }}
+  >
+    {managers.map((m) => (
+      <option key={m._id} value={m._id}>
+        {m.name}
+      </option>
+    ))}
+  </select>
+</div>
 
         {/* <select onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
           <option>Select Manager</option>
