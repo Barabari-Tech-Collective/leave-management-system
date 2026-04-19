@@ -1,13 +1,15 @@
 const nodemailer = require("nodemailer");
 
+const managerEmails = managers.map((m) => m.email);
+
 const sendLeaveEmail = async ({
   leave,
   employee,
-  // managerEmail,
+  managerEmails = [],
   founderEmail,
   adminEmail
 }) => {
-  const managerEmail = "syedmateen1623@gmail.com";
+  // const managerEmail = "syedmateen1623@gmail.com";
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -27,7 +29,7 @@ const sendLeaveEmail = async ({
     to: adminEmail,
 
     // CC founder + reporting manager
-    cc: [managerEmail, founderEmail].filter(Boolean),
+    cc: [...managerEmails, founderEmail].filter(Boolean),
 
     subject: `Leave Request - ${leave.reason}`,
 

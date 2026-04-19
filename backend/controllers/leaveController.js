@@ -5,7 +5,7 @@ const sendLeaveEmail = require("../services/emailService");
 exports.applyLeave = async (req, res) => {
   try {
     const user = req.user;
-    const { type, fromDate, toDate, reason } = req.body;
+    const { type, fromDate, toDate, reason, managerIds } = req.body;
 
     const start = new Date(fromDate);
     const end = new Date(toDate);
@@ -24,12 +24,22 @@ exports.applyLeave = async (req, res) => {
     // if (!manager || manager.role !== "manager") {
     //   return res.status(400).json({ message: "Invalid manager selected" });
     // }
+    const managers = await User.find({
+  _id: { $in: managerIds },
+  isManager: true
+});
+
+if (!managers.length) {
+  return res.status(400).json({ message: "No valid managers selected" });
+}
+
+const managerEmails = managers.map((m) => m.email);
 
     // Fetch founder
-    const founder = await User.findOne({ role: "founder" });
+    // const founder = await User.findOne({ role: "founder" });
 
     // Fetch admin
-    const admin = await User.findOne({ role: "admin" });
+    // const admin = await User.findOne({ role: "admin" });
 
     const leave = await Leave.create({
       user: user._id,
@@ -37,7 +47,8 @@ exports.applyLeave = async (req, res) => {
       fromDate,
       toDate,
       days,
-      reason
+      reason,
+      managers: managerIds,
     });
 
     user.leaveBalance[type].taken += days;
@@ -48,6 +59,7 @@ exports.applyLeave = async (req, res) => {
       leave,
       employee: user,
       // managerEmail: manager.email,
+      managerEmails,
       founderEmail: "harihar@barabaricollective.org",
       adminEmail: "info@gmail.com"
     });

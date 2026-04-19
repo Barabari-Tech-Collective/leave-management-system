@@ -18,6 +18,11 @@ const userSchema = new mongoose.Schema(
       default: "employee"
     },
 
+    isManager: {
+  type: Boolean,
+  default: false
+},
+
     leaveBalance: leaveBalanceSchema
   },
   { timestamps: true }
