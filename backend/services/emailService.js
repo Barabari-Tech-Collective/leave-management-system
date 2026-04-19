@@ -1,7 +1,5 @@
 const nodemailer = require("nodemailer");
 
-const managerEmails = managers.map((m) => m.email);
-
 const sendLeaveEmail = async ({
   leave,
   employee,
