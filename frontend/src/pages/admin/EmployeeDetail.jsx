@@ -36,8 +36,7 @@ export default function EmployeeDetail() {
 }, [id]);
 
   
-
-   const handleDecision = async () => {
+const handleDecision = async () => {
   const { leaveId, action } = modal;
 
   try {
@@ -45,10 +44,19 @@ export default function EmployeeDetail() {
       status: action.toLowerCase()
     });
 
+    // update UI instantly
+    setHistory((prev) =>
+      prev.map((item) =>
+        item._id === leaveId
+          ? { ...item, status: action.toLowerCase() }
+          : item
+      )
+    );
+
     toast.success(`Leave ${action}`);
-  } catch (err) {
+  } catch (error) {
+    console.log("error", error);
     toast.error("Failed");
-    console.log(err, "Error updating leave status");
   }
 
   setModal({ open: false, leaveId: null, action: "" });
