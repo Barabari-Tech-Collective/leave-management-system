@@ -61,7 +61,7 @@ const managerEmails = managers.map((m) => m.email);
       // managerEmail: manager.email,
       managerEmails,
       founderEmail: "harihar@barabaricollective.org",
-      adminEmail: "info@gmail.com"
+      adminEmail: "karthik.krishnakumar7@gmail.com"
     });
 
     res.json({ message: "Leave applied successfully" });
