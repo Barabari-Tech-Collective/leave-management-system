@@ -43,4 +43,38 @@ ${employee.name}
   });
 };
 
-module.exports = sendLeaveEmail;
+
+const sendApprovalEmail = async ({
+  employeeEmail,
+  employeeName,
+  status,
+  leave
+}) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: employeeEmail,
+
+    subject: `Leave ${status.toUpperCase()}`,
+
+    text: `
+Hi ${employeeName},
+
+Your leave request from ${leave.fromDate} to ${leave.toDate} has been ${status}.
+
+Reason: ${leave.reason}
+
+Regards,
+Team
+`
+  });
+};
+
+module.exports = { sendLeaveEmail, sendApprovalEmail };

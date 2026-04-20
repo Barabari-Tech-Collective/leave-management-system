@@ -1,6 +1,6 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
-const sendLeaveEmail = require("../services/emailService");
+const { sendLeaveEmail, sendApprovalEmail} = require("../services/emailService");
 
 exports.applyLeave = async (req, res) => {
   try {
@@ -51,8 +51,8 @@ const managerEmails = managers.map((m) => m.email);
       managers: managerIds,
     });
 
-    user.leaveBalance[type].taken += days;
-    await user.save();
+    // user.leaveBalance[type].taken += days;
+    // await user.save();
 
     // Send email
     await sendLeaveEmail({
@@ -103,24 +103,35 @@ res.json(formattedLeaves);
   }
 };
 
-
 exports.updateLeaveStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
     const leave = await Leave.findById(req.params.id).populate("user");
 
-    leave.status = status;
-
-    // If approved → deduct leave
-    if (status === "approved") {
-      // leave.user.leaveBalance[leave.type].taken += leave.days;
-      await leave.user.save();
+    if (!leave) {
+      return res.status(404).json({ message: "Leave not found" });
     }
+
+    leave.status = status;
 
     await leave.save();
 
-    res.json({ message: "Updated successfully" });
+    // SEND EMAIL TO EMPLOYEE
+    await sendApprovalEmail({
+      employeeEmail: leave.user.email,
+      employeeName: leave.user.name,
+      status,
+      leave
+    });
+
+    if (status === "approved") {
+  leave.user.leaveBalance[leave.type].taken += leave.days;
+  await leave.user.save();
+}
+
+    res.json({ message: `Leave ${status}` });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
