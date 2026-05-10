@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import API from "../api/axiosConfig";
+import Loader from "../components/Loader";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,15 +13,9 @@ export function AuthProvider({ children }) {
       const res = await API.get("/auth/me");
       console.log("User from API:", res.data);
        if (res.data && res.data._id) {
-
       setUser(res.data);
-      if (res.data.role === "admin") {
-    navigate("/admin");
-  } else {
-    navigate("/employee");
-  }
     } else {
-      setTimeout(fetchUser, 500); // 🔥 retry once
+      setUser(null);
     }
       setUser(res.data);
     } catch (error) {
@@ -34,10 +27,7 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    setTimeout(() => {
       fetchUser();
-      console.log("Initial user state:", user);
-    }, 3000);
   }, []);
 
   const logout = async () => {

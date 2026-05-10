@@ -1,11 +1,28 @@
-import { useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Loader from "../../components/Loader";
 
 export default function Login() {
+    const { user, loading } = useAuth();
 
   const handleGoogleLogin = () => {
     window.open("https://leave-management-system-5m02.onrender.com/auth/google", "_self");
   };
 
+  if (loading) {
+    return (
+      <Loader/>
+    );
+  }
+  
+   // ✅ Already logged in
+  if (user) {
+    return (
+      <Navigate
+        to={user.role === "admin" ? "/admin" : "/employee"}
+      />
+    );
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-white to-accent/20">
       <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center space-y-6">
