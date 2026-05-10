@@ -5,7 +5,7 @@ const sendLeaveEmail = async ({
   employee,
   managerEmails = [],
   founderEmail,
-  adminEmail
+  adminEmails = []
 }) => {
   // const managerEmail = "syedmateen1623@gmail.com";
   const transporter = nodemailer.createTransport({
@@ -24,7 +24,7 @@ const sendLeaveEmail = async ({
     from: process.env.EMAIL_USER,
 
     // Main receiver
-    to: adminEmail,
+    to: adminEmails,
 
     // CC founder + reporting manager
     cc: [...managerEmails, founderEmail].filter(Boolean),

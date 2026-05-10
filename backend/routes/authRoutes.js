@@ -39,10 +39,14 @@ router.get("/me", (req, res) => {
 });
 
 // Logout
-router.get("/logout", (req, res) => {
+router.post("/logout", (req, res) => {
   req.logout(() => {
-    res.redirect(process.env.FRONTEND_URL);
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid");
+      res.status(200).json({
+        message: "Logged out successfully",
+      });
+    });
   });
 });
-
 module.exports = router;

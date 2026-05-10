@@ -50,7 +50,9 @@ const managerEmails = managers.map((m) => m.email);
       reason,
       managers: managerIds,
     });
+    const admins = await User.find({ role: "admin" });
 
+const adminEmails = admins.map((admin) => admin.email);
     // user.leaveBalance[type].taken += days;
     // await user.save();
 
@@ -62,7 +64,7 @@ const managerEmails = managers.map((m) => m.email);
       managerEmails,
       founderEmail: "harihar@barabaricollective.org",
       // adminEmail: "karthik.krishnakumar7@gmail.com"
-      adminEmail: "asiya.farhath@barabaricollective.org"
+      adminEmails
     });
 
     res.json({ message: "Leave applied successfully" });
