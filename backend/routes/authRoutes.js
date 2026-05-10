@@ -20,12 +20,12 @@ router.get(
   (req, res) => {
     console.log("SUCCESS USER:", req.user);
     // res.redirect("http://localhost:5173/employee");
-    res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com");
-//     if (req.user.role === "admin") {
-//   res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/admin");
-// } else {
-//   res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/employee");
-// }
+    // res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com");
+    if (req.user.role === "admin") {
+  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/admin");
+} else {
+  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/employee");
+}
   }
 );
 
