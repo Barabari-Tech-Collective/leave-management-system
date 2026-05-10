@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Select from "react-select";
 import API from "../../api/axiosConfig";
 
 export default function ApplyLeave() {
@@ -159,27 +160,38 @@ type: typeMap[form.type],
           </div>
         )}
 
-        <div>
+      <div>
   <label className="block mb-2 font-bold text-slate-700">
     Select Managers
   </label>
 
-  <select
-    multiple
-    className="w-full p-4 border border-slate-200 rounded-2xl"
-    value={selectedManagers}
-    onChange={(e) => {
-      const values = Array.from(e.target.selectedOptions, (opt) => opt.value);
-      setSelectedManagers(values);
+  <Select
+    isMulti
+    options={managers.map((m) => ({
+      value: m._id,
+      label: m.name,
+    }))}
+
+    value={managers
+      .filter((m) => selectedManagers.includes(m._id))
+      .map((m) => ({
+        value: m._id,
+        label: m.name,
+      }))
+    }
+
+    onChange={(selectedOptions) => {
+      setSelectedManagers(
+        // selectedOptions.map((option) => option.value)
+        selectedOptions
+      ? selectedOptions.map((option) => option.value)
+      : []
+      );
     }}
-  >
-    {managers.map((m) => (
-      <option key={m._id} value={m._id}>
-        {m.name}
-      </option>
-    ))}
-  </select>
-  
+
+    placeholder="Select Managers..."
+    className="text-left"
+  />
 </div>
 
         {/* <select onChange={(e) => setForm({ ...form, managerId: e.target.value })}>

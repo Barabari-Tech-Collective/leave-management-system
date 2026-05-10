@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import API from "../api/axiosConfig";
+import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async () => {
@@ -31,9 +33,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = async () => {
+  try {
     await API.post("/auth/logout");
     setUser(null);
-  };
+    navigate("/");
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   return (
     <AuthContext.Provider value={{ user, setUser, logout, loading }}>
