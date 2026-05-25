@@ -5,7 +5,9 @@ const { sendLeaveEmail, sendApprovalEmail} = require("../services/emailService")
 exports.applyLeave = async (req, res) => {
   try {
     const user = req.user;
+    console.log("this is user applying for leave", user);
     const { type, fromDate, toDate, reason, managerIds } = req.body;
+    console.log("this is the request body of apply leave api", req.body);
 
     const start = new Date(fromDate);
     const end = new Date(toDate);
@@ -66,6 +68,7 @@ const adminEmails = admins.map((admin) => admin.email);
       // adminEmail: "karthik.krishnakumar7@gmail.com"
       adminEmails
     });
+    console.log("leave created", leave);
 
     res.json({ message: "Leave applied successfully" });
 
