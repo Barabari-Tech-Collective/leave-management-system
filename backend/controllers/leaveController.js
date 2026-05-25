@@ -73,6 +73,7 @@ const adminEmails = admins.map((admin) => admin.email);
     res.json({ message: "Leave applied successfully" });
 
   } catch (error) {
+    console.log("this is the error", error);
     res.status(500).json({ message: error.message });
   }
 };
