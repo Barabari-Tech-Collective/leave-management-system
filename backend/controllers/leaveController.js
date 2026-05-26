@@ -131,15 +131,16 @@ exports.updateLeaveStatus = async (req, res) => {
       status,
       leave
     });
-
+  
     if (status === "approved") {
   leave.user.leaveBalance[leave.type].taken += leave.days;
   await leave.user.save();
 }
-
+    console.log("leaves approved");
     res.json({ message: `Leave ${status}` });
 
   } catch (err) {
+    console.log("this is the error in approving mail", err);
     res.status(500).json({ message: err.message });
   }
 };

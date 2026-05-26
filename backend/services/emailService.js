@@ -47,7 +47,7 @@ const sendApprovalEmail = async ({
 }) => {
   try {
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "leaves@barabaricollective.org",
 
       to: employeeEmail,
 
