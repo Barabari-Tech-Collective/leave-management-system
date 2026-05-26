@@ -1,4 +1,6 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendLeaveEmail = async ({
   leave,
@@ -7,45 +9,35 @@ const sendLeaveEmail = async ({
   founderEmail,
   adminEmails = []
 }) => {
-  // const managerEmail = "syedmateen1623@gmail.com";
-  const transporter = nodemailer.createTransport({
-    // service: "gmail",
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  try {
+    await resend.emails.send({
+      from: "leaves@barabaricollective.org",
 
+      // Main receiver
+      to: adminEmails,
 
-  console.log("EMAIL:", process.env.EMAIL_USER);
-  console.log("PASS:", process.env.EMAIL_PASS);
+      // CC founder + managers
+      cc: [...managerEmails, founderEmail].filter(Boolean),
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+      subject: `Leave Request - ${leave.reason}`,
 
-    // Main receiver
-    to: adminEmails,
-
-    // CC founder + reporting manager
-    cc: [...managerEmails, founderEmail].filter(Boolean),
-
-    subject: `Leave Request - ${leave.reason}`,
-
-    text: `
+      text: `
 Hi,
 
 ${employee.name} wants leave from ${leave.fromDate} to ${leave.toDate}.
+
 Reason: ${leave.reason}
 
 Regards,
 ${employee.name}
 `
-  });
-};
+    });
 
+    console.log("Leave email sent successfully");
+  } catch (err) {
+    console.error("Leave email failed:", err);
+  }
+};
 
 const sendApprovalEmail = async ({
   employeeEmail,
@@ -53,21 +45,15 @@ const sendApprovalEmail = async ({
   status,
   leave
 }) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  try {
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: employeeEmail,
+      to: employeeEmail,
 
-    subject: `Leave ${status.toUpperCase()}`,
+      subject: `Leave ${status.toUpperCase()}`,
 
-    text: `
+      text: `
 Hi ${employeeName},
 
 Your leave request from ${leave.fromDate} to ${leave.toDate} has been ${status}.
@@ -77,7 +63,12 @@ Reason: ${leave.reason}
 Regards,
 Team
 `
-  });
+    });
+
+    console.log("Approval email sent successfully");
+  } catch (err) {
+    console.error("Approval email failed:", err);
+  }
 };
 
 module.exports = { sendLeaveEmail, sendApprovalEmail };
