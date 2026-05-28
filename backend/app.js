@@ -13,7 +13,7 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors({
-  origin: "https://main.dj1fda2afc0ys.amplifyapp.com",
+  origin: "https://leaveportal.barabaricollective.org",
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
@@ -29,7 +29,7 @@ app.use(
     cookie: {
     httpOnly: true,
     secure: true, // true only in production (HTTPS)
-    sameSite: "none" // 🔥 IMPORTANT
+    sameSite: "none" 
   }
   })
 );

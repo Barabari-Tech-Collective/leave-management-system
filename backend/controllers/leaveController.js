@@ -93,7 +93,7 @@ exports.getMyleaves = async (req, res) => {
     days: leave.days,
     reason: leave.reason,
 
-    // 👇 formatted fields
+    // formatted fields
     month: from.toLocaleString("default", { month: "short" }),
     from: from.toLocaleDateString("en-GB"),
     to: to.toLocaleDateString("en-GB"),

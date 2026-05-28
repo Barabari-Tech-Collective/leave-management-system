@@ -7,7 +7,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "https://leave-management-system-5m02.onrender.com/auth/google/callback"
+      callbackURL: "https://leave-portal-api.barabaricollective.org/auth/google/callback"
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -36,7 +36,7 @@ passport.use(
 
         return done(null, user);
       } catch (error) {
-        console.log("🔥 PASSPORT ERROR:", err);
+        console.log("PASSPORT ERROR:", err);
         return done(error, null);
       }
     }

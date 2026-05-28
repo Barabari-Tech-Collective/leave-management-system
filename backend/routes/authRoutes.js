@@ -15,25 +15,25 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "https://main.dj1fda2afc0ys.amplifyapp.com/"
+    failureRedirect: "https://leaveportal.barabaricollective.org/"
   }),
   (req, res) => {
     console.log("SUCCESS USER:", req.user);
     // res.redirect("http://localhost:5173/employee");
     // res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com");
     if (req.user.role === "admin") {
-  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/admin");
+  res.redirect("https://leaveportal.barabaricollective.org/admin");
 } else {
-  res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com/employee");
+  res.redirect("https://leaveportal.barabaricollective.org/employee");
 }
   }
 );
 
 // Get logged-in user
 router.get("/me", (req, res) => {
-  console.log("SESSION USER:", req.user); // 👈 ADD THIS
+  console.log("SESSION USER:", req.user); // ADD THIS
   if (!req.user) {
-    return res.status(401).json(null); // ✅ instead of undefined
+    return res.status(401).json(null); // instead of undefined
   }
   res.json(req.user);
 });
