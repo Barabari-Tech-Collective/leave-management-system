@@ -6,7 +6,7 @@ export default function Login() {
     const { user, loading } = useAuth();
 
   const handleGoogleLogin = () => {
-    window.open("https://leave-management-system-5m02.onrender.com/auth/google", "_self");
+    window.open("https://leave-portal-api.barabaricollective.org/auth/google", "_self");
   };
 
   if (loading) {
