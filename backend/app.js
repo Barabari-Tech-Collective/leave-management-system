@@ -29,7 +29,8 @@ app.use(
     cookie: {
     httpOnly: true,
     secure: true, // true only in production (HTTPS)
-    sameSite: "none" 
+    sameSite: "none",
+    domain: ".barabaricollective.org" 
   }
   })
 );
