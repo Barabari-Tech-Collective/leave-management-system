@@ -57,8 +57,27 @@ router.get(
 //   }
 // );
 
+// ⚠️ TEMPORARY DEBUG ROUTE - remove after fixing
+router.get("/debug", (req, res) => {
+  console.log("=== DEBUG /auth/debug ===");
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("Cookie header:", req.headers.cookie);
+  console.log("SessionID:", req.sessionID);
+  console.log("Session:", req.session);
+  console.log("isAuthenticated:", req.isAuthenticated());
+  console.log("User:", req.user);
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    hasCookie: !!req.headers.cookie,
+    cookieHeader: req.headers.cookie,
+    sessionID: req.sessionID,
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user || null
+  });
+});
+
 // Get logged-in user
-router.get("/me",ensureAuth, (req, res) => {
+router.get("/me", ensureAuth, (req, res) => {
   console.log("SESSION USER:", req.user); // ADD THIS
 
   console.log("SESSION:", req.session);
