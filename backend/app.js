@@ -33,8 +33,8 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // true in prod
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
-      // domain is intentionally omitted so it binds to the API domain
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      domain: process.env.NODE_ENV === "production" ? ".barabaricollective.org" : undefined
     }
   })
 );

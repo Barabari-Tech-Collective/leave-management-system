@@ -61,6 +61,7 @@ router.get(
 router.get("/debug", (req, res) => {
   console.log("=== DEBUG /auth/debug ===");
   console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("req.secure:", req.secure);
   console.log("Cookie header:", req.headers.cookie);
   console.log("SessionID:", req.sessionID);
   console.log("Session:", req.session);
@@ -68,6 +69,7 @@ router.get("/debug", (req, res) => {
   console.log("User:", req.user);
   res.json({
     NODE_ENV: process.env.NODE_ENV,
+    reqSecure: req.secure,
     hasCookie: !!req.headers.cookie,
     cookieHeader: req.headers.cookie,
     sessionID: req.sessionID,
