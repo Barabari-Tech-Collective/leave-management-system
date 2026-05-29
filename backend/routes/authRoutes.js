@@ -64,6 +64,11 @@ router.get(
 // Get logged-in user
 router.get("/me",ensureAuth, (req, res) => {
   console.log("SESSION USER:", req.user); // ADD THIS
+
+  console.log("SESSION:", req.session);
+  console.log("SESSION ID:", req.sessionID);
+  console.log("USER:", req.user);
+  console.log("IS AUTH:", req.isAuthenticated());
   if (!req.user) {
     return res.status(401).json(null); // instead of undefined
   }
