@@ -10,25 +10,52 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = async () => {
-    try {
-      const res = await API.get("/auth/me");
-      console.log("User from API:", res.data);
-       if (res.data && res.data._id) {
+//   const fetchUser = async () => {
+//     try {
+//       const res = await API.get("/auth/me");
+//       console.log("User from API:", res.data);
+//        if (res.data && res.data._id) {
+//       setUser(res.data);
+//     } else {
+//       setUser(null);
+//     }
+//       // setUser(res.data);
+//     } catch (error) {
+//       console.log("Error fetching user:", error);
+//       if (error.response?.status !== 401) {
+//   setUser(null);
+// }
+//     } finally {
+//       setLoading(false
+// );
+//     }
+//   };
+
+const fetchUser = async () => {
+  try {
+
+    const res = await API.get("/auth/me");
+
+    console.log("User from API:", res.data);
+
+    if (res.data && res.data._id) {
       setUser(res.data);
     } else {
       setUser(null);
     }
-      // setUser(res.data);
-    } catch (error) {
-      console.log("Error fetching user:", error);
-      if (error.response?.status !== 401) {
-  setUser(null);
-}
-    } finally {
-      setLoading(false);
-    }
-  };
+
+  } catch (error) {
+
+    console.log("Error fetching user:", error);
+
+    setUser(null);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   useEffect(() => {
     const timer = setTimeout(() => {

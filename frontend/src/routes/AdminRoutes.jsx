@@ -4,9 +4,9 @@ import { Navigate } from "react-router-dom";
 export default function AdminRoute({ children }) {
   const { user, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading || user === undefined) return null;
 
-  if (!user || user.role !== "admin") {
+  if (user === null || user.role !== "admin") {
     return <Navigate to="/employee" />;
   }
 
