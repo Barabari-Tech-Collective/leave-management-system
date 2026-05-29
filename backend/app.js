@@ -1,6 +1,6 @@
 const express = require("express");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
+const MongoStore = require("connect-mongo").default;
 const passport = require("passport");
 const cors = require("cors");
 require("dotenv").config();
