@@ -24,7 +24,7 @@ export default function Login() {
     );
   }
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-white to-accent/20">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/20 via-white to-accent/20">
       <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center space-y-6">
 
         <h2 className="text-2xl font-bold">
