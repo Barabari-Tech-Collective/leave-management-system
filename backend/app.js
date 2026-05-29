@@ -1,5 +1,6 @@
 const express = require("express");
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const passport = require("passport");
 const cors = require("cors");
 require("dotenv").config();
@@ -26,6 +27,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     proxy: true,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+    }),
     cookie: {
     httpOnly: true,
     secure: true, // true only in production (HTTPS)
