@@ -14,13 +14,13 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors({
-  origin: "https://leaveportal.barabaricollective.org",
+  origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
 }));
 
 app.use(express.json());
-app.set("trust proxy", 1);
+app.enable("trust proxy"); // Trust all proxies in AWS
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -31,18 +31,14 @@ app.use(
       mongoUrl: process.env.MONGO_URI,
     }),
     cookie: {
-    httpOnly: true,
-    secure: true, // true only in production (HTTPS)
-    sameSite: "none",
-    domain: ".barabaricollective.org" 
-  }
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // true in prod
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+      // domain is intentionally omitted so it binds to the API domain
+    }
   })
 );
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
 app.use(passport.initialize());
 app.use(passport.session());
 
