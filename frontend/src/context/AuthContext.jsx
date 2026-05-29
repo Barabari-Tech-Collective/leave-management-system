@@ -22,14 +22,19 @@ export function AuthProvider({ children }) {
       // setUser(res.data);
     } catch (error) {
       console.log("Error fetching user:", error);
-      setUser(null);
+      if (error.response?.status !== 401) {
+  setUser(null);
+}
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
       fetchUser();
+    }, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   const logout = async () => {
