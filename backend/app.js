@@ -14,9 +14,13 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors({
-  origin: "https://leaveportal.barabaricollective.org",
+  origin: [
+    "https://leaveportal.barabaricollective.org",
+    "https://leave-management-system-frontend-7r85.onrender.com"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
@@ -34,15 +38,11 @@ app.use(
     httpOnly: true,
     secure: true, // true only in production (HTTPS)
     sameSite: "none",
-    domain: ".barabaricollective.org" 
+    // domain: ".barabaricollective.org" 
   }
   })
 );
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-});
 app.use(passport.initialize());
 app.use(passport.session());
 
