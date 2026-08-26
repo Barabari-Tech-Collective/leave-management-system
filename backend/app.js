@@ -14,17 +14,14 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 
 app.use(cors({
-  origin: [
-    "https://leaveportal.barabaricollective.org",
-    "https://leave-management-system-frontend-7r85.onrender.com"
-  ],
+  origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
-app.set("trust proxy", 1);
+app.enable("trust proxy"); // Trust all proxies in AWS
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -35,11 +32,11 @@ app.use(
       mongoUrl: process.env.MONGO_URI,
     }),
     cookie: {
-    httpOnly: true,
-    secure: true, // true only in production (HTTPS)
-    sameSite: "none",
-    // domain: ".barabaricollective.org" 
-  }
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // true in prod
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      domain: process.env.NODE_ENV === "production" ? ".barabaricollective.org" : undefined
+    }
   })
 );
 

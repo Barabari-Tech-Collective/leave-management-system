@@ -16,7 +16,7 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "https://leaveportal.barabaricollective.org/",
+    failureRedirect: `${process.env.FRONTEND_URL}/`,
   }),
   (req, res, next) => {
 
@@ -32,37 +32,18 @@ router.get(
       console.log("SESSION SAVED SUCCESSFULLY");
 
       if (req.user.role === "admin") {
-        return res.redirect(
-          "https://leaveportal.barabaricollective.org/admin"
-        );
+        return res.redirect(`${process.env.FRONTEND_URL}/admin`);
       }
 
-      return res.redirect(
-        "https://leaveportal.barabaricollective.org/employee"
-      );
+      return res.redirect(`${process.env.FRONTEND_URL}/employee`);
 
     });
   }
 );
-// router.get(
-//   "/google/callback",
-//   passport.authenticate("google", {
-//     failureRedirect: "https://leaveportal.barabaricollective.org/"
-//   }),
-//   (req, res) => {
-//     console.log("SUCCESS USER:", req.user);
-    // res.redirect("http://localhost:5173/employee");
-    // res.redirect("https://main.dj1fda2afc0ys.amplifyapp.com");
-//     if (req.user.role === "admin") {
-//   res.redirect("https://leaveportal.barabaricollective.org/admin");
-// } else {
-//   res.redirect("https://leaveportal.barabaricollective.org/employee");
-// }
-//   }
-// );
+
 
 // Get logged-in user
-router.get("/me",ensureAuth, (req, res) => {
+router.get("/me", ensureAuth, (req, res) => {
   console.log("SESSION USER:", req.user); // ADD THIS
 
   console.log("SESSION:", req.session);
@@ -81,10 +62,9 @@ router.post("/logout", (req, res) => {
     req.session.destroy(() => {
       res.clearCookie("connect.sid", {
         httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  domain: ".barabaricollective.org",
-    });
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+      });
       res.status(200).json({
         message: "Logged out successfully",
       });
