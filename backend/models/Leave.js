@@ -6,6 +6,10 @@ const leaveSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
     },
+    vertical: {
+      type: String,
+      enum: ["Program", "Placement", "EdTech", "Operations", "None"]
+    },
     type: {
       type: String,
       enum: ["casual", "sick", "flexible"],

@@ -12,16 +12,23 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true },
     googleId: String,
 
-    role: {
+    vertical: {
       type: String,
-      enum: ["employee", "admin", "manager", "founder"],
-      default: "employee"
+      enum: ["Program", "Placement", "EdTech", "Operations", "None"],
+      default: "None"
     },
 
-    isManager: {
-  type: Boolean,
-  default: false
-},
+    // Identify if the user leads a vertical
+    isVerticalLead: {
+      type: Boolean,
+      default: false
+    },
+
+    role: {
+      type: String,
+      enum: ["employee", "admin", "founder"],
+      default: "employee"
+    },
 
     leaveBalance: leaveBalanceSchema
   },

@@ -1,17 +1,15 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
-const { sendLeaveEmail, sendApprovalEmail} = require("../services/emailService");
+const { sendLeaveEmail, sendApprovalEmail } = require("../services/emailService");
 
+// 1. APPLY LEAVE (Notifies Vertical Lead, Teammates & Admins)
 exports.applyLeave = async (req, res) => {
   try {
     const user = req.user;
-    console.log("this is user applying for leave", user);
-    const { type, fromDate, toDate, reason, managerIds } = req.body;
-    console.log("this is the request body of apply leave api", req.body);
+    const { type, fromDate, toDate, reason } = req.body;
 
     const start = new Date(fromDate);
     const end = new Date(toDate);
-
     const days = (end - start) / (1000 * 60 * 60 * 24) + 1;
 
     const balance = user.leaveBalance[type];
@@ -21,99 +19,80 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: "Not enough leave balance" });
     }
 
-    // Fetch selected manager
-    // const manager = await User.findById(managerId);
-    // if (!manager || manager.role !== "manager") {
-    //   return res.status(400).json({ message: "Invalid manager selected" });
-    // }
-    const managers = await User.find({
-  _id: { $in: managerIds },
-  isManager: true
-});
+    // A. Fetch Vertical Lead & Teammates automatically based on user's vertical
+    const teamMembers = await User.find({
+      vertical: user.vertical,
+      _id: { $ne: user._id } // Exclude applicant
+    });
 
-if (!managers.length) {
-  return res.status(400).json({ message: "No valid managers selected" });
-}
+    const teamEmails = teamMembers.map((member) => member.email);
 
-const managerEmails = managers.map((m) => m.email);
+    // B. Fetch Admins
+    const admins = await User.find({ role: "admin" });
+    const adminEmails = admins.map((admin) => admin.email);
 
-    // Fetch founder
-    // const founder = await User.findOne({ role: "founder" });
+    // C. Combine all notification recipients (removing duplicates)
+    const allRecipientEmails = Array.from(
+      new Set([...teamEmails, ...adminEmails])
+    );
 
-    // Fetch admin
-    // const admin = await User.findOne({ role: "admin" });
-
+    // D. Create Leave record tied to user's vertical
     const leave = await Leave.create({
       user: user._id,
+      vertical: user.vertical,
       type,
       fromDate,
       toDate,
       days,
-      reason,
-      managers: managerIds,
+      reason
     });
-    const admins = await User.find({ role: "admin" });
 
-const adminEmails = admins.map((admin) => admin.email);
-    // user.leaveBalance[type].taken += days;
-    // await user.save();
-
-    // Send email
+    // E. Send Automated Resend Email
     await sendLeaveEmail({
       leave,
       employee: user,
-      // managerEmail: manager.email,
-      managerEmails,
-      founderEmail: "harihar@barabaricollective.org",
-      // adminEmail: "karthik.krishnakumar7@gmail.com"
-      adminEmails
+      managerEmails: allRecipientEmails,
+      founderEmail: "harihar@barabaricollective.org"
     });
-    console.log("leave created", leave);
 
-    res.json({ message: "Leave applied successfully" });
-
+    res.json({ message: "Leave applied successfully", leave });
   } catch (error) {
-    console.log("this is the error", error);
+    console.log("Error applying leave:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
+// 2. GET MY LEAVES (For logged-in employee)
 exports.getMyleaves = async (req, res) => {
   try {
-    const leaves = await Leave.find({ user: req.user._id })
-      .sort({ createdAt: -1 });
-      console.log("this is leaves", leaves);
-      const formattedLeaves = leaves.map((leave) => {
-  const from = new Date(leave.fromDate);
-  const to = new Date(leave.toDate);
+    const leaves = await Leave.find({ user: req.user._id }).sort({ createdAt: -1 });
 
-  return {
-    _id: leave._id,
-    type: leave.type,
-    days: leave.days,
-    reason: leave.reason,
+    const formattedLeaves = leaves.map((leave) => {
+      const from = new Date(leave.fromDate);
+      const to = new Date(leave.toDate);
 
-    // formatted fields
-    month: from.toLocaleString("default", { month: "short" }),
-    from: from.toLocaleDateString("en-GB"),
-    to: to.toLocaleDateString("en-GB"),
+      return {
+        _id: leave._id,
+        type: leave.type,
+        days: leave.days,
+        reason: leave.reason,
+        month: from.toLocaleString("default", { month: "short" }),
+        from: from.toLocaleDateString("en-GB"),
+        to: to.toLocaleDateString("en-GB"),
+        status: leave.status || "pending"
+      };
+    });
 
-    status: leave.status || "pending" // default for now
-  };
-});
-
-res.json(formattedLeaves);
-
-    // res.json(leaves);
+    res.json(formattedLeaves);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// 3. UPDATE LEAVE STATUS (Approve / Reject)
 exports.updateLeaveStatus = async (req, res) => {
   try {
     const { status } = req.body;
-
     const leave = await Leave.findById(req.params.id).populate("user");
 
     if (!leave) {
@@ -121,26 +100,57 @@ exports.updateLeaveStatus = async (req, res) => {
     }
 
     leave.status = status;
-
     await leave.save();
 
-    // SEND EMAIL TO EMPLOYEE
+    // Deduct leave balance only upon approval
+    if (status === "approved") {
+      leave.user.leaveBalance[leave.type].taken += leave.days;
+      await leave.user.save();
+    }
+
+    // Send status update email to employee
     await sendApprovalEmail({
       employeeEmail: leave.user.email,
       employeeName: leave.user.name,
       status,
       leave
     });
-  
-    if (status === "approved") {
-  leave.user.leaveBalance[leave.type].taken += leave.days;
-  await leave.user.save();
-}
-    console.log("leaves approved");
-    res.json({ message: `Leave ${status}` });
 
+    res.json({ message: `Leave ${status}` });
   } catch (err) {
-    console.log("this is the error in approving mail", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// 4. VERTICAL LEAD DASHBOARD: Get Team Leaves & Statistics
+exports.getTeamLeavesForLead = async (req, res) => {
+  try {
+    const currentLead = req.user;
+
+    // Verify permission: Must be Vertical Lead or Admin
+    if (!currentLead.isVerticalLead && currentLead.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Vertical Leads only." });
+    }
+
+    // If request query provides a target vertical (e.g., when Admin checks a specific vertical dashboard)
+    const targetVertical = req.query.vertical || currentLead.vertical;
+
+    // Fetch leaves & team members for target vertical
+    const teamLeaves = await Leave.find({ vertical: targetVertical })
+      .populate("user", "name email leaveBalance vertical")
+      .sort({ createdAt: -1 });
+
+    const teamMembers = await User.find({ vertical: targetVertical }).select(
+      "name email leaveBalance isVerticalLead"
+    );
+
+    res.json({
+      vertical: targetVertical,
+      totalTeamMembers: teamMembers.length,
+      teamMembers,
+      teamLeaves
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

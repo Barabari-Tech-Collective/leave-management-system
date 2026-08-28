@@ -51,5 +51,8 @@ app.use(passport.session());
 app.use("/auth", authRoutes);
 app.use("/leave", leaveRoutes);
 app.use("/users", userRoutes);
+app.get("/health", (req, res) => {
+  res.status(200).send("leave portal Server is awake!");
+});
 
 module.exports = app;
