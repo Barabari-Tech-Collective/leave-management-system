@@ -6,7 +6,7 @@ import Loader from "../components/Loader";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
 //     } else {
 //       setUser(null);
 //     }
-//       // setUser(res.data);
+// setUser(res.data);
 //     } catch (error) {
 //       console.log("Error fetching user:", error);
 //       if (error.response?.status !== 401) {

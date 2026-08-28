@@ -53,14 +53,14 @@ export default function Sidebar() {
             </div>
           </NavLink>
           <NavLink
-            to="/admin/managers"
+            to="/admin/vertical-leads"
             className={({ isActive }) =>
               `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
             }
           >
             <div className={linkInner}>
               <Users size={18} />
-              Manage Managers
+              Manage Vertical Leads
             </div>
           </NavLink>
 
