@@ -1,6 +1,6 @@
 const express = require("express");
 const ensureAuth = require("../middleware/authMiddleware");
-const { applyLeave, getMyleaves, updateLeaveStatus } = require("../controllers/leaveController");
+const { applyLeave, getMyleaves, updateLeaveStatus, getTeamLeavesForLead } = require("../controllers/leaveController");
 const Leave = require("../models/Leave");
 
 
@@ -42,6 +42,6 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
 });
 
 router.put("/status/:id", ensureAuth, updateLeaveStatus);
-router.get("/team-dashboard", ensureAuth, leaveController.getTeamLeavesForLead);
+router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
 module.exports = router;
