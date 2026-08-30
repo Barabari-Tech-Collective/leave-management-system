@@ -43,7 +43,7 @@ export default function EmployeeDetail() {
   return (
     <div className="space-y-7">
       <h1 className="text-3xl font-bold text-textDark">
-        {employeeName ? `${employeeName}'s Details` : "Employee Details"} (Read-Only)
+        {employeeName ? `${employeeName}'s Details` : "Employee Details"}
       </h1>
 
       <div className="grid md:grid-cols-3 gap-6">

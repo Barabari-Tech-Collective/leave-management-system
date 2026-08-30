@@ -31,9 +31,10 @@ export default function Navbar() {
         {user?.isVerticalLead && (
           <Link
             to="/employee/team"
-            className="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all duration-200 text-sm font-semibold flex items-center gap-1.5"
+            className="text-slate-600 hover:text-primary transition-colors duration-200"
+
           >
-            <span>👥</span> Team Dashboard
+            Team Dashboard
           </Link>
         )}
 
