@@ -26,9 +26,17 @@ exports.applyLeave = async (req, res) => {
     });
     const teamEmails = teamMembers.map((member) => member.email);
 
-    // B. Fetch Admins
-    const admins = await User.find({ role: "admin" });
-    const adminEmails = admins.map((admin) => admin.email);
+    // B. Fetch Admins from DB + Merge with .env Admin allowlist
+    const envAdmins = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase());
+
+    const dbAdmins = await User.find({ role: "admin" }).select("email");
+    const dbAdminEmails = dbAdmins.map((admin) => admin.email);
+
+    const adminEmails = Array.from(
+      new Set([...dbAdminEmails, ...envAdmins].filter(Boolean))
+    );
 
     // C. Create Leave record
     const leave = await Leave.create({
@@ -41,7 +49,7 @@ exports.applyLeave = async (req, res) => {
       reason
     });
 
-    // D. Send Email (Pass team + admin emails together into 'recipients')
+    // D. Send Email
     await sendLeaveEmail({
       leave,
       employee: user,

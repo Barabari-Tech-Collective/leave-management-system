@@ -11,44 +11,52 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("Step - 1 PROFILE:", profile); 
+        console.log("Step - 1 PROFILE:", profile);
 
-        // Restrict login to your org domain
-        const email = profile.emails[0].value;
+        const email = profile.emails[0].value.toLowerCase();
 
-        // if (!email.endsWith("@yourorg.com")) {
-        //   return done(null, false);
-        // }
+        // Parse admin emails from .env
+        const adminList = (process.env.ADMIN_EMAILS || "")
+          .split(",")
+          .map((e) => e.trim().toLowerCase());
 
-        // Check if user exists
-        let user = await User.findOne({ googleId: profile.id });
-        console.log("step - 2 Checking if user exists")
+        const isAllowlistedAdmin = adminList.includes(email);
 
-        if (!user) {
-          // Create new user if not exists
-          user = await User.create({
-            name: profile.displayName,
-            email,
-            googleId: profile.id
-          });
-          console.log("Setp - 3 USER CREATED:", user);
+        // Check if user exists by email or googleId
+        let user = await User.findOne({ email });
+        console.log("Step - 2 Checking if user exists");
+
+        if (user) {
+          // Elevate role to admin if logging in via admin allowlist
+          if (isAllowlistedAdmin && user.role !== "admin") {
+            user.role = "admin";
+            await user.save();
+          }
+          return done(null, user);
         }
 
+        // Create new user if not found
+        user = await User.create({
+          name: profile.displayName,
+          email,
+          googleId: profile.id,
+          role: isAllowlistedAdmin ? "admin" : "employee"
+        });
+
+        console.log("Step - 3 USER CREATED:", user);
         return done(null, user);
       } catch (error) {
-        console.log("PASSPORT ERROR:", err);
+        console.log("PASSPORT ERROR:", error);
         return done(error, null);
       }
     }
   )
 );
 
-// Serialize user for session
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
-// Deserialize user
 passport.deserializeUser(async (id, done) => {
   console.log("Deserialize ID", id);
   const user = await User.findById(id);
