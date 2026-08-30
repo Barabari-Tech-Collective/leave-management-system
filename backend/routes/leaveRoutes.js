@@ -41,7 +41,7 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
   }
 });
 
-router.put("/status/:id", ensureAuth, updateLeaveStatus);
+router.put("/update-status/:id", ensureAuth, updateLeaveStatus);
 router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
 module.exports = router;
