@@ -6,6 +6,7 @@ import API from "../../api/axiosConfig";
 
 export default function EmployeeDetail() {
   const { id } = useParams();
+  const [employeeName, setEmployeeName] = useState("");
   const [totalLeaves, setTotalLeaves] = useState([]);
   const [history, setHistory] = useState([]);
 
@@ -13,14 +14,22 @@ export default function EmployeeDetail() {
     const fetchLeaves = async () => {
       try {
         const res = await API.get(`/leave/employee/${id}`);
-        setHistory(res.data.leaves || []);
         
-        // Populate balances
-        if (res.data.leaveBalance) {
+        // Extract data cleanly from response object
+        const leaveList = res.data.leaves || [];
+        const balances = res.data.leaveBalance;
+
+        if (res.data.employee?.name) {
+          setEmployeeName(res.data.employee.name);
+        }
+
+        setHistory(leaveList);
+
+        if (balances) {
           setTotalLeaves([
-            { title: "Casual Leave", total: res.data.leaveBalance.casual.total, taken: res.data.leaveBalance.casual.taken },
-            { title: "Sick Leave", total: res.data.leaveBalance.sick.total, taken: res.data.leaveBalance.sick.taken },
-            { title: "Flexible Leave", total: res.data.leaveBalance.flexible.total, taken: res.data.leaveBalance.flexible.taken },
+            { title: "Casual Leave", total: balances.casual?.total ?? 15, taken: balances.casual?.taken ?? 0 },
+            { title: "Sick Leave", total: balances.sick?.total ?? 10, taken: balances.sick?.taken ?? 0 },
+            { title: "Flexible Leave", total: balances.flexible?.total ?? 5, taken: balances.flexible?.taken ?? 0 },
           ]);
         }
       } catch (err) {
@@ -33,7 +42,9 @@ export default function EmployeeDetail() {
 
   return (
     <div className="space-y-7">
-      <h1 className="text-3xl font-bold text-textDark">Employee Details (Read-Only)</h1>
+      <h1 className="text-3xl font-bold text-textDark">
+        {employeeName ? `${employeeName}'s Details` : "Employee Details"} (Read-Only)
+      </h1>
 
       <div className="grid md:grid-cols-3 gap-6">
         {totalLeaves.map((leave, index) => (
