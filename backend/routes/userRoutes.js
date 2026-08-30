@@ -4,7 +4,7 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// GET all vertical leads
+// 1. GET all vertical leads (For specific lead queries)
 router.get("/leads", ensureAuth, async (req, res) => {
   try {
     const leads = await User.find({ isVerticalLead: true })
@@ -15,16 +15,18 @@ router.get("/leads", ensureAuth, async (req, res) => {
   }
 });
 
-// GET logged-in user profile
+// 2. GET current logged-in user profile
 router.get("/me", ensureAuth, async (req, res) => {
   res.json(req.user);
 });
 
-// GET all users (including vertical info for Admin tables)
+// 3. GET all users for Admin management (Fetches ALL team members & leads)
 router.get("/all", ensureAuth, async (req, res) => {
   try {
-    const users = await User.find({ role: "employee" })
-      .select("name email leaveBalance vertical isVerticalLead");
+    // Exclude current logged-in user from list, return all users
+    const users = await User.find({ _id: { $ne: req.user._id } })
+      .select("name email role leaveBalance vertical isVerticalLead")
+      .sort({ name: 1 });
 
     res.json(users);
   } catch (err) {
@@ -32,14 +34,17 @@ router.get("/all", ensureAuth, async (req, res) => {
   }
 });
 
-// Toggle Vertical Lead status and assign Vertical (Used in Admin panel)
+// 4. Update Vertical and Lead status (Used in Admin panel)
 router.put("/update-lead/:id", ensureAuth, async (req, res) => {
   try {
     const { isVerticalLead, vertical } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { isVerticalLead, ...(vertical && { vertical }) },
+      { 
+        isVerticalLead, 
+        vertical: vertical || "None" 
+      },
       { new: true }
     );
 
