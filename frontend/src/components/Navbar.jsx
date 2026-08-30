@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import logo from "../assets/image.png";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
+  const { user } = useAuth();
+
   return (
     <nav className="bg-white/70 backdrop-blur-xl border-b border-gray-100 shadow-sm px-8 py-4 flex justify-between items-center sticky top-0 z-50 transition-all duration-300">
       <div className="flex flex-wrap items-center justify-center gap-3 p-2 text-xl font-extrabold text-textDark tracking-tight">
@@ -16,13 +19,23 @@ export default function Navbar() {
         </span>
       </div>
 
-      <div className="flex items-center gap-8 font-medium">
+      <div className="flex items-center gap-6 font-medium">
         <Link
           to="/employee"
           className="text-slate-600 hover:text-primary transition-colors duration-200"
         >
-          Dashboard
+          My Dashboard
         </Link>
+
+        {/* CONDITIONAL LINK: Shows only for Vertical Leads */}
+        {user?.isVerticalLead && (
+          <Link
+            to="/employee/team"
+            className="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-all duration-200 text-sm font-semibold flex items-center gap-1.5"
+          >
+            <span>👥</span> Team Dashboard
+          </Link>
+        )}
 
         <Link
           to="/employee/history"

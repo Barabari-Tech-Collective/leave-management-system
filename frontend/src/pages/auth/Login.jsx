@@ -15,7 +15,7 @@ export default function Login() {
     );
   }
   
-   // ✅ Already logged in
+   // Already logged in
   if (user) {
     return (
       <Navigate

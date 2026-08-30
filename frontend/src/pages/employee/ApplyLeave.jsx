@@ -1,26 +1,7 @@
-import { useState, useEffect } from "react";
-import Select from "react-select";
+import { useState } from "react";
 import API from "../../api/axiosConfig";
 
 export default function ApplyLeave() {
-  const [managers, setManagers] = useState([]);
-  const [selectedManagers, setSelectedManagers] = useState([])
-
-  useEffect(() => {
-    const fetchManagers = async () => {
-      const res = await API.get("/users/managers");
-      setManagers(res.data);
-    };
-
-    fetchManagers();
-  }, []);
-
-  // const leaveLimits = {
-  //   Casual: 10,
-  //   Sick: 8,
-  //   "Flexible Cultural": 5,
-  // };
-
   const [form, setForm] = useState({
     type: "",
     from: "",
@@ -41,26 +22,31 @@ export default function ApplyLeave() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     const typeMap = {
-"Casual": "casual",
-"Sick": "sick",
-"Flexible Cultural": "flexible"
-};
+      Casual: "casual",
+      Sick: "sick",
+      "Flexible Cultural": "flexible",
+    };
+
+    if (!form.type || !form.from || !form.to || !form.reason) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     try {
       await API.post("/leave/apply", {
-
-type: typeMap[form.type],
+        type: typeMap[form.type],
         fromDate: form.from,
         toDate: form.to,
         reason: form.reason,
-        managerIds: selectedManagers
-        // managerId: "PUT_MANAGER_ID_HERE"
       });
 
-      alert("Leave Applied Successfully 🚀");
+      alert("Leave Applied Successfully 🚀 Notification emails sent to team & leads.");
+      setForm({ type: "", from: "", to: "", reason: "" });
     } catch (err) {
-      setError(err.response?.data?.message);
+      setError(err.response?.data?.message || "Failed to apply leave");
     }
   };
 
@@ -87,17 +73,12 @@ type: typeMap[form.type],
           <select
             className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
             value={form.type}
-            onChange={(e) =>
-              setForm({ ...form, type: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, type: e.target.value })}
           >
             <option value="">Select Leave Type</option>
-            <option value="Casual">Casual (10)</option>
-            <option value="Sick">Sick (8)</option>
-            <option value="Flexible Cultural">
-              Flexible Cultural (5)
-            </option>
-            <option disabled>National (Disabled)</option>
+            <option value="Casual">Casual (15)</option>
+            <option value="Sick">Sick (10)</option>
+            <option value="Flexible Cultural">Flexible Cultural (5)</option>
           </select>
         </div>
 
@@ -109,9 +90,7 @@ type: typeMap[form.type],
               type="date"
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.from}
-              onChange={(e) =>
-                setForm({ ...form, from: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, from: e.target.value })}
             />
           </div>
 
@@ -121,9 +100,7 @@ type: typeMap[form.type],
               type="date"
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.to}
-              onChange={(e) =>
-                setForm({ ...form, to: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, to: e.target.value })}
             />
           </div>
         </div>
@@ -148,9 +125,7 @@ type: typeMap[form.type],
             placeholder="Briefly describe the reason for your leave..."
             className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium resize-none"
             value={form.reason}
-            onChange={(e) =>
-              setForm({ ...form, reason: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, reason: e.target.value })}
           />
         </div>
 
@@ -159,49 +134,6 @@ type: typeMap[form.type],
             {error}
           </div>
         )}
-
-      <div>
-  <label className="block mb-2 font-bold text-slate-700">
-    Select Managers
-  </label>
-
-  <Select
-    isMulti
-    options={managers.map((m) => ({
-      value: m._id,
-      label: m.name,
-    }))}
-
-    value={managers
-      .filter((m) => selectedManagers.includes(m._id))
-      .map((m) => ({
-        value: m._id,
-        label: m.name,
-      }))
-    }
-
-    onChange={(selectedOptions) => {
-      setSelectedManagers(
-        // selectedOptions.map((option) => option.value)
-        selectedOptions
-      ? selectedOptions.map((option) => option.value)
-      : []
-      );
-    }}
-
-    placeholder="Select Managers..."
-    className="text-left"
-  />
-</div>
-
-        {/* <select onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
-          <option>Select Manager</option>
-          {managers.map(m => (
-            <option key={m._id} value={m._id}>
-              {m.name}
-            </option>
-          ))}
-        </select> */}
 
         <button
           type="submit"

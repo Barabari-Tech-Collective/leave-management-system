@@ -5,6 +5,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import Dashboard from "../pages/employee/Dashboard";
 import ApplyLeave from "../pages/employee/ApplyLeave";
 import History from "../pages/employee/History";
+import VerticalLeadDashboard from "../pages/verticalLead/VerticalLeadDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminVerticalLead from "../pages/admin/AdminVerticalLead";
 import EmployeeDetail from "../pages/admin/EmployeeDetail";
@@ -17,7 +18,7 @@ export default function AppRoutes() {
       {/* Auth */}
       <Route path="/" element={<Login />} />
 
-      {/* Employee */}
+      {/* Employee & Vertical Lead Shared Layout */}
       <Route
         path="/employee"
         element={
@@ -29,9 +30,9 @@ export default function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="apply" element={<ApplyLeave />} />
         <Route path="history" element={<History />} />
+        {/* NEW ROUTE: Team Dashboard for Vertical Leads */}
+        <Route path="team" element={<VerticalLeadDashboard />} />
       </Route>
-
-      {/* <Route path="/employee/" element={<Employee />} /> */}
 
       {/* Admin */}
       <Route
