@@ -5,6 +5,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import Dashboard from "../pages/employee/Dashboard";
 import ApplyLeave from "../pages/employee/ApplyLeave";
 import History from "../pages/employee/History";
+import LeavePolicy from "../pages/employee/LeavePolicy";
 import VerticalLeadDashboard from "../pages/verticalLead/VerticalLeadDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminVerticalLead from "../pages/admin/AdminVerticalLead";
@@ -32,6 +33,7 @@ export default function AppRoutes() {
         <Route path="history" element={<History />} />
         {/* NEW ROUTE: Team Dashboard for Vertical Leads */}
         <Route path="team" element={<VerticalLeadDashboard />} />
+        <Route path="policy" element={<LeavePolicy />} />
       </Route>
 
       {/* Admin */}

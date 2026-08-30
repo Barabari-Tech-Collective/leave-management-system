@@ -52,6 +52,10 @@ export default function Navbar() {
           Apply Leave
         </Link>
 
+        <Link to="/employee/policy" className="text-slate-600 hover:text-primary transition">
+        Policy
+        </Link>
+
         <ProfileDropdown />
       </div>
     </nav>
