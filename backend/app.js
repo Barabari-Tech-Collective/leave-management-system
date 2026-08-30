@@ -9,6 +9,7 @@ require("./config/passport");
 const authRoutes = require("./routes/authRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const userRoutes = require("./routes/userRoutes");
+const initHolidayCron = require("./cron/holidayCron");
 
 
 const app = express();
@@ -46,7 +47,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
+initHolidayCron();
 
 app.use("/auth", authRoutes);
 app.use("/leave", leaveRoutes);

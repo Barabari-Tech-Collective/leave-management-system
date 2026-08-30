@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const leaveBalanceSchema = {
-  casual: { total: { type: Number, default: 15 }, taken: { type: Number, default: 0 } },
+  casual: { total: { type: Number, default: 11 }, taken: { type: Number, default: 0 } },
   sick: { total: { type: Number, default: 10 }, taken: { type: Number, default: 0 } },
   flexible: { total: { type: Number, default: 5 }, taken: { type: Number, default: 0 } }
 };
