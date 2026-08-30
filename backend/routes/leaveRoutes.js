@@ -58,7 +58,7 @@ router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
 // testing
 const { sendNationalHolidayEmail } = require("../services/emailService");
-const User = require("../models/User");
+// const User = require("../models/User");
 
 router.get("/test-holiday-email", async (req, res) => {
   try {
