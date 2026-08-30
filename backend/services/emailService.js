@@ -9,31 +9,44 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #F8FAFC; margin: 0; padding: 20px; }
-    .card { max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 20px; overflow: hidden; border: 1px solid #E2E8F0; shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-    .header { background-color: #FACC15; padding: 32px 24px; text-align: center; border-bottom: 4px solid #1E3A8A; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 20px; }
+    .card { max-width: 600px; margin: 0 auto; background: #FFFFFF; border-radius: 20px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+    .header { background-color: #FACC15; padding: 28px 24px; text-align: center; border-bottom: 4px solid #1E3A8A; }
+    .logo-img { height: 48px; width: auto; margin-bottom: 8px; border-radius: 8px; }
     .header-badge { background-color: #1E3A8A; color: #FFFFFF; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 12px; letter-spacing: 1px; text-transform: uppercase; display: inline-block; }
-    .header-title { color: #1E3A8A; font-size: 24px; font-weight: 900; margin: 12px 0 4px 0; text-transform: uppercase; tracking-tight; }
-    .header-subtitle { color: #1E40AF; font-size: 14px; font-weight: 600; margin: 0; }
-    .body-content { padding: 32px 28px; color: #334155; line-height: 1.6; font-size: 15px; }
+    .header-title { color: #1E3A8A; font-size: 22px; font-weight: 900; margin: 10px 0 2px 0; text-transform: uppercase; }
+    .header-subtitle { color: #1E40AF; font-size: 13px; font-weight: 600; margin: 0; }
+    .body-content { padding: 28px; color: #334155; line-height: 1.6; font-size: 15px; }
     .info-box { background-color: #EFF6FF; border-left: 4px solid #1D4ED8; padding: 16px; border-radius: 8px; margin: 20px 0; }
-    .footer { background-color: #0F172A; color: #94A3B8; padding: 24px; text-align: center; font-size: 12px; }
+    .footer { background-color: #0F172A; color: #94A3B8; padding: 24px; text-align: center; font-size: 12px; border-top: 1px solid #1E293B; }
     .footer strong { color: #FACC15; }
+    .btn { display: inline-block; background-color: #1E3A8A; color: #FFFFFF !important; padding: 12px 24px; border-radius: 10px; font-weight: 700; text-decoration: none; margin-top: 12px; }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="header">
+      <!-- Public image link for logo -->
+      <img src="https://leaveportal.barabaricollective.org/favicon.png" alt="Barabari Collective Logo" class="logo-img" />
+      <br/>
       <span class="header-badge">The Barabari Collective</span>
       <h1 class="header-title">${title}</h1>
       <p class="header-subtitle">${subtitle}</p>
     </div>
+    
     <div class="body-content">
       ${content}
+      
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://leaveportal.barabaricollective.org" class="btn">Open Leave Portal</a>
+      </div>
     </div>
+    
     <div class="footer">
-      <p style="margin:0;">Building an India where underserved talent drives innovation.</p>
-      <p style="margin: 6px 0 0 0;"><strong>© 2026 The Barabari Collective</strong> • Leave Management Portal</p>
+      <p style="margin: 0; font-size: 13px; font-weight: 600; color: #F1F5F9;">The Barabari Collective</p>
+      <p style="margin: 4px 0 12px 0;">Building an India where underserved talent drives innovation.</p>
+      <hr style="border: 0; border-top: 1px solid #334155; margin: 12px 0;" />
+      <p style="margin: 0;"><strong>© 2026 The Barabari Collective</strong> • All Rights Reserved</p>
     </div>
   </div>
 </body>
