@@ -5,31 +5,29 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const sendLeaveEmail = async ({
   leave,
   employee,
-  managerEmails = [],
-  founderEmail,
-  adminEmails = []
+  recipients = [],
+  founderEmail
 }) => {
   try {
-    // 1. Combine all primary recipients and deduplicate
-    const primaryRecipients = Array.from(
-      new Set([...adminEmails, ...managerEmails, founderEmail].filter(Boolean))
+    // Combine all recipient emails into a single deduplicated array
+    const allEmails = Array.from(
+      new Set([...recipients, founderEmail].filter(Boolean))
     );
 
-    // Fallback if no recipients are found
-    if (primaryRecipients.length === 0) {
-      console.warn("No recipients available to send leave email.");
+    // Guard Clause: Prevent API call if array is empty
+    if (allEmails.length === 0) {
+      console.warn("[Email Warning]: No recipient emails found. Skipping email dispatch.");
       return;
     }
 
-    // 2. Format dates for clean email display
     const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
     const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
 
-    await resend.emails.send({
-      // Use "onboarding@resend.dev" if your domain isn't verified in Resend yet
+    // Call Resend
+    const { data, error } = await resend.emails.send({
       from: "Leave Portal <leaves@barabaricollective.org>",
-      to: primaryRecipients,
-      subject: `Leave Request (${employee.vertical} Vertical) - ${employee.name}`,
+      to: allEmails, // Always guaranteed to have at least 1 valid email
+      subject: `Leave Request (${employee.vertical || "General"} Vertical) - ${employee.name}`,
       text: `
 Hi Team,
 
@@ -45,9 +43,15 @@ Leave Portal Automated Notification
 `
     });
 
-    console.log("Leave email sent successfully to:", primaryRecipients);
+    // Explicitly catch Resend API errors (HTTP 422, invalid domain, missing field, etc.)
+    if (error) {
+      console.error("[Resend Error]: Failed to send leave email:", error);
+      return;
+    }
+
+    console.log("[Resend Success]: Leave email sent to:", allEmails, "ID:", data.id);
   } catch (err) {
-    console.error("Leave email failed:", err);
+    console.error("[Server Error]: Failed to trigger sendLeaveEmail:", err);
   }
 };
 
@@ -59,14 +63,14 @@ const sendApprovalEmail = async ({
 }) => {
   try {
     if (!employeeEmail) {
-      console.warn("No employee email provided for status update.");
+      console.warn("[Email Warning]: Missing employee email for approval notification.");
       return;
     }
 
     const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
     const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
 
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: "Leave Portal <leaves@barabaricollective.org>",
       to: [employeeEmail],
       subject: `Leave Request ${status.toUpperCase()} - ${employeeName}`,
@@ -82,9 +86,14 @@ Team Barabari Collective
 `
     });
 
-    console.log(`Approval email (${status}) sent successfully to: ${employeeEmail}`);
+    if (error) {
+      console.error("[Resend Error]: Failed to send approval email:", error);
+      return;
+    }
+
+    console.log(`[Resend Success]: Approval email (${status}) sent to: ${employeeEmail}`);
   } catch (err) {
-    console.error("Approval email failed:", err);
+    console.error("[Server Error]: Failed to trigger sendApprovalEmail:", err);
   }
 };
 

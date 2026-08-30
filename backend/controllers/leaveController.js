@@ -19,24 +19,18 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: "Not enough leave balance" });
     }
 
-    // A. Fetch Vertical Lead & Teammates automatically based on user's vertical
+    // A. Fetch Vertical Lead & Teammates in the same vertical
     const teamMembers = await User.find({
       vertical: user.vertical,
-      _id: { $ne: user._id } // Exclude applicant
+      _id: { $ne: user._id }
     });
-
     const teamEmails = teamMembers.map((member) => member.email);
 
     // B. Fetch Admins
     const admins = await User.find({ role: "admin" });
     const adminEmails = admins.map((admin) => admin.email);
 
-    // C. Combine all notification recipients (removing duplicates)
-    const allRecipientEmails = Array.from(
-      new Set([...teamEmails, ...adminEmails])
-    );
-
-    // D. Create Leave record tied to user's vertical
+    // C. Create Leave record
     const leave = await Leave.create({
       user: user._id,
       vertical: user.vertical,
@@ -47,11 +41,11 @@ exports.applyLeave = async (req, res) => {
       reason
     });
 
-    // E. Send Automated Resend Email
+    // D. Send Email (Pass team + admin emails together into 'recipients')
     await sendLeaveEmail({
       leave,
       employee: user,
-      managerEmails: allRecipientEmails,
+      recipients: [...teamEmails, ...adminEmails],
       founderEmail: "harihar@barabaricollective.org"
     });
 
