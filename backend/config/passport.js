@@ -11,7 +11,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("Step - 1 PROFILE:", profile); // 👈 ADD THIS
+        console.log("Step - 1 PROFILE:", profile); 
 
         // Restrict login to your org domain
         const email = profile.emails[0].value;

@@ -3,6 +3,8 @@ const passport = require("passport");
 const ensureAuth = require("../middleware/authMiddleware");
 
 const router = express.Router();
+// Fallback frontend URL in case process.env.FRONTEND_URL is missing
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
 
 // Start Google Auth
 router.get(
@@ -16,14 +18,12 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: `${process.env.FRONTEND_URL}/`,
+    failureRedirect: `${FRONTEND_URL}/`,
   }),
   (req, res, next) => {
-
     console.log("SUCCESS USER:", req.user);
 
     req.session.save((err) => {
-
       if (err) {
         console.log("SESSION SAVE ERROR:", err);
         return next(err);
@@ -31,34 +31,37 @@ router.get(
 
       console.log("SESSION SAVED SUCCESSFULLY");
 
+      // 1. Redirect Admin
       if (req.user.role === "admin") {
-        return res.redirect(`${process.env.FRONTEND_URL}/admin`);
+        return res.redirect(`${FRONTEND_URL}/admin`);
       }
 
-      return res.redirect(`${process.env.FRONTEND_URL}/employee`);
+      // 2. Redirect Vertical Lead
+      if (req.user.isVerticalLead) {
+        return res.redirect(`${FRONTEND_URL}/vertical-lead`);
+      }
 
+      // 3. Default Employee
+      return res.redirect(`${FRONTEND_URL}/employee`);
     });
   }
 );
 
-
 // Get logged-in user
 router.get("/me", ensureAuth, (req, res) => {
-  console.log("SESSION USER:", req.user); // ADD THIS
-
-  console.log("SESSION:", req.session);
-  console.log("SESSION ID:", req.sessionID);
-  console.log("USER:", req.user);
-  console.log("IS AUTH:", req.isAuthenticated());
   if (!req.user) {
-    return res.status(401).json(null); // instead of undefined
+    return res.status(401).json(null);
   }
   res.json(req.user);
 });
 
 // Logout
 router.post("/logout", (req, res) => {
-  req.logout(() => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    
     req.session.destroy(() => {
       res.clearCookie("connect.sid", {
         httpOnly: true,
@@ -71,4 +74,5 @@ router.post("/logout", (req, res) => {
     });
   });
 });
+
 module.exports = router;
