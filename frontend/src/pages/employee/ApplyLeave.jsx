@@ -76,7 +76,7 @@ export default function ApplyLeave() {
             onChange={(e) => setForm({ ...form, type: e.target.value })}
           >
             <option value="">Select Leave Type</option>
-            <option value="Casual">Casual (15)</option>
+            <option value="Casual">Casual (11)</option>
             <option value="Sick">Sick (10)</option>
             <option value="Flexible Cultural">Flexible Cultural (5)</option>
           </select>
