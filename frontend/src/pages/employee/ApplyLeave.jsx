@@ -11,14 +11,33 @@ export default function ApplyLeave() {
 
   const [error, setError] = useState("");
 
-  const calculateDays = () => {
-    if (!form.from || !form.to) return 0;
-    const fromDate = new Date(form.from);
-    const toDate = new Date(form.to);
-    const diffTime = toDate - fromDate;
-    const days = diffTime / (1000 * 60 * 60 * 24) + 1;
-    return days > 0 ? days : 0;
+  // Get today's date formatted as YYYY-MM-DD for min date restriction
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  // Helper function: Calculate total days excluding Sundays
+  const calculateDaysExcludingSundays = (fromStr, toStr) => {
+    if (!fromStr || !toStr) return 0;
+
+    let start = new Date(fromStr);
+    let end = new Date(toStr);
+
+    if (end < start) return 0;
+
+    let count = 0;
+    let current = new Date(start);
+
+    while (current <= end) {
+      // 0 represents Sunday in JavaScript Date
+      if (current.getDay() !== 0) {
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return count;
   };
+
+  const calculatedDays = calculateDaysExcludingSundays(form.from, form.to);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +51,16 @@ export default function ApplyLeave() {
 
     if (!form.type || !form.from || !form.to || !form.reason) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    if (new Date(form.to) < new Date(form.from)) {
+      setError("'To Date' cannot be earlier than 'From Date'.");
+      return;
+    }
+
+    if (calculatedDays <= 0) {
+      setError("Selected duration contains no working days (e.g. only Sunday).");
       return;
     }
 
@@ -62,8 +91,16 @@ export default function ApplyLeave() {
           <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary to-indigo-600 tracking-tight text-center">
             Apply for Leave
           </h2>
-          <p className="text-center text-slate-500 mt-2 font-medium">
+          <p className="text-center text-slate-500 mt-2 font-medium text-sm">
             Fill in the details below to submit a leave request.
+          </p>
+        </div>
+
+        {/* Automated Notification Info Banner */}
+        <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-center gap-3 text-xs text-indigo-700 font-medium">
+          <span className="text-base">📢</span>
+          <p>
+            An automated notification email will be sent to your <strong>Vertical Lead</strong>, <strong>Vertical Teammates</strong>, <strong>Founders</strong>, and <strong>Admins</strong> upon submission.
           </p>
         </div>
 
@@ -88,6 +125,7 @@ export default function ApplyLeave() {
             <label className="block mb-2 font-bold text-slate-700">From Date</label>
             <input
               type="date"
+              min={todayStr}
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.from}
               onChange={(e) => setForm({ ...form, from: e.target.value })}
@@ -98,6 +136,7 @@ export default function ApplyLeave() {
             <label className="block mb-2 font-bold text-slate-700">To Date</label>
             <input
               type="date"
+              min={form.from || todayStr}
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.to}
               onChange={(e) => setForm({ ...form, to: e.target.value })}
@@ -105,15 +144,18 @@ export default function ApplyLeave() {
           </div>
         </div>
 
-        {/* Live Days Counter */}
-        {calculateDays() > 0 && (
-          <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl text-center">
-            <span className="text-sm text-primary font-bold tracking-wide uppercase">
-              Total Leave Days Requested
+        {/* Live Days Counter (Excluding Sundays) */}
+        {calculatedDays > 0 && (
+          <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl text-center space-y-1">
+            <span className="text-xs text-primary font-bold tracking-wide uppercase">
+              Total Working Days Requested
             </span>
-            <div className="text-3xl font-extrabold text-primary mt-1">
-              {calculateDays()}
+            <div className="text-3xl font-extrabold text-primary">
+              {calculatedDays} {calculatedDays === 1 ? "Day" : "Days"}
             </div>
+            <p className="text-[11px] text-slate-500 font-medium">
+              (Intervening Sundays are excluded as per Sandwich Rule)
+            </p>
           </div>
         )}
 

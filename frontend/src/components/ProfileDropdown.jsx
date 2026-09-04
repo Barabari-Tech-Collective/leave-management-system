@@ -13,7 +13,6 @@ export default function ProfileDropdown() {
     navigate("/");
   };
 
-  // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -42,53 +41,33 @@ export default function ProfileDropdown() {
         onClick={() => setOpen(!open)}
         className="w-11 h-11 rounded-full bg-linear-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-lg focus:outline-none"
       >
-        {user?.email?.charAt(0).toUpperCase() || "E"}
+        {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "E"}
       </button>
 
       {open && (
         <div className="absolute right-0 mt-3 w-72 bg-white/90 backdrop-blur-2xl border border-slate-100 rounded-3xl shadow-2xl p-6 space-y-5 animate-dropdown z-50">
-          <div className="pb-2 border-b border-slate-50">
-            <p className="font-bold text-slate-800 text-lg tracking-tight truncate">
-              {user?.email || "employee@leavesys.com"}
+          <div className="pb-3 border-b border-slate-100 space-y-1">
+            <p className="font-extrabold text-slate-800 text-base tracking-tight truncate">
+              {user?.name || "Employee"}
             </p>
-            <p className="text-sm font-medium text-primary mt-0.5 capitalize bg-primary/10 inline-block px-2 py-0.5 rounded-md">
-              {user?.role || "Employee"} Role
+            <p className="text-xs text-slate-500 font-medium truncate">
+              {user?.email}
             </p>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md capitalize">
+                {user?.vertical || "None"} Vertical
+              </span>
+              <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md capitalize">
+                {user?.isVerticalLead ? "Vertical Lead" : user?.role || "Employee"}
+              </span>
+            </div>
           </div>
-
-         <div className="space-y-3 text-sm font-medium text-slate-600">
-  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-    <span>Casual Leaves</span>
-    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
-      {user?.leaveBalance?.casual
-        ? user.leaveBalance.casual.total - user.leaveBalance.casual.taken
-        : 0}
-    </span>
-  </div>
-
-  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-    <span>Sick Leaves</span>
-    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
-      {user?.leaveBalance?.sick
-        ? user.leaveBalance.sick.total - user.leaveBalance.sick.taken
-        : 0}
-    </span>
-  </div>
-
-  <div className="flex justify-between items-center p-2 rounded-lg hover:bg-slate-50 transition-colors">
-    <span>Flexible</span>
-    <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
-      {user?.leaveBalance?.flexible
-        ? user.leaveBalance.flexible.total - user.leaveBalance.flexible.taken
-        : 0}
-    </span>
-  </div>
-</div>
 
           <div className="pt-2">
             <button
               onClick={handleLogout}
-              className="w-full bg-slate-50 text-accent font-bold py-3 rounded-xl hover:bg-accent hover:text-white transition-all duration-300 border border-slate-100 hover:border-accent hover:shadow-lg hover:shadow-accent/20"
+              className="w-full bg-slate-50 text-accent font-bold py-3 rounded-xl hover:bg-accent hover:text-white transition-all duration-300 border border-slate-100 hover:border-accent hover:shadow-lg hover:shadow-accent/20 cursor-pointer"
             >
               Sign Out
             </button>
