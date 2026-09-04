@@ -232,9 +232,70 @@ export default function VerticalLeadDashboard() {
             </div>
           )}
         </div>
-
         {/* Section 2: Team Member Leave Balance Breakdown */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+<div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 space-y-4">
+  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+    <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+      Team Members Leave Balances
+    </h2>
+    <span className="text-xs text-slate-400 font-medium">
+      Used vs Total Remaining Balance
+    </span>
+  </div>
+
+  {/* Filter out vertical leads from this grid */}
+  {dashboardData.teamMembers.filter((member) => !member.isVerticalLead).length === 0 ? (
+    <div className="text-center py-6 text-slate-400 text-sm">
+      No non-lead team members assigned to this vertical.
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {dashboardData.teamMembers
+        .filter((member) => !member.isVerticalLead) // Exclude Vertical Leads
+        .map((member) => (
+          <div
+            key={member._id}
+            className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow space-y-4"
+          >
+            <div>
+              <h4 className="font-bold text-slate-900 text-base truncate max-w-[180px]" title={member.name}>
+                {member.name}
+              </h4>
+              <p className="text-xs text-slate-400 font-medium truncate max-w-[180px]" title={member.email}>
+                {member.email}
+              </p>
+            </div>
+
+            {/* Color-Coded Leave Stats */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="bg-indigo-50/80 border border-indigo-100 p-2.5 rounded-xl space-y-0.5">
+                <p className="text-indigo-600 font-bold text-[11px]">Casual</p>
+                <p className="font-black text-indigo-950 text-sm">
+                  {member.leaveBalance?.casual?.taken ?? 0} <span className="text-slate-400 text-xs font-normal">/ {member.leaveBalance?.casual?.total ?? 11}</span>
+                </p>
+              </div>
+
+              <div className="bg-rose-50/80 border border-rose-100 p-2.5 rounded-xl space-y-0.5">
+                <p className="text-rose-600 font-bold text-[11px]">Sick</p>
+                <p className="font-black text-rose-950 text-sm">
+                  {member.leaveBalance?.sick?.taken ?? 0} <span className="text-slate-400 text-xs font-normal">/ {member.leaveBalance?.sick?.total ?? 10}</span>
+                </p>
+              </div>
+
+              <div className="bg-emerald-50/80 border border-emerald-100 p-2.5 rounded-xl space-y-0.5">
+                <p className="text-emerald-600 font-bold text-[11px]">Flexible</p>
+                <p className="font-black text-emerald-950 text-sm">
+                  {member.leaveBalance?.flexible?.taken ?? 0} <span className="text-slate-400 text-xs font-normal">/ {member.leaveBalance?.flexible?.total ?? 5}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  )}
+</div>
+        {/* Section 2: Team Member Leave Balance Breakdown */}
+        {/* <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Team Members Leave Balances</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -274,7 +335,7 @@ export default function VerticalLeadDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </div> */}
 
       </div>
 

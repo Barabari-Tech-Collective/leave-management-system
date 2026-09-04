@@ -75,10 +75,10 @@ export default function AdminVerticalLead() {
       <div className="flex justify-between items-center border-b border-slate-200 pb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800">
-            Manage Vertical Leads & Governance
+            Manage Vertical Leads
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Assign team verticals and designate vertical leads (Only 1 lead permitted per vertical).
+            Assign team verticals and designate vertical leads.
           </p>
         </div>
 
