@@ -200,45 +200,55 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
 
 // Send Welcome Email with Credentials
 const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) => {
-  const portalUrl = process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
+  try {
+    if (!email) return;
 
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-radius: 12px;">
-      <h2 style="color: #4f46e5; text-align: center;">Welcome to The Barabari Collective! 🎉</h2>
-      <p>Hi <strong>${name}</strong>,</p>
-      <p>Your official account for <strong>The Barabari Collective Leave Portal</strong> has been provisioned.</p>
-      
-      <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h4 style="margin-top: 0; color: #334155;">Your Account Details:</h4>
-        <p style="margin: 5px 0;"><strong>Email:</strong> ${email}</p>
-        <p style="margin: 5px 0;"><strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${password}</code></p>
-        <p style="margin: 5px 0;"><strong>Assigned Vertical:</strong> ${vertical} Vertical</p>
-        ${jobRole ? `<p style="margin: 5px 0;"><strong>Designation:</strong> ${jobRole}</p>` : ''}
-      </div>
+    const htmlBody = wrapBarabariTemplate({
+      title: "Welcome! 🎉",
+      subtitle: "Your Account Credentials",
+      content: `
+        <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+        <p>Welcome to <strong>The Barabari Collective</strong>! Your account for the Leave Portal has been provisioned.</p>
+        
+        <div class="info-box">
+          <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Your Portal Credentials:</p>
+          <ul style="margin: 0; padding-left: 20px; color: #334155; line-height: 1.8;">
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Temporary Password:</strong> <code style="background: #DBEAFE; padding: 2px 8px; rounded: 6px; font-weight: bold; color: #1E3A8A;">${password}</code></li>
+            <li><strong>Assigned Vertical:</strong> ${vertical} Vertical</li>
+            ${jobRole ? `<li><strong>Designation:</strong> ${jobRole}</li>` : ""}
+          </ul>
+        </div>
 
-      <h4 style="color: #334155;">What you can do on the portal:</h4>
-      <ul>
-        <li><strong>Apply for Leaves:</strong> Submit Casual, Sick, or Flexible Cultural leave requests with automated calculations.</li>
-        <li><strong>Track Balances:</strong> View real-time available leave counts on your personal dashboard.</li>
-        <li><strong>Zero Setup Notifications:</strong> Requests automatically alert your Vertical Lead, teammates, Founders, and Admins.</li>
-      </ul>
+        <p style="margin-top: 16px; font-weight: 600;">What you can do on the portal:</p>
+        <ul style="color: #475569; padding-left: 20px;">
+          <li><strong>Apply for Leaves:</strong> Casual, Sick, or Flexible Cultural leave with automated Sunday-exclusion logic.</li>
+          <li><strong>Real-time Balance Tracking:</strong> Check remaining leave balances instantly.</li>
+          <li><strong>Zero-Setup Notifications:</strong> Automated email alerts to your Vertical Lead, teammates, Admins, and Founders.</li>
+        </ul>
 
-      <div style="text-align: center; margin-top: 25px;">
-        <a href="${portalUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 8px; inline-block;">Access Leave Portal</a>
-      </div>
+        <p style="font-size: 13px; color: #64748B; margin-top: 20px;">
+          *You can log in directly using your Google account or sign in with your email and temporary password (and change your password anytime on the login screen).*
+        </p>
+      `
+    });
 
-      <p style="font-size: 12px; color: #64748b; margin-top: 30px; text-align: center;">
-        You can log in directly using your Google Workspace account or use your email and temporary password (with the option to update your password on first login).
-      </p>
-    </div>
-  `;
+    const { data, error } = await resend.emails.send({
+      from: "Leave Portal <leaves@barabaricollective.org>",
+      to: [email],
+      subject: `Welcome to The Barabari Collective - Account Credentials`,
+      html: htmlBody
+    });
 
-  // Use your existing email dispatch mechanism (e.g., Resend / Nodemailer)
-  return await sendEmail({
-    to: email,
-    subject: "Welcome to The Barabari Collective - Your Leave Portal Account",
-    html: htmlContent
-  });
+    if (error) {
+      console.error("[Resend Welcome Email Error]:", error);
+      return;
+    }
+
+    console.log(`[Resend Success]: Welcome email dispatched to ${email}. ID:`, data.id);
+  } catch (err) {
+    console.error("[Server Welcome Email Error]:", err);
+  }
 };
 
 module.exports = { sendLeaveEmail, sendApprovalEmail, sendNationalHolidayEmail, sendWelcomeEmail };
