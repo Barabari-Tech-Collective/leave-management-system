@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import CreateUserModal from "../../components/CreateUserModal";
+import { useAuth } from "../../context/AuthContext";
+import { UserPlus } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://leave-portal-api.barabaricollective.org";
 
 export default function VerticalLeadDashboard() {
+  const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dashboardData, setDashboardData] = useState({
@@ -14,8 +18,8 @@ export default function VerticalLeadDashboard() {
     teamLeaves: []
   });
   const [actionLoading, setActionLoading] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -36,7 +40,6 @@ export default function VerticalLeadDashboard() {
     }
   };
 
-  // Handle Approve / Reject Actions
   const handleStatusUpdate = async (leaveId, status) => {
     try {
       setActionLoading(leaveId);
@@ -46,10 +49,9 @@ export default function VerticalLeadDashboard() {
         { withCredentials: true }
       );
       toast.success(`Leave ${status} successfully!`);
-      // Refresh dashboard to reflect updated status and balances
       await fetchDashboardData();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update leave status.");
+      toast.error(err.response?.data?.message || "Failed to update leave status.");
     } finally {
       setActionLoading(null);
     }
@@ -80,7 +82,7 @@ export default function VerticalLeadDashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-5 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               {dashboardData.vertical} Vertical Dashboard
@@ -89,12 +91,23 @@ export default function VerticalLeadDashboard() {
               Overview of team leave balance and approval requests.
             </p>
           </div>
-          <button
-            onClick={fetchDashboardData}
-            className="mt-4 md:mt-0 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-medium transition"
-          >
-            🔄 Refresh Data
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-sm"
+            >
+              <UserPlus size={16} />
+              Add Team Member
+            </button>
+
+            <button
+              onClick={fetchDashboardData}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-medium transition"
+            >
+              🔄 Refresh
+            </button>
+          </div>
         </div>
 
         {/* Stats Summary Grid */}
@@ -264,6 +277,14 @@ export default function VerticalLeadDashboard() {
         </div>
 
       </div>
+
+      {/* Modal for Creating Team Member */}
+      <CreateUserModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        currentUser={currentUser}
+        onUserCreated={fetchDashboardData}
+      />
     </div>
   );
 }

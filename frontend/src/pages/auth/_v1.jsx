@@ -1,0 +1,44 @@
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Loader from "../../components/Loader";
+
+export default function Login() {
+    const { user, loading } = useAuth();
+
+  const handleGoogleLogin = () => {
+    window.open(`${import.meta.env.VITE_API_URL}/auth/google`, "_self");
+  };
+
+  if (loading) {
+    return (
+      <Loader/>
+    );
+  }
+  
+   // Already logged in
+  if (user) {
+    return (
+      <Navigate
+        to={user.role === "admin" ? "/admin" : "/employee"}
+      />
+    );
+  }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/20 via-white to-accent/20">
+      <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center space-y-6">
+
+        <h2 className="text-2xl font-bold">
+          Login to Leave System
+        </h2>
+
+        <button
+          onClick={handleGoogleLogin}
+          className="w-full bg-red-500 text-white py-3 rounded-xl hover:scale-[1.02] transition"
+        >
+          Continue with Google 🚀
+        </button>
+
+      </div>
+    </div>
+  );
+}
