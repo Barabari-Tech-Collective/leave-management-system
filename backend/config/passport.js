@@ -24,38 +24,25 @@ passport.use(
 
         // Check if user exists by email or googleId
         let user = await User.findOne({ email });
-        console.log("Step - 2 Checking if user exists");
 
-        if (user) {
-          // Elevate role to admin if logging in via admin allowlist
-          if (isAllowlistedAdmin && user.role !== "admin") {
-            user.role = "admin";
-            await user.save();
-          }
-          return done(null, user);
-        }
-
+        // Reject if user account has not been provisioned by Admin
         if (!user) {
-          // Reject Google login if Admin hasn't created the account yet
           return done(null, false, {
             message: "Account not found. Please ask your Admin or Vertical Lead to create your account first."
           });
         }
-        
-        if (!user.googleId) {
-          user.googleId = profile.id;
-          await user.save();
+
+        // Elevate role if allowlisted admin
+        if (isAllowlistedAdmin && user.role !== "admin") {
+          user.role = "admin";
         }
 
-        // Create new user if not found
-        // user = await User.create({
-        //   name: profile.displayName,
-        //   email,
-        //   googleId: profile.id,
-        //   role: isAllowlistedAdmin ? "admin" : "employee"
-        // });
+        // Save googleId if logging in via Google for the first time
+        if (!user.googleId) {
+          user.googleId = profile.id;
+        }
 
-        // console.log("Step - 3 USER CREATED:", user);
+        await user.save();
         return done(null, user);
       } catch (error) {
         console.log("PASSPORT ERROR:", error);

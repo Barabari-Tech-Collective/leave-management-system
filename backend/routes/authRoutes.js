@@ -16,12 +16,10 @@ router.get(
     scope: ["profile", "email"]
   })
 );
-
-// Google Callback
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: `${FRONTEND_URL}/`,
+    failureRedirect: `${FRONTEND_URL}/?error=unauthorized`, // Adds query param on failure
   }),
   (req, res, next) => {
     console.log("SUCCESS USER:", req.user);
@@ -49,6 +47,38 @@ router.get(
     });
   }
 );
+// Google Callback
+// router.get(
+//   "/google/callback",
+//   passport.authenticate("google", {
+//     failureRedirect: `${FRONTEND_URL}/`,
+//   }),
+//   (req, res, next) => {
+//     console.log("SUCCESS USER:", req.user);
+
+//     req.session.save((err) => {
+//       if (err) {
+//         console.log("SESSION SAVE ERROR:", err);
+//         return next(err);
+//       }
+
+//       console.log("SESSION SAVED SUCCESSFULLY");
+
+//       // 1. Redirect Admin
+//       if (req.user.role === "admin") {
+//         return res.redirect(`${FRONTEND_URL}/admin`);
+//       }
+
+//       // 2. Redirect Vertical Lead
+//       if (req.user.isVerticalLead) {
+//         return res.redirect(`${FRONTEND_URL}/vertical-lead`);
+//       }
+
+// 3. Default Employee
+//       return res.redirect(`${FRONTEND_URL}/employee`);
+//     });
+//   }
+// );
 
 // 3. Manual Email + Password Login
 router.post("/login", async (req, res) => {
