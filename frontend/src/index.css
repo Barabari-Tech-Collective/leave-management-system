@@ -1,11 +1,10 @@
 @import "tailwindcss";
-body {
-  background-color: #FDFBFB;
-  color: #3F3928;
-  font-family: Inter, sans-serif;
-}
-html {
-  scroll-behavior: smooth;
+html, body, #root {
+  height: 100%;
+  max-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden !important; /* Locks window scrollbar completely */
 }
 @theme {
   --color-primary: #4F46E5; /* Indigo 600 */
