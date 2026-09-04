@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -6,13 +7,13 @@ export default function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-
   const baseStyle =
     "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium group";
 
   const linkInner = "flex items-center gap-3";
 
-  const activeStyle = "bg-primary/10 text-primary font-semibold shadow-[absolute_inset_0_0_10px_rgba(79,70,229,0.1)]";
+  const activeStyle =
+    "bg-primary/10 text-primary font-semibold shadow-[absolute_inset_0_0_10px_rgba(79,70,229,0.1)]";
 
   const handleLogout = () => {
     logout();
@@ -20,7 +21,8 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-darkBg text-slate-300 flex flex-col justify-between p-6 border-r border-slate-800 shadow-2xl relative z-10">
+    // FIXED: Changed fixed dimensions to h-full so it spans full height
+    <div className="w-64 h-full bg-darkBg text-slate-300 flex flex-col justify-between p-6 border-r border-slate-800 shadow-2xl relative z-10">
       <div>
         <div className="flex justify-between items-center mb-10 px-2 mt-2">
           <h2 className="text-2xl font-extrabold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
@@ -32,7 +34,9 @@ export default function Sidebar() {
             to="/admin"
             end
             className={({ isActive }) =>
-              `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
+              `${baseStyle} ${
+                isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"
+              }`
             }
           >
             <div className={linkInner}>
@@ -44,7 +48,9 @@ export default function Sidebar() {
           <NavLink
             to="/admin/employees"
             className={({ isActive }) =>
-              `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
+              `${baseStyle} ${
+                isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"
+              }`
             }
           >
             <div className={linkInner}>
@@ -52,10 +58,13 @@ export default function Sidebar() {
               All Employees
             </div>
           </NavLink>
+
           <NavLink
             to="/admin/vertical-leads"
             className={({ isActive }) =>
-              `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`
+              `${baseStyle} ${
+                isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"
+              }`
             }
           >
             <div className={linkInner}>
@@ -63,7 +72,6 @@ export default function Sidebar() {
               Manage Vertical Leads
             </div>
           </NavLink>
-
         </nav>
       </div>
 
@@ -72,13 +80,18 @@ export default function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-slate-300 hover:bg-accent hover:text-white hover:shadow-md hover:shadow-accent/20 py-3 rounded-xl transition-all duration-300 border border-slate-700/50 hover:border-accent group"
+          className="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-slate-300 hover:bg-accent hover:text-white hover:shadow-md hover:shadow-accent/20 py-3 rounded-xl transition-all duration-300 border border-slate-700/50 hover:border-accent group cursor-pointer"
         >
-          <LogOut size={18} className="transition-transform group-hover:-translate-x-1" />
+          <LogOut
+            size={18}
+            className="transition-transform group-hover:-translate-x-1"
+          />
           <span className="font-medium">Logout</span>
         </button>
 
-        <p className="text-xs text-slate-500 text-center font-medium">LeaveSys v1.0</p>
+        <p className="text-xs text-slate-500 text-center font-medium">
+          LeaveSys v1.0
+        </p>
       </div>
     </div>
   );

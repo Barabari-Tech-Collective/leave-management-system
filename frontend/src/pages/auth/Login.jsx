@@ -41,7 +41,6 @@ export default function Login() {
 
       const loggedUser = res.data.user;
 
-      // Force redirection so AuthContext & session cookies initialize cleanly
       if (loggedUser.role === "admin") {
         window.location.href = "/admin";
       } else if (loggedUser.isVerticalLead) {
@@ -71,7 +70,6 @@ export default function Login() {
       setForm({ email: "", password: "", currentPassword: "", newPassword: "" });
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to reset password");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -88,14 +86,15 @@ export default function Login() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
-      <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-6">
+    // FIXED: Uses min-h-screen w-full instead of w-screen to stop unwanted scrollbars
+    <div className="min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-5 my-auto">
         
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
             {isResetMode ? "Reset Password" : "Login to Leave System"}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             The Barabari Collective Portal
           </p>
         </div>
@@ -134,7 +133,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -150,7 +149,7 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="flex items-center my-3">
+            <div className="flex items-center my-2">
               <div className="flex-grow border-t border-slate-200"></div>
               <span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR</span>
               <div className="flex-grow border-t border-slate-200"></div>
@@ -204,7 +203,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
                   {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -228,7 +227,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                 >
                   {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>

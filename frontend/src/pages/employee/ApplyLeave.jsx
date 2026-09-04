@@ -98,7 +98,7 @@ export default function ApplyLeave() {
 
         {/* Automated Notification Info Banner */}
         <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-center gap-3 text-xs text-indigo-700 font-medium">
-          <span className="text-base">📢</span>
+          {/* <span className="text-base">📢</span> */}
           <p>
             An automated notification email will be sent to your <strong>Vertical Lead</strong>, <strong>Vertical Teammates</strong>, <strong>Founders</strong>, and <strong>Admins</strong> upon submission.
           </p>
@@ -154,7 +154,7 @@ export default function ApplyLeave() {
               {calculatedDays} {calculatedDays === 1 ? "Day" : "Days"}
             </div>
             <p className="text-[11px] text-slate-500 font-medium">
-              (Intervening Sundays are excluded as per Sandwich Rule)
+              (Intervening Sundays are excluded as per Rule)
             </p>
           </div>
         )}

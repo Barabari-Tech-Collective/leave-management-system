@@ -59,7 +59,7 @@ export default function ProfileDropdown() {
                 {user?.vertical || "None"} Vertical
               </span>
               <span className="text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md capitalize">
-                {user?.isVerticalLead ? "Vertical Lead" : user?.role || "Employee"}
+                {user?.isVerticalLead ? "Vertical Lead" : user?.jobRole || "Employee"}
               </span>
             </div>
           </div>
