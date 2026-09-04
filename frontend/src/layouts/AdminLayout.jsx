@@ -4,7 +4,9 @@ import Sidebar from "../components/Sidebar";
 export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-softBg font-sans text-textDark selection:bg-primary/20">
-      <Sidebar />
+      <div className="sticky top-0 h-screen shrink-0">
+        <Sidebar />
+      </div>
       <div className="flex-1 p-8 overflow-y-auto">
         <Outlet />
       </div>
