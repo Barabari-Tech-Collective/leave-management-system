@@ -2,6 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const ensureAuth = require("../middleware/authMiddleware");
 const User = require("../models/User.js");
+const { sendWelcomeEmail } = require("../services/emailService");
 
 
 const router = express.Router();
@@ -112,6 +113,19 @@ router.post("/create-user", ensureAuth, async (req, res) => {
       role: assignedRole,
       jobRole: jobRole || ""
     });
+
+    // Send Welcome Email asynchronously
+try {
+  await sendWelcomeEmail({
+    name: newUser.name,
+    email: newUser.email,
+    password: password, // Sending the unhashed plain password provided in modal
+    vertical: newUser.vertical,
+    jobRole: newUser.jobRole
+  });
+} catch (emailErr) {
+  console.error("Failed to send welcome email:", emailErr);
+}
 
     res.status(201).json({
       message: `User created successfully under ${assignedVertical} vertical!`,
