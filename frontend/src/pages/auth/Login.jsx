@@ -87,7 +87,7 @@ export default function Login() {
 
   return (
     // FIXED: Uses min-h-screen w-full instead of w-screen to stop unwanted scrollbars
-    <div className="min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
+    <div className="h-full w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-5 my-auto">
         
         <div>

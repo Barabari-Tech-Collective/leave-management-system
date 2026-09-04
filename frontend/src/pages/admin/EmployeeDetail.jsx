@@ -30,7 +30,7 @@ export default function EmployeeDetail() {
             { title: "Casual Leave", total: balances.casual?.total ?? 15, taken: balances.casual?.taken ?? 0 },
             { title: "Sick Leave", total: balances.sick?.total ?? 10, taken: balances.sick?.taken ?? 0 },
             { title: "Flexible Leave", total: balances.flexible?.total ?? 5, taken: balances.flexible?.taken ?? 0 },
-            { title: "National Holidays", total: balances.national?.total ?? 4, taken: balances.national?.taken ?? 0 },
+            // { title: "National Holidays", total: balances.national?.total ?? 4, taken: balances.national?.taken ?? 0 },
           ]);
         }
       } catch (err) {

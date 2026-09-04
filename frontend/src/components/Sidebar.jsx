@@ -21,7 +21,6 @@ export default function Sidebar() {
   };
 
   return (
-    // FIXED: Changed fixed dimensions to h-full so it spans full height
     <div className="w-64 h-full bg-darkBg text-slate-300 flex flex-col justify-between p-6 border-r border-slate-800 shadow-2xl relative z-10">
       <div>
         <div className="flex justify-between items-center mb-10 px-2 mt-2">

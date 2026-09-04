@@ -3,16 +3,19 @@ import Sidebar from "../components/Sidebar";
 
 export default function AdminLayout() {
   return (
-    <div className="flex min-h-screen bg-softBg font-sans text-textDark selection:bg-primary/20">
-      {/* Fixed Sticky Full Viewport Height Sidebar */}
-      <aside className="sticky top-0 h-screen shrink-0 z-20">
+    // 1. Fixed viewport height (h-screen) with overflow-hidden stops whole-page scrolling
+    <div className="flex h-screen w-full bg-softBg font-sans text-textDark selection:bg-primary/20 overflow-hidden">
+      
+      {/* 2. Fixed left sidebar */}
+      <aside className="w-64 h-full shrink-0 border-r border-slate-800 bg-darkBg z-20">
         <Sidebar />
       </aside>
 
-      {/* Main Content Area with Independent Scroll */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      {/* 3. Independent scroll area for main content only */}
+      <main className="flex-1 h-full overflow-y-auto p-8 custom-scrollbar">
         <Outlet />
       </main>
+
     </div>
   );
 }
