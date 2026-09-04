@@ -8,11 +8,11 @@ const leaveSchema = new mongoose.Schema(
     },
     vertical: {
       type: String,
-      enum: ["Program", "Placement", "EdTech", "Operations", "None"]
+      enum: ["Program", "Placement", "EdTech", "Operations"]
     },
     type: {
       type: String,
-      enum: ["casual", "sick", "flexible"],
+      enum: ["casual", "sick", "flexible", "national"],
       required: true
     },
     fromDate: Date,

@@ -4,7 +4,8 @@ const bcrypt = require("bcryptjs");
 const leaveBalanceSchema = {
   casual: { total: { type: Number, default: 11 }, taken: { type: Number, default: 0 } },
   sick: { total: { type: Number, default: 10 }, taken: { type: Number, default: 0 } },
-  flexible: { total: { type: Number, default: 5 }, taken: { type: Number, default: 0 } }
+  flexible: { total: { type: Number, default: 5 }, taken: { type: Number, default: 0 } },
+  national: { total: { type: Number, default: 4 }, taken: { type: Number, default: 0 } }
 };
 
 const userSchema = new mongoose.Schema(

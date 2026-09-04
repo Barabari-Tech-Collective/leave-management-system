@@ -183,7 +183,7 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
     const { data, error } = await resend.emails.send({
       from: "Leave Portal <leaves@barabaricollective.org>",
       to: allEmployeeEmails,
-      subject: `📢 Holiday Reminder: ${holidayName} (${dateStr})`,
+      subject: `Holiday Reminder: ${holidayName} (${dateStr})`,
       html: htmlBody
     });
 
@@ -222,9 +222,9 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
 
         <p style="margin-top: 16px; font-weight: 600;">What you can do on the portal:</p>
         <ul style="color: #475569; padding-left: 20px;">
-          <li><strong>Apply for Leaves:</strong> Casual, Sick, or Flexible Cultural leave with automated Sunday-exclusion logic.</li>
+          <li><strong>Apply for Leaves:</strong> Casual, Sick, or Flexible Cultural leave</li>
           <li><strong>Real-time Balance Tracking:</strong> Check remaining leave balances instantly.</li>
-          <li><strong>Zero-Setup Notifications:</strong> Automated email alerts to your Vertical Lead, teammates, Admins, and Founders.</li>
+          <li><strong>Zero-Setup Notifications:</strong> Automated email alerts to your Vertical Lead, teammates and Admins.</li>
         </ul>
 
         <p style="font-size: 13px; color: #64748B; margin-top: 20px;">
