@@ -35,15 +35,27 @@ passport.use(
           return done(null, user);
         }
 
-        // Create new user if not found
-        user = await User.create({
-          name: profile.displayName,
-          email,
-          googleId: profile.id,
-          role: isAllowlistedAdmin ? "admin" : "employee"
-        });
+        if (!user) {
+          // Reject Google login if Admin hasn't created the account yet
+          return done(null, false, {
+            message: "Account not found. Please ask your Admin or Vertical Lead to create your account first."
+          });
+        }
+        
+        if (!user.googleId) {
+          user.googleId = profile.id;
+          await user.save();
+        }
 
-        console.log("Step - 3 USER CREATED:", user);
+        // Create new user if not found
+        // user = await User.create({
+        //   name: profile.displayName,
+        //   email,
+        //   googleId: profile.id,
+        //   role: isAllowlistedAdmin ? "admin" : "employee"
+        // });
+
+        // console.log("Step - 3 USER CREATED:", user);
         return done(null, user);
       } catch (error) {
         console.log("PASSPORT ERROR:", error);

@@ -56,6 +56,27 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
 router.put("/update-status/:id", ensureAuth, updateLeaveStatus);
 router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
+// GET /leave/lead-requests (Admin Only: Fetch all leaves requested by Vertical Leads)
+router.get("/lead-requests", ensureAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
+    // Find all users who are Vertical Leads
+    const leads = await User.find({ isVerticalLead: true }).select("_id");
+    const leadIds = leads.map((l) => l._id);
+
+    // Fetch leaves requested by leads
+    const leadLeaves = await Leave.find({ user: { $in: leadIds } })
+      .populate("user", "name email vertical")
+      .sort({ createdAt: -1 });
+
+    res.json(leadLeaves);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 // testing
 const { sendNationalHolidayEmail } = require("../services/emailService");
 // const User = require("../models/User");

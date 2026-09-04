@@ -9,8 +9,10 @@ const leaveBalanceSchema = {
 const userSchema = new mongoose.Schema(
   {
     name: String,
-    email: { type: String, unique: true },
+    email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+    password: { type: String },
     googleId: String,
+    jobRole: { type: String, default: "" },
 
     vertical: {
       type: String,
@@ -34,5 +36,18 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+  // 1. Automatically hash password before saving if modified
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password") || !this.password) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// 2. Helper method to verify entered password during login
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);
