@@ -1,14 +1,16 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Loader from "../../components/Loader";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const { user, loading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  const [authError, setAuthError] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -22,14 +24,28 @@ export default function Login() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Catch OAuth redirect errors from URL parameters
+  useEffect(() => {
+    const errorType = searchParams.get("error");
+    if (errorType === "unauthorized" || errorType === "user_not_found") {
+      const msg = "This email is not registered. Please sign in with the email address provided by your admin.";
+      setAuthError(msg);
+      toast.error("Unauthorized Email 🚫", { duration: 5000 });
+      // Clear search params from URL so error message clears on refresh
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
+
   // 1. Google OAuth Flow
   const handleGoogleLogin = () => {
+    setAuthError("");
     window.open(`${import.meta.env.VITE_API_URL}/auth/google`, "_self");
   };
 
   // 2. Manual Email + Password Login Flow
   const handleManualLogin = async (e) => {
     e.preventDefault();
+    setAuthError("");
     try {
       setSubmitting(true);
       const res = await API.post("/auth/login", {
@@ -49,7 +65,9 @@ export default function Login() {
         window.location.href = "/employee";
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid credentials");
+      const errMsg = err.response?.data?.message || "Invalid credentials or unauthorized account.";
+      setAuthError(errMsg);
+      toast.error(errMsg);
       setSubmitting(false);
     }
   };
@@ -57,6 +75,7 @@ export default function Login() {
   // 3. Password Reset Flow
   const handlePasswordReset = async (e) => {
     e.preventDefault();
+    setAuthError("");
     try {
       setSubmitting(true);
       await API.post("/auth/reset-password", {
@@ -69,7 +88,9 @@ export default function Login() {
       setIsResetMode(false);
       setForm({ email: "", password: "", currentPassword: "", newPassword: "" });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reset password");
+      setAuthError(err.response?.data?.message || "Failed to reset password");
+      toast.error("Password reset failed");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -78,7 +99,6 @@ export default function Login() {
     return <Loader />;
   }
 
-  // Already authenticated check
   if (user) {
     if (user.role === "admin") return <Navigate to="/admin" replace />;
     if (user.isVerticalLead) return <Navigate to="/vertical-lead" replace />;
@@ -86,7 +106,6 @@ export default function Login() {
   }
 
   return (
-    // FIXED: Uses min-h-screen w-full instead of w-screen to stop unwanted scrollbars
     <div className="min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-5 my-auto">
         
@@ -98,6 +117,16 @@ export default function Login() {
             The Barabari Collective Portal
           </p>
         </div>
+
+        {/* Clear Unauthorized Error Banner */}
+        {authError && (
+          <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-start gap-3 text-left animate-fadeIn">
+            <AlertCircle className="text-rose-600 shrink-0 mt-0.5" size={18} />
+            <p className="text-xs text-rose-700 font-semibold leading-relaxed">
+              {authError}
+            </p>
+          </div>
+        )}
 
         {!isResetMode ? (
           <>
