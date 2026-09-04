@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const leaveBalanceSchema = {
   casual: { total: { type: Number, default: 11 }, taken: { type: Number, default: 0 } },

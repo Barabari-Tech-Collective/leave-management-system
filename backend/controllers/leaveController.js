@@ -8,15 +8,28 @@ exports.applyLeave = async (req, res) => {
     const user = req.user;
     const { type, fromDate, toDate, reason } = req.body;
 
-    const start = new Date(fromDate);
-    const end = new Date(toDate);
-    const days = (end - start) / (1000 * 60 * 60 * 24) + 1;
+    // Calculate total days excluding Sundays
+    let start = new Date(fromDate);
+    let end = new Date(toDate);
+    let days = 0;
+    let current = new Date(start);
+
+    while (current <= end) {
+      if (current.getDay() !== 0) { // Skip Sundays (0)
+        days++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (days <= 0) {
+      return res.status(400).json({ message: "No working days selected (Sundays excluded)." });
+    }
 
     const balance = user.leaveBalance[type];
     const remaining = balance.total - balance.taken;
 
     if (days > remaining) {
-      return res.status(400).json({ message: "Not enough leave balance" });
+      return res.status(400).json({ message: `Not enough leave balance. Required: ${days}, Remaining: ${remaining}` });
     }
 
     // A. Fetch Vertical Lead & Teammates in the same vertical
@@ -26,7 +39,7 @@ exports.applyLeave = async (req, res) => {
     });
     const teamEmails = teamMembers.map((member) => member.email);
 
-    // B. Fetch Admins from DB + Merge with .env Admin allowlist
+    // B. Fetch Admins
     const envAdmins = (process.env.ADMIN_EMAILS || "")
       .split(",")
       .map((e) => e.trim().toLowerCase());

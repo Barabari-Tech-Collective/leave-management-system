@@ -38,17 +38,29 @@ router.get("/all", ensureAuth, async (req, res) => {
 router.put("/update-lead/:id", ensureAuth, async (req, res) => {
   try {
     const { isVerticalLead, vertical } = req.body;
+    const userId = req.params.id;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { 
-        isVerticalLead, 
-        vertical: vertical || "None" 
-      },
+    // Guard: None vertical cannot have a vertical lead
+    if (isVerticalLead && vertical === "None") {
+      return res.status(400).json({ message: "Cannot assign a Vertical Lead to 'None' vertical." });
+    }
+
+    // Single Lead Enforcement: If assigning a new lead, demote any existing lead in the same vertical
+    if (isVerticalLead) {
+      await User.updateMany(
+        { vertical, _id: { $ne: userId } },
+        { $set: { isVerticalLead: false } }
+      );
+    }
+
+    // Update target user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { isVerticalLead, vertical },
       { new: true }
     );
 
-    res.json(user);
+    res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
