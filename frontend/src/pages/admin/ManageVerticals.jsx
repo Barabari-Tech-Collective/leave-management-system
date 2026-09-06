@@ -19,7 +19,7 @@ export default function ManageVerticals() {
       const res = await API.get("/users/all");
       setUsers(res.data);
     } catch (err) {
-        console.log("Error fetching users:", err);
+        console.error("Error fetching users:", err);
       toast.error("Failed to load user list");
     }
   };

@@ -9,7 +9,7 @@ import LeavePolicy from "../pages/employee/LeavePolicy";
 import VerticalLeadDashboard from "../pages/verticalLead/VerticalLeadDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminVerticalLead from "../pages/admin/AdminVerticalLead";
-import ManageVerticals from "./pages/admin/ManageVerticals";
+import ManageVerticals from "../pages/admin/ManageVerticals";
 import EmployeeDetail from "../pages/admin/EmployeeDetail";
 import ProtectedRoute from "./protectedRoutes";
 import AllEmployee from "../pages/admin/AllEmployee";
