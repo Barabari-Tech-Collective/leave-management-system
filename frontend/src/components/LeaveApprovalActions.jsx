@@ -12,7 +12,7 @@ export default function LeaveApprovalActions({ leaveId, onStatusUpdated }) {
   const handleApprove = async () => {
     try {
       setLoading(true);
-      await API.put(`/leave/status/${leaveId}`, { status: "approved" });
+      await API.put(`/leave/update-status/${leaveId}`, { status: "approved" });
       toast.success("Leave request approved! ✅");
       onStatusUpdated();
     } catch (err) {
@@ -32,7 +32,7 @@ export default function LeaveApprovalActions({ leaveId, onStatusUpdated }) {
 
     try {
       setLoading(true);
-      await API.put(`/leave/status/${leaveId}`, {
+      await API.put(`/leave/update-status/${leaveId}`, {
         status: "rejected",
         rejectionReason: rejectionReason.trim(),
       });

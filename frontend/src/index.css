@@ -4,7 +4,7 @@ html, body, #root {
   max-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden !important; /* Locks window scrollbar completely */
+  /* overflow: hidden !important; Locks window scrollbar completely */
 }
 @theme {
   --color-primary: #4F46E5; /* Indigo 600 */
