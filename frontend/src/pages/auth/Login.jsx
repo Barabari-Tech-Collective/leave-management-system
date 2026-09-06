@@ -59,8 +59,6 @@ export default function Login() {
 
       if (loggedUser.role === "admin") {
         window.location.href = "/admin";
-      } else if (loggedUser.isVerticalLead) {
-        window.location.href = "/vertical-lead";
       } else {
         window.location.href = "/employee";
       }
