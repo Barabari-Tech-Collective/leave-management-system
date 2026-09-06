@@ -143,7 +143,6 @@ exports.updateLeaveStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 // 4. VERTICAL LEAD DASHBOARD: Get Team Leaves & Statistics
 exports.getTeamLeavesForLead = async (req, res) => {
   try {
@@ -154,17 +153,23 @@ exports.getTeamLeavesForLead = async (req, res) => {
       return res.status(403).json({ message: "Access denied. Vertical Leads only." });
     }
 
-    // If request query provides a target vertical (e.g., when Admin checks a specific vertical dashboard)
+    // Target vertical selection (Admin query override or Lead's own vertical)
     const targetVertical = req.query.vertical || currentLead.vertical;
 
-    // Fetch leaves & team members for target vertical
-    const teamLeaves = await Leave.find({ vertical: targetVertical })
-      .populate("user", "name email leaveBalance vertical")
-      .sort({ createdAt: -1 });
+    // 1. Fetch team members (Excluding soft-deleted members)
+    const teamMembers = await User.find({
+      vertical: targetVertical,
+      isDeleted: { $ne: true }
+    }).select("name email leaveBalance isVerticalLead jobRole");
 
-    const teamMembers = await User.find({ vertical: targetVertical }).select(
-      "name email leaveBalance isVerticalLead"
-    );
+    // 2. Fetch team leaves EXCLUDING the logged-in user's own requests
+    // (Lead's own leave request goes to Admin Dashboard)
+    const teamLeaves = await Leave.find({
+      vertical: targetVertical,
+      user: { $ne: currentLead._id } // <--- EXCLUDES LEAD'S OWN LEAVE APPLICATIONS
+    })
+      .populate("user", "name email leaveBalance vertical isVerticalLead")
+      .sort({ createdAt: -1 });
 
     res.json({
       vertical: targetVertical,
