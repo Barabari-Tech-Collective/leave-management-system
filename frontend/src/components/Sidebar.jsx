@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Layers, ShieldCheck, Users, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {

@@ -5,7 +5,7 @@ import API from "../../api/axiosConfig";
 import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
 import LeaveApprovalActions from "../../components/LeaveApprovalActions"; 
-import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Briefcase } from "lucide-react";
+import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Layers, Briefcase } from "lucide-react";
 
 const VERTICALS = ["All", "Program", "Placement", "EdTech", "Operations", "None"];
 
