@@ -107,32 +107,39 @@ exports.getMyleaves = async (req, res) => {
 // 3. UPDATE LEAVE STATUS (Approve / Reject)
 exports.updateLeaveStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
     const leave = await Leave.findById(req.params.id).populate("user");
 
     if (!leave) {
-      return res.status(404).json({ message: "Leave not found" });
+      return res.status(404).json({ message: "Leave record not found" });
     }
 
     leave.status = status;
     await leave.save();
 
-    // Deduct leave balance only upon approval
+    // Deduct leave balance only if approved
     if (status === "approved") {
-      leave.user.leaveBalance[leave.type].taken += leave.days;
-      await leave.user.save();
+      if (leave.user && leave.user.leaveBalance && leave.user.leaveBalance[leave.type]) {
+        leave.user.leaveBalance[leave.type].taken += leave.days;
+        // Save without triggering strict user re-validation
+        await leave.user.save({ validateBeforeSave: false });
+      }
     }
 
-    // Send status update email to employee
-    await sendApprovalEmail({
-      employeeEmail: leave.user.email,
-      employeeName: leave.user.name,
-      status,
-      leave
-    });
+    // Dispatch status notification email (Approved or Rejected)
+    if (leave.user && leave.user.email) {
+      await sendApprovalEmail({
+        employeeEmail: leave.user.email,
+        employeeName: leave.user.name || "Team Member",
+        status,
+        leave,
+        rejectionReason: status === "rejected" ? rejectionReason : ""
+      });
+    }
 
-    res.json({ message: `Leave ${status}` });
+    res.json({ message: `Leave application ${status} successfully!`, leave });
   } catch (err) {
+    console.error("Error updating leave status:", err);
     res.status(500).json({ message: err.message });
   }
 };

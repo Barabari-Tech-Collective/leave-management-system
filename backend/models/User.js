@@ -18,8 +18,7 @@ const userSchema = new mongoose.Schema(
 
     vertical: {
       type: String,
-      enum: ["Program", "Placement", "EdTech", "Operations", "None"],
-      default: "None"
+      enum: ["Program", "Placement", "EdTech", "Operations"]
     },
 
     // Identify if the user leads a vertical
@@ -33,7 +32,7 @@ const userSchema = new mongoose.Schema(
       enum: ["employee", "admin", "founder"],
       default: "employee"
     },
-
+    isDeleted: { type: Boolean, default: false },
     leaveBalance: leaveBalanceSchema
   },
   { timestamps: true }

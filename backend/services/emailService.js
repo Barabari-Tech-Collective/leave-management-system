@@ -110,13 +110,13 @@ const sendLeaveEmail = async ({
     console.error("[Server Error]:", err);
   }
 };
-
 // 2. Approval / Rejection Notification
 const sendApprovalEmail = async ({
   employeeEmail,
   employeeName,
   status,
-  leave
+  leave,
+  rejectionReason = ""
 }) => {
   try {
     if (!employeeEmail) return;
@@ -126,14 +126,19 @@ const sendApprovalEmail = async ({
     const isApproved = status === "approved";
 
     const htmlBody = wrapBarabariTemplate({
-      title: `Leave ${status.toUpperCase()}`,
-      subtitle: `Status Update Notification`,
+      title: isApproved ? "Leave Request Approved ✅" : "Leave Request Declined ❌",
+      subtitle: "Status Update Notification",
       content: `
         <p style="font-size: 16px;">Hi <strong>${employeeName}</strong>,</p>
-        <p>Your leave application from <strong>${fromStr}</strong> to <strong>${toStr}</strong> (${leave.days} days) has been <strong style="color: ${isApproved ? '#16A34A' : '#DC2626'};">${status.toUpperCase()}</strong>.</p>
+        <p>Your leave application for <strong>${leave.days} day(s)</strong> (${fromStr} to ${toStr}) has been <strong style="color: ${isApproved ? '#16A34A' : '#DC2626'};">${status.toUpperCase()}</strong>.</p>
         
-        <div class="info-box" style="border-left-color: ${isApproved ? '#16A34A' : '#DC2626'}; bg-color: ${isApproved ? '#F0FDF4' : '#FEF2F2'};">
-          <p style="margin: 0;"><strong>Reason provided:</strong> ${leave.reason}</p>
+        <div class="info-box" style="border-left-color: ${isApproved ? '#16A34A' : '#DC2626'}; background-color: ${isApproved ? '#F0FDF4' : '#FEF2F2'};">
+          <p style="margin: 0; color: #334155;"><strong>Your Applied Reason:</strong> ${leave.reason}</p>
+          ${
+            !isApproved && rejectionReason
+              ? `<p style="margin: 8px 0 0 0; color: #DC2626; font-weight: 700;"><strong>Rejection Remark from Lead/Admin:</strong> ${rejectionReason}</p>`
+              : ""
+          }
         </div>
 
         <p>Warm regards,<br/><strong>Team Barabari Collective</strong></p>
@@ -152,7 +157,7 @@ const sendApprovalEmail = async ({
       return;
     }
 
-    console.log(`[Resend Success]: Approval email sent to ${employeeEmail}`);
+    console.log(`[Resend Success]: ${status.toUpperCase()} email sent to ${employeeEmail}`);
   } catch (err) {
     console.error("[Server Error]:", err);
   }
@@ -242,12 +247,14 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
 
     if (error) {
       console.error("[Resend Welcome Email Error]:", error);
-      return;
+      return false; // Email sending failed
     }
 
     console.log(`[Resend Success]: Welcome email dispatched to ${email}. ID:`, data.id);
+    return true; // Email sent successfully
   } catch (err) {
     console.error("[Server Welcome Email Error]:", err);
+    return false; // Invalid inbox or server error
   }
 };
 

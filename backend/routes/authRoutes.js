@@ -113,66 +113,73 @@ router.post("/create-user", ensureAuth, async (req, res) => {
     const creator = req.user;
     const { name, email, password, vertical, isVerticalLead, role, jobRole } = req.body;
 
-    // Permissions Guard: Must be Admin OR Vertical Lead
     if (!creator.isVerticalLead && creator.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Only Admins or Vertical Leads can create users." });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists." });
+    const cleanedEmail = email.trim().toLowerCase();
+
+    // Standard Email Syntax Check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanedEmail)) {
+      return res.status(400).json({
+        message: "Please provide a valid email address."
+      });
     }
 
-    // Handle Vertical Lead creation limits (Leads can only create users inside their own vertical)
+    // Existing user check
+    const existingUser = await User.findOne({ email: cleanedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: "An account with this email address already exists." });
+    }
+
     let assignedVertical = vertical;
     let assignedRole = role || "employee";
     let assignedLeadStatus = isVerticalLead || false;
 
     if (creator.role !== "admin" && creator.isVerticalLead) {
       assignedVertical = creator.vertical;
-      assignedRole = "employee"; // Vertical leads cannot create admins
+      assignedRole = "employee";
     }
 
     const newUser = await User.create({
       name,
-      email: email.toLowerCase(),
+      email: cleanedEmail,
       password,
-      vertical: assignedVertical || "None",
+      vertical: assignedVertical || "Program",
       isVerticalLead: assignedLeadStatus,
       role: assignedRole,
       jobRole: jobRole || ""
     });
 
-    // Send Welcome Email asynchronously
-try {
-  await sendWelcomeEmail({
-    name: newUser.name,
-    email: newUser.email,
-    password: password, // Sending the unhashed plain password provided in modal
-    vertical: newUser.vertical,
-    jobRole: newUser.jobRole
-  });
-} catch (emailErr) {
-  console.error("Failed to send welcome email:", emailErr);
-}
+    // Send Welcome Email asynchronously and check status
+    let isEmailSent = false;
+    try {
+      isEmailSent = await sendWelcomeEmail({
+        name: newUser.name,
+        email: newUser.email,
+        password: password,
+        vertical: newUser.vertical,
+        jobRole: newUser.jobRole
+      });
+    } catch (emailErr) {
+      console.error("Failed to send welcome email:", emailErr);
+    }
 
     res.status(201).json({
-      message: `User created successfully under ${assignedVertical} vertical!`,
+      message: `User created successfully!`,
+      emailSent: isEmailSent,
       user: {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        vertical: newUser.vertical,
-        role: newUser.role,
-        jobRole: newUser.jobRole
+        vertical: newUser.vertical
       }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 // Get logged-in user
 router.get("/me", ensureAuth, (req, res) => {
   if (!req.user) {
