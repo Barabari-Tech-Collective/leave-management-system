@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/axiosConfig";
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
+import LeaveApprovalActions from "../../components/LeaveApprovalActions"; 
 import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Briefcase } from "lucide-react";
 
 const VERTICALS = ["All", "Program", "Placement", "EdTech", "Operations", "None"];
@@ -21,13 +22,13 @@ export default function AdminDashboard() {
   const [opsData, setOpsData] = useState({ teamLeaves: [] });
   const [leadLeaves, setLeadLeaves] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [actionLoading, setActionLoading] = useState(null);
-
-  useEffect(() => {
-    fetchEmployees();
-    fetchOpsAndLeadLeaves();
-  }, []);
-
+  // const [actionLoading, setActionLoading] = useState(null);
+  
+  
+    useEffect(() => {
+      fetchEmployees();
+      fetchOpsAndLeadLeaves();
+    }, []);
   const fetchEmployees = async () => {
     try {
       const res = await API.get("/users/all");
@@ -51,18 +52,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (leaveId, status) => {
-    try {
-      setActionLoading(leaveId);
-      await API.put(`/leave/update-status/${leaveId}`, { status });
-      toast.success(`Leave ${status} successfully!`);
-      await fetchOpsAndLeadLeaves();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update leave status.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // const handleStatusUpdate = async (leaveId, status) => {
+  //   try {
+  //     setActionLoading(leaveId);
+  //     await API.put(`/leave/update-status/${leaveId}`, { status });
+  //     toast.success(`Leave ${status} successfully!`);
+  //     await fetchOpsAndLeadLeaves();
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Failed to update leave status.");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   // Filter employees for Tab 1
   const filteredEmployees = employees.filter((emp) => {
@@ -77,7 +78,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 p-2">
-      {/* Top Header */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-textDark">Admin Dashboard</h1>
@@ -88,18 +89,18 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition"
+          className="flex items-center gap-2 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition cursor-pointer"
         >
           <UserPlus size={18} />
           Create New Member
         </button>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Tabs */}
       <div className="flex flex-wrap border-b border-slate-200 gap-2 font-medium text-sm">
         <button
           onClick={() => setActiveTab("all")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 ${
+          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "all"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setActiveTab("operations")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 ${
+          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "operations"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
@@ -126,7 +127,7 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setActiveTab("leadApprovals")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 ${
+          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
             activeTab === "leadApprovals"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
@@ -148,7 +149,7 @@ export default function AdminDashboard() {
             <select
               value={selectedVertical}
               onChange={(e) => setSelectedVertical(e.target.value)}
-              className="p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm"
+              className="p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary shadow-xs"
             >
               {VERTICALS.map((v) => (
                 <option key={v} value={v}>
@@ -175,13 +176,14 @@ export default function AdminDashboard() {
                   <th className="p-4 text-left">Vertical</th>
                   <th className="p-4 text-left">Casual Used</th>
                   <th className="p-4 text-left">Sick Used</th>
+                  <th className="p-4 text-left">Flexible Used</th>
                   <th className="p-4 text-left">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center p-6 text-gray-400">
+                    <td colSpan="7" className="text-center p-6 text-gray-400">
                       No employees found matching filter criteria.
                     </td>
                   </tr>
@@ -190,15 +192,14 @@ export default function AdminDashboard() {
                     <tr key={emp._id} className="border-t hover:bg-gray-50 transition">
                       <td className="p-4 font-medium">{emp.name}</td>
                       <td className="p-4 text-gray-500">{emp.email}</td>
-                      <td className="p-4 font-semibold text-indigo-600">
-                        {emp.vertical || "None"}
-                      </td>
+                      <td className="p-4 font-semibold text-indigo-600">{emp.vertical}</td>
                       <td className="p-4">{emp.leaveBalance?.casual?.taken ?? 0}</td>
                       <td className="p-4">{emp.leaveBalance?.sick?.taken ?? 0}</td>
+                      <td className="p-4">{emp.leaveBalance?.flexible?.taken ?? 0}</td>
                       <td className="p-4">
                         <button
                           onClick={() => navigate(`/admin/employee/${emp._id}`)}
-                          className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 transition text-xs font-medium"
+                          className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 transition text-xs font-medium cursor-pointer"
                         >
                           View Details
                         </button>
@@ -212,14 +213,13 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* TAB 2: OPERATIONS VERTICAL (ADMIN MANAGEMENT) */}
+      {/* TAB 2: OPERATIONS VERTICAL */}
       {activeTab === "operations" && (
         <div className="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
           <h2 className="text-lg font-bold text-slate-800">Operations Team Leave Requests</h2>
           <LeaveTableData
             leaves={opsData.teamLeaves || []}
-            onAction={handleStatusUpdate}
-            actionLoading={actionLoading}
+            onRefresh={fetchOpsAndLeadLeaves}
           />
         </div>
       )}
@@ -232,14 +232,12 @@ export default function AdminDashboard() {
           </h2>
           <LeaveTableData
             leaves={leadLeaves}
-            onAction={handleStatusUpdate}
-            actionLoading={actionLoading}
+            onRefresh={fetchOpsAndLeadLeaves}
             showVertical
           />
         </div>
       )}
 
-      {/* Create User Modal */}
       <CreateUserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -253,8 +251,8 @@ export default function AdminDashboard() {
   );
 }
 
-// Sub-component for rendering leave requests table
-function LeaveTableData({ leaves, onAction, actionLoading, showVertical }) {
+// Sub-component rendering Leave Table with LeaveApprovalActions
+function LeaveTableData({ leaves, onRefresh, showVertical }) {
   if (leaves.length === 0) {
     return <div className="text-slate-400 py-8 text-center">No leave applications found.</div>;
   }
@@ -301,22 +299,10 @@ function LeaveTableData({ leaves, onAction, actionLoading, showVertical }) {
               </td>
               <td className="p-3 text-right space-x-2 whitespace-nowrap">
                 {leave.status === "pending" ? (
-                  <>
-                    <button
-                      disabled={actionLoading === leave._id}
-                      onClick={() => onAction(leave._id, "approved")}
-                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      disabled={actionLoading === leave._id}
-                      onClick={() => onAction(leave._id, "rejected")}
-                      className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-semibold hover:bg-rose-700 transition disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                  </>
+                  <LeaveApprovalActions
+                    leaveId={leave._id}
+                    onStatusUpdated={onRefresh}
+                  />
                 ) : (
                   <span className="text-xs text-slate-400 italic">No action needed</span>
                 )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
+import LeaveApprovalActions from "../../components/LeaveApprovalActions";
 import { useAuth } from "../../context/AuthContext";
 import { UserPlus } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default function VerticalLeadDashboard() {
     teamMembers: [],
     teamLeaves: []
   });
-  const [actionLoading, setActionLoading] = useState(null);
+  // const [actionLoading, setActionLoading] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -40,22 +41,22 @@ export default function VerticalLeadDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (leaveId, status) => {
-    try {
-      setActionLoading(leaveId);
-      await axios.put(
-        `${API_BASE_URL}/leave/update-status/${leaveId}`,
-        { status },
-        { withCredentials: true }
-      );
-      toast.success(`Leave ${status} successfully!`);
-      await fetchDashboardData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update leave status.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // const handleStatusUpdate = async (leaveId, status) => {
+  //   try {
+  //     setActionLoading(leaveId);
+  //     await axios.put(
+  //       `${API_BASE_URL}/leave/update-status/${leaveId}`,
+  //       { status },
+  //       { withCredentials: true }
+  //     );
+  //     toast.success(`Leave ${status} successfully!`);
+  //     await fetchDashboardData();
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Failed to update leave status.");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -205,6 +206,16 @@ export default function VerticalLeadDashboard() {
                       </td>
                       <td className="py-4 px-6 text-right space-x-2 whitespace-nowrap">
                         {leave.status === "pending" ? (
+                          <LeaveApprovalActions
+                            leaveId={leave._id}
+                            onStatusUpdated={fetchDashboardData}
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No action needed</span>
+                        )}
+                      </td>
+                      {/* <td className="py-4 px-6 text-right space-x-2 whitespace-nowrap">
+                        {leave.status === "pending" ? (
                           <>
                             <button
                               disabled={actionLoading === leave._id}
@@ -224,7 +235,7 @@ export default function VerticalLeadDashboard() {
                         ) : (
                           <span className="text-xs text-gray-400 italic">No action needed</span>
                         )}
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>

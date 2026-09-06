@@ -9,6 +9,7 @@ import LeavePolicy from "../pages/employee/LeavePolicy";
 import VerticalLeadDashboard from "../pages/verticalLead/VerticalLeadDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminVerticalLead from "../pages/admin/AdminVerticalLead";
+import ManageVerticals from "./pages/admin/ManageVerticals";
 import EmployeeDetail from "../pages/admin/EmployeeDetail";
 import ProtectedRoute from "./protectedRoutes";
 import AllEmployee from "../pages/admin/AllEmployee";
@@ -48,6 +49,7 @@ export default function AppRoutes() {
         <Route index element={<AdminDashboard />} />
         <Route path="employees" element={<AllEmployee />} />
         <Route path="vertical-leads" element={<AdminVerticalLead />} />
+        <Route path="verticals" element={<ManageVerticals />} />
         <Route path="history" element={<History />} />
         <Route path="employee/:id" element={<EmployeeDetail />} />
       </Route>

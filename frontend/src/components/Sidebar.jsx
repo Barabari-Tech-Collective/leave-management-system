@@ -71,6 +71,16 @@ export default function Sidebar() {
               Manage Vertical Leads
             </div>
           </NavLink>
+
+          <NavLink
+  to="/admin/verticals"
+  className={({ isActive }) => `${baseStyle} ${isActive ? activeStyle : "hover:bg-slate-800 hover:text-white"}`}
+>
+  <div className={linkInner}>
+    <Layers size={18} />
+    Manage Verticals
+  </div>
+</NavLink>
         </nav>
       </div>
 

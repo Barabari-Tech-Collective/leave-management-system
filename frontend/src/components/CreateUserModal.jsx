@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import API from "../api/axiosConfig";
 import toast from "react-hot-toast";
-import { X, UserPlus, Sparkles, Key, Mail, User, Briefcase, Layers, ShieldCheck } from "lucide-react";
+import { 
+  X, UserPlus, Key, Mail, User, Briefcase, 
+  Layers, ShieldCheck, Eye, EyeOff, AlertCircle 
+} from "lucide-react";
 
-const VERTICALS = ["Program", "Placement", "EdTech", "Operations", "None"];
+const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
+const OFFICIAL_DOMAIN = "@barabaricollective.org";
 
 export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCreated }) {
   const isAdmin = currentUser?.role === "admin";
@@ -18,34 +22,86 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
     role: "employee"
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      await API.post("/auth/create-user", form);
-      toast.success("Team member onboarded successfully! 🚀");
-      onUserCreated();
-      onClose();
-      setForm({
-        name: "",
-        email: "",
-        password: "",
-        vertical: isAdmin ? "Program" : currentUser?.vertical || "Operations",
-        isVerticalLead: false,
-        jobRole: "",
-        role: "employee"
-      });
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to create user");
-    } finally {
-      setLoading(false);
+  // Real-time Email Validation
+  const validateEmail = (email) => {
+  const trimmedEmail = email.trim().toLowerCase();
+
+  if (!trimmedEmail) {
+    setEmailError("Email address field cannot be empty.");
+    return false;
+  }
+
+  // 1. Check basic email syntax
+ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setEmailError("Please enter a valid email address (e.g. name@gmail.com)");
+      return false;
+    }
+
+  // 2. Check official company domain
+  // if (!trimmedEmail.endsWith(OFFICIAL_DOMAIN)) {
+  //   setEmailError(`Please use official company email ending with ${OFFICIAL_DOMAIN}`);
+  //   return false;
+  // }
+
+  setEmailError("");
+  return true;
+};
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setForm({ ...form, email: value });
+    if (value.trim()) {
+      validateEmail(value);
+    } else {
+      setEmailError("");
     }
   };
 
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // User-friendly Toast Feedback
+  if (!form.email.trim()) {
+    toast.error("Please enter the new member's email address.");
+    return;
+  }
+
+  if (!validateEmail(form.email)) {
+      toast.error("Please enter a valid email address before submitting.");
+      return;
+    }
+
+  try {
+    setLoading(true);
+    const res = await API.post("/auth/create-user", {
+      ...form,
+      email: form.email.trim().toLowerCase()
+    });
+
+    // Check if Email Delivery was Successful or Bounced/Failed
+    if (res.data.emailSent) {
+      toast.success("Member onboarded & Welcome Email delivered successfully! 🚀");
+    } else {
+      toast("Member account created, but Welcome Email could not be delivered. Please check if the email address exists.", {
+        icon: "⚠️",
+        duration: 6000
+      });
+    }
+
+    onUserCreated();
+    onClose();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to create user");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fadeIn">
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[90vh]">
@@ -74,10 +130,10 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
           </div>
         </div>
 
-        {/* Form Body - Smooth Scroll Container */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-sm font-medium">
           
-          {/* Full Name & Email in 2 columns */}
+          {/* Full Name & Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -106,15 +162,24 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
                   type="email"
                   required
                   placeholder="jane@barabaricollective.org"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition text-slate-800"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:bg-white transition text-slate-800 ${
+                    emailError
+                      ? "border-rose-400 focus:ring-rose-500 bg-rose-50/30"
+                      : "border-slate-200 focus:ring-primary"
+                  }`}
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={handleEmailChange}
                 />
               </div>
+              {emailError && (
+                <p className="text-[11px] font-bold text-rose-600 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> {emailError}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Password & Job Role in 2 columns */}
+          {/* Password with Eye Toggle & Job Title */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
@@ -123,14 +188,21 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
               <div className="relative">
                 <Key size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition text-slate-800"
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition text-slate-800"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
@@ -142,7 +214,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
                 <Briefcase size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="e.g. Brands & Comms Lead"
+                  placeholder="e.g. Program Manager"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:bg-white transition text-slate-800"
                   value={form.jobRole}
                   onChange={(e) => setForm({ ...form, jobRole: e.target.value })}
@@ -181,12 +253,11 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
               </span>
 
               <div className="grid grid-cols-2 gap-4 pt-1">
-                {/* Vertical Lead Toggle Button */}
                 <div
                   onClick={() => setForm({ ...form, isVerticalLead: !form.isVerticalLead })}
                   className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition select-none ${
                     form.isVerticalLead
-                      ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm"
+                      ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-xs"
                       : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
                   }`}
                 >
@@ -202,7 +273,6 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
                   </span>
                 </div>
 
-                {/* System Role Selector */}
                 <div>
                   <select
                     className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary cursor-pointer"
@@ -228,7 +298,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || Boolean(emailError)}
               className="flex-1 py-3 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition cursor-pointer disabled:opacity-50"
             >
               {loading ? "Onboarding..." : "Confirm & Save Member"}
