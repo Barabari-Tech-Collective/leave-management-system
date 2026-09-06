@@ -101,7 +101,7 @@ export default function Login() {
 
   if (user) {
     if (user.role === "admin") return <Navigate to="/admin" replace />;
-    if (user.isVerticalLead) return <Navigate to="/vertical-lead" replace />;
+    // if (user.isVerticalLead) return <Navigate to="/vertical-lead" replace />;
     return <Navigate to="/employee" replace />;
   }
 
