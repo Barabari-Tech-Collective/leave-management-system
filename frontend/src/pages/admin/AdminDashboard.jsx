@@ -167,7 +167,7 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
+          <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
                 <tr>
