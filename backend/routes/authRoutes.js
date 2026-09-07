@@ -91,6 +91,13 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
+    // Guard: Block soft-deleted employees from logging in
+    if (user && user.isDeleted) {
+      return res.status(403).json({
+        message: "Your account has been deactivated. Please contact your Admin."
+      });
+    }
+
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }

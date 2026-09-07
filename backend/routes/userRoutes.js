@@ -106,4 +106,32 @@ router.put("/soft-delete/:id", ensureAuth, async (req, res) => {
   }
 });
 
+// GET all soft-deleted users (Recycle Bin)
+router.get("/deleted", ensureAuth, async (req, res) => {
+  try {
+    const deletedUsers = await User.find({ isDeleted: true })
+      .select("name email role vertical jobRole updatedAt")
+      .sort({ updatedAt: -1 });
+
+    res.json(deletedUsers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Restore Soft-Deleted User
+router.put("/restore/:id", ensureAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.isDeleted = false;
+    await user.save({ validateBeforeSave: false });
+
+    res.json({ message: `Account for ${user.name} restored successfully!`, user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
