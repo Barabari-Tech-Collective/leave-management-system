@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/axiosConfig";
-// import toast from "react-hot-toast";
+import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
 import LeaveApprovalActions from "../../components/LeaveApprovalActions"; 
@@ -15,6 +15,7 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState("all"); // "all" | "operations" | "leadApprovals"
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true );
   const [selectedVertical, setSelectedVertical] = useState("All");
   const [employees, setEmployees] = useState([]);
   
@@ -24,33 +25,62 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // const [actionLoading, setActionLoading] = useState(null);
   
-  
-    useEffect(() => {
-      fetchEmployees();
-      fetchOpsAndLeadLeaves();
-    }, []);
-  const fetchEmployees = async () => {
-    try {
-      const res = await API.get("/users/all");
-      setEmployees(res.data);
-    } catch (err) {
-      console.error("Failed to fetch employees:", err);
-    }
-  };
+  useEffect(() => {
+    fetchAllDashboardData();
+  }, []);
 
-  const fetchOpsAndLeadLeaves = async () => {
+  // Combined fetch function using Promise.all to prevent loading state flicker
+  const fetchAllDashboardData = async () => {
     try {
-      // Fetch Operations Vertical leaves
-      const opsRes = await API.get("/leave/team-dashboard?vertical=Operations");
+      setLoading(true);
+      const [empRes, opsRes, leadRes] = await Promise.all([
+        API.get("/users/all"),
+        API.get("/leave/team-dashboard?vertical=Operations"),
+        API.get("/leave/lead-requests")
+      ]);
+
+      setEmployees(empRes.data);
       setOpsData(opsRes.data);
-
-      // Fetch leaves applied by Vertical Leads
-      const leadRes = await API.get("/leave/lead-requests");
       setLeadLeaves(leadRes.data);
     } catch (err) {
-      console.error("Failed to fetch approval requests:", err);
+      console.error("Failed to fetch admin dashboard data:", err);
+      toast.error("Failed to load dashboard data. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+  //   useEffect(() => {
+  //     fetchEmployees();
+  //     fetchOpsAndLeadLeaves();
+  //   }, []);
+  // const fetchEmployees = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const res = await API.get("/users/all");
+  //     setEmployees(res.data);
+  //   } catch (err) {
+  //     console.error("Failed to fetch employees:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const fetchOpsAndLeadLeaves = async () => {
+  //   try {
+  //     // Fetch Operations Vertical leaves
+  //     setLoading(true);
+  //     const opsRes = await API.get("/leave/team-dashboard?vertical=Operations");
+  //     setOpsData(opsRes.data);
+
+  //     // Fetch leaves applied by Vertical Leads
+  //     const leadRes = await API.get("/leave/lead-requests");
+  //     setLeadLeaves(leadRes.data);
+  //   } catch (err) {
+  //     console.error("Failed to fetch approval requests:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // const handleStatusUpdate = async (leaveId, status) => {
   //   try {
@@ -64,6 +94,14 @@ export default function AdminDashboard() {
   //     setActionLoading(null);
   //   }
   // };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   // Filter employees for Tab 1
   const filteredEmployees = employees.filter((emp) => {
@@ -219,7 +257,7 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-bold text-slate-800">Operations Team Leave Requests</h2>
           <LeaveTableData
             leaves={opsData.teamLeaves || []}
-            onRefresh={fetchOpsAndLeadLeaves}
+            onRefresh={fetchAllDashboardData}
           />
         </div>
       )}
@@ -232,7 +270,7 @@ export default function AdminDashboard() {
           </h2>
           <LeaveTableData
             leaves={leadLeaves}
-            onRefresh={fetchOpsAndLeadLeaves}
+            onRefresh={fetchAllDashboardData}
             showVertical
           />
         </div>
@@ -242,10 +280,7 @@ export default function AdminDashboard() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentUser={currentUser}
-        onUserCreated={() => {
-          fetchEmployees();
-          fetchOpsAndLeadLeaves();
-        }}
+        onUserCreated={fetchAllDashboardData}
       />
     </div>
   );
