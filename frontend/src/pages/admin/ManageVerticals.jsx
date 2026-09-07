@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
+import RecycleBinModal from "../../components/RecycleBinModal";
 import { Trash2, Layers, RefreshCw, AlertTriangle } from "lucide-react";
 
 const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
@@ -9,6 +10,7 @@ export default function ManageVerticals() {
   const [users, setUsers] = useState([]);
   const [loadingId, setLoadingId] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -64,7 +66,14 @@ export default function ManageVerticals() {
             Reassign employee verticals or remove team members from the portal.
           </p>
         </div>
-
+        {/* Recycle Bin Trigger Button */}
+          <button
+            onClick={() => setIsTrashOpen(true)}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
+          >
+            <Trash2 size={15} className="text-rose-500" />
+            Recycle Bin
+          </button>
         <button
           onClick={fetchUsers}
           className="p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
@@ -148,6 +157,13 @@ export default function ManageVerticals() {
           </div>
         </div>
       )}
+    {/* Recycle Bin Modal */}
+      <RecycleBinModal
+        isOpen={isTrashOpen}
+        onClose={() => setIsTrashOpen(false)}
+        onUserRestored={fetchUsers}
+      />
     </div>
+
   );
 }
