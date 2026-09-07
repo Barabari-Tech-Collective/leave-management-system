@@ -67,7 +67,7 @@ export default function ManageVerticals() {
             Reassign employee verticals or remove team members from the portal.
           </p>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
         {/* Recycle Bin Trigger Button */}
           <button
             onClick={() => setIsTrashOpen(true)}
