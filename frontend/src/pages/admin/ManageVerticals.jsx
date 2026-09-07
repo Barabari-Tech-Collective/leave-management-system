@@ -73,7 +73,7 @@ export default function ManageVerticals() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
+      <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
         <table className="w-full text-sm text-left">
           <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold border-b border-slate-100">
             <tr>

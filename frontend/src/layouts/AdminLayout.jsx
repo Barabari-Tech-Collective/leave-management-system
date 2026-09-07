@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 
 export default function AdminLayout() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-softBg font-sans text-textDark overflow-hidden select-none">
+    <div className="flex h-screen w-full overflow-hidden bg-softBg font-sans text-textDark overflow-hidden select-none">
       
       {/* Sidebar Container */}
       <aside className="w-64 h-screen shrink-0 border-r border-slate-800 bg-darkBg z-30">
