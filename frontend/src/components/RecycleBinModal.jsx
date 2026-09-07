@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
 import toast from "react-hot-toast";
 import { Trash2, RotateCcw, X, UserX, Sparkles } from "lucide-react";
@@ -43,7 +44,7 @@ export default function RecycleBinModal({ isOpen, onClose, onUserRestored }) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex justify-center items-center z-[100] p-4 animate-fadeIn">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[85vh]">
         
@@ -80,7 +81,7 @@ export default function RecycleBinModal({ isOpen, onClose, onUserRestored }) {
                 <UserX size={32} />
               </div>
               <p className="text-sm font-bold text-slate-700">Recycle Bin is Empty</p>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              <p className="text-[14px] text-slate-400 max-w-xs mx-auto">
                 No soft-deleted members found in the organization vault.
               </p>
             </div>
@@ -129,6 +130,7 @@ export default function RecycleBinModal({ isOpen, onClose, onUserRestored }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body // Portal Target
   );
 }

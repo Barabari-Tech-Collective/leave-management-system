@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
 import RecycleBinModal from "../../components/RecycleBinModal";
@@ -66,20 +67,22 @@ export default function ManageVerticals() {
             Reassign employee verticals or remove team members from the portal.
           </p>
         </div>
+        <div>
         {/* Recycle Bin Trigger Button */}
           <button
             onClick={() => setIsTrashOpen(true)}
             className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
-          >
+            >
             <Trash2 size={15} className="text-rose-500" />
             Recycle Bin
           </button>
         <button
           onClick={fetchUsers}
           className="p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
-        >
+          >
           <RefreshCw size={14} /> Refresh
         </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
@@ -130,7 +133,7 @@ export default function ManageVerticals() {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {deleteModalUser && (
+      {deleteModalUser && createPortal(
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex justify-center items-center z-[100] p-4 animate-fadeIn">
     <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative p-6 space-y-5">
       
@@ -147,15 +150,15 @@ export default function ManageVerticals() {
 
       {/* Message Box */}
       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+        <p className="text-[14px] text-slate-600 font-medium leading-relaxed">
           Are you sure you want to remove <strong className="text-slate-900">{deleteModalUser.name}</strong>?
         </p>
-        <p className="text-[11px] text-slate-400 font-normal">
+        <p className="text-[12px] text-slate-400 font-normal">
           ({deleteModalUser.email})
         </p>
       </div>
 
-      <p className="text-[11px] text-slate-500 font-medium leading-normal">
+      <p className="text-[12px] text-slate-500 font-medium leading-normal">
         • The user will no longer be able to log in.<br />
         • All historical leave records will remain preserved.<br />
         • Account can be restored anytime from the <strong className="text-slate-700">Recycle Bin</strong>.
@@ -165,7 +168,7 @@ export default function ManageVerticals() {
       <div className="flex gap-3 pt-2">
         <button
           onClick={() => setDeleteModalUser(null)}
-          className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+          className="flex-1 py-3 bg-slate-200 hover:bg-slate-400 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
         >
           Cancel
         </button>
@@ -178,7 +181,8 @@ export default function ManageVerticals() {
       </div>
 
     </div>
-  </div>
+  </div>,
+    document.body // Portal Target
       )}
     {/* Recycle Bin Modal */}
       <RecycleBinModal
