@@ -78,24 +78,24 @@ router.get("/lead-requests", ensureAuth, async (req, res) => {
   }
 });
 // testing
-const { sendNationalHolidayEmail } = require("../services/emailService");
+// const { sendNationalHolidayEmail } = require("../services/emailService");
 // const User = require("../models/User");
 
-router.get("/test-holiday-email", async (req, res) => {
-  try {
-    const users = await User.find().select("email");
-    const allEmails = users.map((u) => u.email).filter(Boolean);
+// router.get("/test-holiday-email", async (req, res) => {
+//   try {
+//     const users = await User.find().select("email");
+//     const allEmails = users.map((u) => u.email).filter(Boolean);
 
-    await sendNationalHolidayEmail(
-      "Test Holiday (Republic Day)",
-      "Monday, 26 January 2026",
-      allEmails
-    );
+//     await sendNationalHolidayEmail(
+//       "Test Holiday (Republic Day)",
+//       "Monday, 26 January 2026",
+//       allEmails
+//     );
 
-    res.json({ message: "Test holiday email dispatched to org!", emailsSentTo: allEmails });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//     res.json({ message: "Test holiday email dispatched to org!", emailsSentTo: allEmails });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 module.exports = router;
