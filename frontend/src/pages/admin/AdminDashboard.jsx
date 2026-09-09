@@ -43,6 +43,8 @@ export default function AdminDashboard() {
       setOpsData(opsRes.data);
       setLeadLeaves(leadRes.data);
     } catch (err) {
+
+      if (err.response?.status === 401) return;
       console.error("Failed to fetch admin dashboard data:", err);
       toast.error("Failed to load dashboard data. Please try again.");
     } finally {
