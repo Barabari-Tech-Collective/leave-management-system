@@ -29,7 +29,7 @@ const initHolidayCron = () => {
     if (matchedHoliday) {
       console.log(`🎉 Found upcoming holiday: ${matchedHoliday.name}. Preparing email dispatch...`);
 
-      const users = await User.find().select("email");
+      const users = await User.find({ isDeleted: { $ne: true } }).select("email");
       const allEmails = users.map((u) => u.email).filter(Boolean);
 
       if (allEmails.length > 0) {

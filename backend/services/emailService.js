@@ -53,6 +53,23 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 </html>
 `;
 
+// Helper to clean and deduplicate emails
+const sanitizeEmails = (emailInputs) => {
+  const result = [];
+  (emailInputs || []).forEach((item) => {
+    if (!item) return;
+    if (typeof item === "string") {
+      item.split(",").forEach((email) => {
+        const cleaned = email.trim().toLowerCase();
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
+          result.push(cleaned);
+        }
+      });
+    }
+  });
+  return Array.from(new Set(result));
+};
+
 // 1. Leave Application Notification
 const sendLeaveEmail = async ({
   leave,
@@ -60,14 +77,13 @@ const sendLeaveEmail = async ({
   recipients = [],
   founderEmail
 }) => {
-  try {
-    const allEmails = Array.from(
-      new Set([...recipients, founderEmail].filter(Boolean))
-    );
+  const sender = process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
+  const allEmails = sanitizeEmails([...recipients, founderEmail]);
 
+  try {
     if (allEmails.length === 0) {
-      console.warn("[Email Warning]: No recipient emails found.");
-      return;
+      console.warn("[Email Warning]: No valid recipient emails found.");
+      return { success: false, error: "No valid recipient emails found." };
     }
 
     const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
@@ -94,20 +110,71 @@ const sendLeaveEmail = async ({
     });
 
     const { data, error } = await resend.emails.send({
-      from: "Leave Portal <leaves@barabaricollective.org>",
+      from: sender,
       to: allEmails,
       subject: `Leave Request (${employee.vertical} Vertical) - ${employee.name}`,
       html: htmlBody
     });
 
     if (error) {
-      console.error("[Resend Error]:", error);
-      return;
+      console.error("==================================================");
+      console.error("🚨 [Resend Email Dispatch Error]");
+      console.error("Error Name   :", error.name);
+      console.error("Error Message:", error.message);
+      console.error("Status Code  :", error.statusCode);
+
+      const errMsg = (error.message || "").toLowerCase();
+      const errName = (error.name || "").toLowerCase();
+
+      if (
+        error.statusCode === 429 ||
+        errName.includes("rate_limit") ||
+        errMsg.includes("rate limit") ||
+        errMsg.includes("quota") ||
+        errMsg.includes("monthly limit") ||
+        errMsg.includes("3000")
+      ) {
+        console.error("⚠️ DIAGNOSTIC: Resend rate limit or monthly quota (e.g., 3,000 monthly limit / 100 daily limit) reached.");
+        console.error("👉 ACTION: Check account usage / plan at https://resend.com/overview");
+      } else if (
+        error.statusCode === 403 ||
+        errMsg.includes("domain") ||
+        errMsg.includes("not verified")
+      ) {
+        console.error(`⚠️ DIAGNOSTIC: Sender domain in '${sender}' is not verified on Resend for this API key.`);
+        console.error("👉 ACTION: Verify 'barabaricollective.org' at https://resend.com/domains or configure verified EMAIL_FROM in .env");
+      } else if (
+        errName.includes("validation") ||
+        errMsg.includes("invalid") ||
+        error.statusCode === 422
+      ) {
+        console.error("⚠️ DIAGNOSTIC: Resend validation error. Check recipient email formats.");
+      } else if (error.statusCode === 401 || errMsg.includes("api key")) {
+        console.error("⚠️ DIAGNOSTIC: Invalid or missing RESEND_API_KEY. Verify backend/.env file.");
+      }
+      console.error("Attempted Recipients:", allEmails);
+      console.error("==================================================");
+
+      return {
+        success: false,
+        error: error.message || error.name || "Failed to dispatch email via Resend"
+      };
     }
 
-    console.log("[Resend Success]: Leave email dispatched ID:", data.id);
+    // Resend acceptance confirms dispatch to the email provider, not recipient delivery.
+    console.log("[Resend Accepted]: Leave email accepted by provider. ID:", data?.id);
+    return {
+      success: true,
+      messageId: data?.id
+    };
   } catch (err) {
-    console.error("[Server Error]:", err);
+    console.error("==================================================");
+    console.error("🚨 [Server Error in sendLeaveEmail]:", err.message);
+    console.error("==================================================");
+    return {
+      success: false,
+      error: err.message || "Internal server error during email dispatch"
+    };
   }
 };
 // 2. Approval / Rejection Notification
@@ -145,8 +212,9 @@ const sendApprovalEmail = async ({
       `
     });
 
+    const sender = process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
     const { data, error } = await resend.emails.send({
-      from: "Leave Portal <leaves@barabaricollective.org>",
+      from: sender,
       to: [employeeEmail],
       subject: `Leave Request ${status.toUpperCase()} - ${employeeName}`,
       html: htmlBody

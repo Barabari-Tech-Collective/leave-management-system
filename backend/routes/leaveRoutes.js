@@ -1,6 +1,12 @@
 const express = require("express");
 const ensureAuth = require("../middleware/authMiddleware");
-const { applyLeave, getMyleaves, updateLeaveStatus, getTeamLeavesForLead } = require("../controllers/leaveController");
+const {
+  applyLeave,
+  getMyleaves,
+  updateLeaveStatus,
+  getTeamLeavesForLead,
+  resendLeaveEmail
+} = require("../controllers/leaveController");
 const Leave = require("../models/Leave");
 const User = require("../models/User"); // Import User model
 
@@ -8,6 +14,7 @@ const router = express.Router();
 
 router.post("/apply", ensureAuth, applyLeave);
 router.get("/myleaves", ensureAuth, getMyleaves);
+router.post("/resend-email/:id", ensureAuth, resendLeaveEmail);
 
 router.get("/employee/:id", ensureAuth, async (req, res) => {
   try {

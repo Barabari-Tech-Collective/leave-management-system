@@ -23,6 +23,22 @@ const leaveSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending"
+    },
+    emailStatus: {
+      type: String,
+      enum: ["pending", "sent", "failed"],
+      default: "pending"
+    },
+    emailError: {
+      type: String,
+      default: ""
+    },
+    emailAttempts: {
+      type: Number,
+      default: 0
+    },
+    lastEmailAttemptAt: {
+      type: Date
     }
   },
   { timestamps: true }
