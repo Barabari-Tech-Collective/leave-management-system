@@ -2,6 +2,9 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const getSenderEmail = () => process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
+const getFrontendUrl = () => process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
+
 // Barabari Collective HTML Template Layout Wrapper
 const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 <!DOCTYPE html>
@@ -38,7 +41,7 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
       ${content}
       
       <div style="text-align: center; margin-top: 24px;">
-        <a href="https://leaveportal.barabaricollective.org" class="btn">Open Leave Portal</a>
+        <a href="${getFrontendUrl()}" class="btn">Open Leave Portal</a>
       </div>
     </div>
     
@@ -75,10 +78,11 @@ const sendLeaveEmail = async ({
   leave,
   employee,
   recipients = [],
-  founderEmail
+  founderEmails
 }) => {
-  const sender = process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
-  const allEmails = sanitizeEmails([...recipients, founderEmail]);
+  const sender = getSenderEmail();
+  const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org";
+  const allEmails = sanitizeEmails([...recipients, effectiveFounder]);
 
   try {
     if (allEmails.length === 0) {
@@ -212,7 +216,7 @@ const sendApprovalEmail = async ({
       `
     });
 
-    const sender = process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
+    const sender = getSenderEmail();
     const { data, error } = await resend.emails.send({
       from: sender,
       to: [employeeEmail],
@@ -254,7 +258,7 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
     });
 
     const { data, error } = await resend.emails.send({
-      from: "Leave Portal <leaves@barabaricollective.org>",
+      from: getSenderEmail(),
       to: allEmployeeEmails,
       subject: `Holiday Reminder: ${holidayName} (${dateStr})`,
       html: htmlBody
@@ -307,7 +311,7 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
     });
 
     const { data, error } = await resend.emails.send({
-      from: "Leave Portal <leaves@barabaricollective.org>",
+      from: getSenderEmail(),
       to: [email],
       subject: `Welcome to The Barabari Collective - Account Credentials`,
       html: htmlBody

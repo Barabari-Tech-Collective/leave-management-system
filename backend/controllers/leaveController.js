@@ -70,7 +70,7 @@ exports.applyLeave = async (req, res) => {
       leave,
       employee: user,
       recipients: [...teamEmails, ...adminEmails],
-      founderEmail: process.env.FOUNDER_EMAIL
+      founderEmails: process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org"
     });
 
     if (emailResult && emailResult.success) {
@@ -276,7 +276,7 @@ exports.resendLeaveEmail = async (req, res) => {
       leave,
       employee,
       recipients: [...teamEmails, ...adminEmails],
-      founderEmail: process.env.FOUNDER_EMAIL
+      founderEmails: process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org"
     });
 
     leave.emailAttempts = (leave.emailAttempts || 0) + 1;
