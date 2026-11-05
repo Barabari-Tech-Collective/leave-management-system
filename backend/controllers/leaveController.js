@@ -8,21 +8,53 @@ exports.applyLeave = async (req, res) => {
     const user = req.user;
     const { type, fromDate, toDate, reason } = req.body;
 
-    // Calculate total days excluding Sundays
-    let start = new Date(fromDate);
-    let end = new Date(toDate);
-    let days = 0;
-    let current = new Date(start);
+    if (!type || !fromDate || !toDate) {
+      return res.status(400).json({ message: "Leave type, from date, and to date are required." });
+    }
 
-    while (current <= end) {
-      if (current.getDay() !== 0) { // Skip Sundays (0)
+    const queryFromDate = new Date(`${fromDate}T00:00:00.000Z`);
+    const queryToDate = new Date(`${toDate}T23:59:59.999Z`);
+
+    if (isNaN(queryFromDate.getTime()) || isNaN(queryToDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format provided." });
+    }
+
+    if (queryToDate < queryFromDate) {
+      return res.status(400).json({ message: "'To Date' cannot be earlier than 'From Date'." });
+    }
+
+    // Calculate total days excluding Sundays (deterministic UTC date operations)
+    let days = 0;
+    let current = new Date(queryFromDate);
+    const endDate = new Date(`${toDate}T00:00:00.000Z`);
+
+    while (current <= endDate) {
+      if (current.getUTCDay() !== 0) { // Skip Sundays (0)
         days++;
       }
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
 
     if (days <= 0) {
       return res.status(400).json({ message: "No working days selected (Sundays excluded)." });
+    }
+
+    // Check for duplicate / overlapping leave requests (pending or approved)
+    const overlappingLeave = await Leave.findOne({
+      user: user._id,
+      status: { $in: ["pending", "approved"] },
+      fromDate: { $lte: queryToDate },
+      toDate: { $gte: queryFromDate }
+    });
+
+    if (overlappingLeave) {
+      const existingFrom = new Date(overlappingLeave.fromDate).toLocaleDateString("en-GB");
+      const existingTo = new Date(overlappingLeave.toDate).toLocaleDateString("en-GB");
+      const statusLabel = overlappingLeave.status.toUpperCase();
+
+      return res.status(400).json({
+        message: `You already have an active (${statusLabel}) leave request from ${existingFrom} to ${existingTo} overlapping with these dates.`
+      });
     }
 
     const balance = user.leaveBalance[type];
@@ -57,8 +89,8 @@ exports.applyLeave = async (req, res) => {
       user: user._id,
       vertical: user.vertical,
       type,
-      fromDate,
-      toDate,
+      fromDate: queryFromDate,
+      toDate: new Date(`${toDate}T00:00:00.000Z`),
       days,
       reason,
       emailStatus: "pending",

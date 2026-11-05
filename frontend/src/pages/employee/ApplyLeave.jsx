@@ -88,7 +88,9 @@ export default function ApplyLeave() {
         state: { newlyCreatedLeaveId: res.data?.leave?._id }
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to apply leave");
+      const errorMsg = err.response?.data?.message || "Failed to apply leave";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
