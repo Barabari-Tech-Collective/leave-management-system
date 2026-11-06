@@ -142,12 +142,13 @@ export default function VerticalLeadDashboard() {
     yr = yearFilter,
     mo = monthFilter,
     st = statusFilter,
-    isInitial = false
+    isInitial = false,
+    silent = false
   ) => {
     try {
       if (isInitial) {
         setLoading(true);
-      } else {
+      } else if (!silent) {
         setTableLoading(true);
       }
 
@@ -161,6 +162,12 @@ export default function VerticalLeadDashboard() {
       if (st !== "all") params.append("status", st);
 
       const res = await API.get(`/leave/team-dashboard?${params.toString()}`);
+
+      // Gracefully fall back to previous page if current page became empty after approving/rejecting
+      if (res.data?.teamLeaves?.length === 0 && targetPage > 1 && (res.data?.pagination?.total || 0) > 0) {
+        return fetchDashboardData(targetPage - 1, limit, yr, mo, st, false, silent);
+      }
+
       setDashboardData((prev) => ({
         ...prev,
         ...res.data,
@@ -678,7 +685,7 @@ export default function VerticalLeadDashboard() {
         isOpen={!!selectedLeaveForReview}
         leave={selectedLeaveForReview}
         onClose={() => setSelectedLeaveForReview(null)}
-        onStatusUpdated={() => fetchDashboardData()}
+        onStatusUpdated={() => fetchDashboardData(currentPage, pageSize, yearFilter, monthFilter, statusFilter, false, true)}
         onResendDecisionEmail={handleResendDecisionEmail}
         isRetryingDecisionEmail={selectedLeaveForReview ? retryingEmailId === selectedLeaveForReview._id : false}
         decisionEmailCooldownSeconds={selectedLeaveForReview ? (cooldowns[selectedLeaveForReview._id] || 0) : 0}
