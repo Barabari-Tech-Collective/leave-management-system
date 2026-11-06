@@ -12,8 +12,12 @@ export default function LeaveApprovalActions({ leaveId, onStatusUpdated }) {
   const handleApprove = async () => {
     try {
       setLoading(true);
-      await API.put(`/leave/update-status/${leaveId}`, { status: "approved" });
-      toast.success("Leave request approved! ✅");
+      const res = await API.put(`/leave/update-status/${leaveId}`, { status: "approved" });
+      if (res.data?.emailSent === false) {
+        toast("Leave approved, but employee notification email failed to send.", { icon: "⚠️", duration: 5000 });
+      } else {
+        toast.success("Leave request approved & employee notified! ✅");
+      }
       onStatusUpdated();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to approve leave");
@@ -32,11 +36,15 @@ export default function LeaveApprovalActions({ leaveId, onStatusUpdated }) {
 
     try {
       setLoading(true);
-      await API.put(`/leave/update-status/${leaveId}`, {
+      const res = await API.put(`/leave/update-status/${leaveId}`, {
         status: "rejected",
         rejectionReason: rejectionReason.trim(),
       });
-      toast.success("Leave request rejected & notification email sent.");
+      if (res.data?.emailSent === false) {
+        toast("Leave rejected, but employee notification email failed to send.", { icon: "⚠️", duration: 5000 });
+      } else {
+        toast.success("Leave request rejected & notification email sent! ✅");
+      }
       setShowRejectModal(false);
       setRejectionReason("");
       onStatusUpdated();

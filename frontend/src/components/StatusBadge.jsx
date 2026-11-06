@@ -1,15 +1,35 @@
+import React from "react";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
+
 export default function StatusBadge({ status }) {
-  const base = "px-3 py-1.5 rounded-full text-xs font-bold tracking-wide border";
+  const normStatus = String(status || "pending").trim().toLowerCase();
 
-  const styles = {
-    Approved: "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm",
-    Pending: "bg-amber-50 text-amber-700 border-amber-200 shadow-sm",
-    Rejected: "bg-rose-50 text-rose-700 border-rose-200 shadow-sm",
-  };
+  const isSuccess = normStatus === "approved" || normStatus === "success";
+  const isRejected = normStatus === "rejected";
 
+  if (isSuccess) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-green-100 text-green-800 border border-green-300 shadow-2xs">
+        <CheckCircle2 size={13} className="text-green-700" />
+        {normStatus === "success" ? "Success" : "Approved"}
+      </span>
+    );
+  }
+
+  if (isRejected) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-red-100 text-red-800 border border-red-300 shadow-2xs">
+        <XCircle size={13} className="text-red-700" />
+        Rejected
+      </span>
+    );
+  }
+
+  // Pending (yellow color)
   return (
-    <span className={`${base} ${styles[status]}`}>
-      {status}
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-yellow-100 text-yellow-800 border border-yellow-300 shadow-2xs">
+      <Clock size={13} className="text-yellow-700" />
+      Pending
     </span>
   );
 }

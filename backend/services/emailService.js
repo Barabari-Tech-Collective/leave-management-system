@@ -1,6 +1,13 @@
 const { Resend } = require("resend");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendClient = null;
+const getResendClient = () => {
+  if (!resendClient) {
+    const key = process.env.RESEND_API_KEY || "missing_resend_api_key";
+    resendClient = new Resend(key);
+  }
+  return resendClient;
+};
 
 const getSenderEmail = () => process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
 const getFrontendUrl = () => process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
@@ -81,10 +88,15 @@ const sendLeaveEmail = async ({
   founderEmails
 }) => {
   const sender = getSenderEmail();
-  const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org";
+  const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org";
   const allEmails = sanitizeEmails([...recipients, effectiveFounder]);
 
   try {
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
+      console.warn("⚠️ [Email Warning]: RESEND_API_KEY is not configured. Email will not be dispatched.");
+      return { success: false, error: "RESEND_API_KEY is not configured in server environment." };
+    }
+
     if (allEmails.length === 0) {
       console.warn("[Email Warning]: No valid recipient emails found.");
       return { success: false, error: "No valid recipient emails found." };
@@ -113,7 +125,7 @@ const sendLeaveEmail = async ({
       `
     });
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: sender,
       to: allEmails,
       subject: `Leave Request (${employee.vertical} Vertical) - ${employee.name}`,
@@ -190,7 +202,19 @@ const sendApprovalEmail = async ({
   rejectionReason = ""
 }) => {
   try {
-    if (!employeeEmail) return;
+    const cleanedEmail = (employeeEmail || "").trim().toLowerCase();
+    if (!cleanedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)) {
+      console.error("[sendApprovalEmail]: Invalid recipient employee email provided:", employeeEmail);
+      return {
+        success: false,
+        error: "Employee email address is missing or invalid."
+      };
+    }
+
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
+      console.warn("⚠️ [Email Warning]: RESEND_API_KEY is not configured. Approval email will not be dispatched.");
+      return { success: false, error: "RESEND_API_KEY is not configured in server environment." };
+    }
 
     const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
     const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
@@ -217,27 +241,48 @@ const sendApprovalEmail = async ({
     });
 
     const sender = getSenderEmail();
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: sender,
-      to: [employeeEmail],
+      to: [cleanedEmail],
       subject: `Leave Request ${status.toUpperCase()} - ${employeeName}`,
       html: htmlBody
     });
 
     if (error) {
-      console.error("[Resend Error]:", error);
-      return;
+      console.error("==================================================");
+      console.error(`🚨 [Resend Error in sendApprovalEmail (${status})]:`, error.message || error);
+      console.error("Recipient:", employeeEmail);
+      console.error("==================================================");
+      return {
+        success: false,
+        error: error.message || error.name || "Failed to dispatch status email via Resend"
+      };
     }
 
-    console.log(`[Resend Success]: ${status.toUpperCase()} email sent to ${employeeEmail}`);
+    console.log(`[Resend Success]: ${status.toUpperCase()} email sent to ${employeeEmail}. ID:`, data?.id);
+    return {
+      success: true,
+      messageId: data?.id
+    };
   } catch (err) {
-    console.error("[Server Error]:", err);
+    console.error("==================================================");
+    console.error(`🚨 [Server Error in sendApprovalEmail (${status})]:`, err.message);
+    console.error("==================================================");
+    return {
+      success: false,
+      error: err.message || "Internal server error during approval email dispatch"
+    };
   }
 };
 
 // 3. Automated National Holiday Email
 const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails) => {
   try {
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
+      console.warn("⚠️ [Email Warning]: RESEND_API_KEY is not configured. Holiday email will not be dispatched.");
+      return;
+    }
+
     const htmlBody = wrapBarabariTemplate({
       title: "National Holiday Notice",
       subtitle: "Organization Holiday Announcement",
@@ -257,7 +302,7 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
       `
     });
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: getSenderEmail(),
       to: allEmployeeEmails,
       subject: `Holiday Reminder: ${holidayName} (${dateStr})`,
@@ -278,7 +323,12 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
 // Send Welcome Email with Credentials
 const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) => {
   try {
-    if (!email) return;
+    if (!email) return false;
+
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
+      console.warn("⚠️ [Email Warning]: RESEND_API_KEY is not configured. Welcome email will not be dispatched.");
+      return false;
+    }
 
     const htmlBody = wrapBarabariTemplate({
       title: "Welcome! 🎉",
@@ -310,7 +360,7 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
       `
     });
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: getSenderEmail(),
       to: [email],
       subject: `Welcome to The Barabari Collective - Account Credentials`,

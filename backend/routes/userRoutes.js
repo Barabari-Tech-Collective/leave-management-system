@@ -37,9 +37,13 @@ router.get("/all", ensureAuth, async (req, res) => {
   }
 });
 
-// 4. Update Vertical Lead Status (Used in Manage Leads Page)
+// 4. Update Vertical Lead Status (Used in Manage Leads Page - Admins Only)
 router.put("/update-lead/:id", ensureAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only Admins can update vertical leads." });
+    }
+
     const { isVerticalLead, vertical } = req.body;
     const userId = req.params.id;
 
@@ -55,7 +59,7 @@ router.put("/update-lead/:id", ensureAuth, async (req, res) => {
       userId,
       { isVerticalLead, vertical },
       { new: true }
-    );
+    ).select("-password");
 
     res.json(updatedUser);
   } catch (err) {
@@ -63,9 +67,13 @@ router.put("/update-lead/:id", ensureAuth, async (req, res) => {
   }
 });
 
-// 5. Update Employee Vertical & Migrate Leave Records (Used in Manage Verticals Page)
+// 5. Update Employee Vertical & Migrate Leave Records (Used in Manage Verticals Page - Admins Only)
 router.put("/update-vertical/:id", ensureAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only Admins can reassign employee verticals." });
+    }
+
     const { vertical } = req.body;
     const validVerticals = ["Program", "Placement", "EdTech", "Operations"];
 
@@ -90,9 +98,17 @@ router.put("/update-vertical/:id", ensureAuth, async (req, res) => {
   }
 });
 
-// 6. Soft Delete User
+// 6. Soft Delete User (Admins Only)
 router.put("/soft-delete/:id", ensureAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only Admins can deactivate accounts." });
+    }
+
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: "You cannot deactivate your own admin account." });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -106,9 +122,13 @@ router.put("/soft-delete/:id", ensureAuth, async (req, res) => {
   }
 });
 
-// GET all soft-deleted users (Recycle Bin)
+// GET all soft-deleted users (Recycle Bin - Admins Only)
 router.get("/deleted", ensureAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
     const deletedUsers = await User.find({ isDeleted: true })
       .select("name email role vertical jobRole updatedAt")
       .sort({ updatedAt: -1 });
@@ -119,9 +139,13 @@ router.get("/deleted", ensureAuth, async (req, res) => {
   }
 });
 
-// Restore Soft-Deleted User
+// Restore Soft-Deleted User (Admins Only)
 router.put("/restore/:id", ensureAuth, async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only Admins can restore accounts." });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
