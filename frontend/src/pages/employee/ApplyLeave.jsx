@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import API from "../../api/axiosConfig";
 
 export default function ApplyLeave() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     type: "",
     from: "",
@@ -10,6 +13,7 @@ export default function ApplyLeave() {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get today's date formatted as YYYY-MM-DD for min date restriction
   const todayStr = new Date().toISOString().split("T")[0];
@@ -65,17 +69,30 @@ export default function ApplyLeave() {
     }
 
     try {
-      await API.post("/leave/apply", {
+      setIsSubmitting(true);
+      const res = await API.post("/leave/apply", {
         type: typeMap[form.type],
         fromDate: form.from,
         toDate: form.to,
         reason: form.reason,
       });
 
-      alert("Leave Applied Successfully 🚀 Notification emails sent to team & leads.");
-      setForm({ type: "", from: "", to: "", reason: "" });
+      if (res.data?.emailSent) {
+        toast.success("Leave applied! Notification email dispatched.");
+      } else {
+        toast("Leave applied! Checking notification status...", { icon: "⏳" });
+      }
+
+      // Immediately redirect to history page
+      navigate("/employee/history", {
+        state: { newlyCreatedLeaveId: res.data?.leave?._id }
+      });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to apply leave");
+      const errorMsg = err.response?.data?.message || "Failed to apply leave";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -179,9 +196,20 @@ export default function ApplyLeave() {
 
         <button
           type="submit"
-          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 cursor-pointer text-lg tracking-wide"
+          disabled={isSubmitting}
+          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 cursor-pointer text-lg tracking-wide disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Submit Leave Request
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span>Submitting Leave...</span>
+            </>
+          ) : (
+            <span>Submit Leave Request</span>
+          )}
         </button>
       </form>
     </div>

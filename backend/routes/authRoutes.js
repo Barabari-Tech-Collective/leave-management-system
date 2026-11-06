@@ -22,15 +22,15 @@ router.get(
     failureRedirect: `${FRONTEND_URL}/?error=unauthorized`, // Adds query param on failure
   }),
   (req, res, next) => {
-    console.log("SUCCESS USER:", req.user);
+    // console.log("SUCCESS USER:", req.user);
 
     req.session.save((err) => {
       if (err) {
-        console.log("SESSION SAVE ERROR:", err);
+        console.error("SESSION SAVE ERROR:", err);
         return next(err);
       }
 
-      console.log("SESSION SAVED SUCCESSFULLY");
+      // console.log("SESSION SAVED SUCCESSFULLY");
 
       // 1. Redirect Admin
       if (req.user.role === "admin") {

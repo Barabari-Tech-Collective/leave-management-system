@@ -11,7 +11,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("Step - 1 PROFILE:", profile);
+        // console.log("Step - 1 PROFILE:", profile);
 
         const email = profile.emails[0].value.toLowerCase();
 
@@ -57,8 +57,8 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser(async (id, done) => {
-  console.log("Deserialize ID", id);
+  // console.log("Deserialize ID", id);
   const user = await User.findById(id);
-  console.log("Deserialize User", user);
+  // console.log("Deserialize User", user);
   done(null, user);
 });

@@ -8,21 +8,53 @@ exports.applyLeave = async (req, res) => {
     const user = req.user;
     const { type, fromDate, toDate, reason } = req.body;
 
-    // Calculate total days excluding Sundays
-    let start = new Date(fromDate);
-    let end = new Date(toDate);
-    let days = 0;
-    let current = new Date(start);
+    if (!type || !fromDate || !toDate) {
+      return res.status(400).json({ message: "Leave type, from date, and to date are required." });
+    }
 
-    while (current <= end) {
-      if (current.getDay() !== 0) { // Skip Sundays (0)
+    const queryFromDate = new Date(`${fromDate}T00:00:00.000Z`);
+    const queryToDate = new Date(`${toDate}T23:59:59.999Z`);
+
+    if (isNaN(queryFromDate.getTime()) || isNaN(queryToDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format provided." });
+    }
+
+    if (queryToDate < queryFromDate) {
+      return res.status(400).json({ message: "'To Date' cannot be earlier than 'From Date'." });
+    }
+
+    // Calculate total days excluding Sundays (deterministic UTC date operations)
+    let days = 0;
+    let current = new Date(queryFromDate);
+    const endDate = new Date(`${toDate}T00:00:00.000Z`);
+
+    while (current <= endDate) {
+      if (current.getUTCDay() !== 0) { // Skip Sundays (0)
         days++;
       }
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
 
     if (days <= 0) {
       return res.status(400).json({ message: "No working days selected (Sundays excluded)." });
+    }
+
+    // Check for duplicate / overlapping leave requests (pending or approved)
+    const overlappingLeave = await Leave.findOne({
+      user: user._id,
+      status: { $in: ["pending", "approved"] },
+      fromDate: { $lte: queryToDate },
+      toDate: { $gte: queryFromDate }
+    });
+
+    if (overlappingLeave) {
+      const existingFrom = new Date(overlappingLeave.fromDate).toLocaleDateString("en-GB");
+      const existingTo = new Date(overlappingLeave.toDate).toLocaleDateString("en-GB");
+      const statusLabel = overlappingLeave.status.toUpperCase();
+
+      return res.status(400).json({
+        message: `You already have an active (${statusLabel}) leave request from ${existingFrom} to ${existingTo} overlapping with these dates.`
+      });
     }
 
     const balance = user.leaveBalance[type];
@@ -32,45 +64,66 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: `Not enough leave balance. Required: ${days}, Remaining: ${remaining}` });
     }
 
-    // A. Fetch Vertical Lead & Teammates in the same vertical
+    // A. Fetch Vertical Lead & Teammates in the same vertical (excluding soft-deleted/deactivated users)
     const teamMembers = await User.find({
       vertical: user.vertical,
-      _id: { $ne: user._id }
-    });
+      _id: { $ne: user._id },
+      isDeleted: { $ne: true }
+    }).select("email");
     const teamEmails = teamMembers.map((member) => member.email);
 
-    // B. Fetch Admins
+    // B. Fetch Admins (excluding soft-deleted/deactivated admins)
     const envAdmins = (process.env.ADMIN_EMAILS || "")
       .split(",")
       .map((e) => e.trim().toLowerCase());
 
-    const dbAdmins = await User.find({ role: "admin" }).select("email");
+    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
     const dbAdminEmails = dbAdmins.map((admin) => admin.email);
 
     const adminEmails = Array.from(
       new Set([...dbAdminEmails, ...envAdmins].filter(Boolean))
     );
 
-    // C. Create Leave record
+    // C. Create Leave record with initial emailStatus: 'pending'
     const leave = await Leave.create({
       user: user._id,
       vertical: user.vertical,
       type,
-      fromDate,
-      toDate,
+      fromDate: queryFromDate,
+      toDate: new Date(`${toDate}T00:00:00.000Z`),
       days,
-      reason
+      reason,
+      emailStatus: "pending",
+      emailAttempts: 0
     });
 
     // D. Send Email
-    await sendLeaveEmail({
+    const emailResult = await sendLeaveEmail({
       leave,
       employee: user,
       recipients: [...teamEmails, ...adminEmails],
-      founderEmail: "harihar@barabaricollective.org"
+      founderEmails: process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org"
     });
 
-    res.json({ message: "Leave applied successfully", leave });
+    if (emailResult && emailResult.success) {
+      leave.emailStatus = "sent";
+      leave.emailAttempts = 1;
+      leave.lastEmailAttemptAt = new Date();
+      leave.emailError = "";
+      await leave.save();
+    } else {
+      leave.emailStatus = "failed";
+      leave.emailAttempts = 1;
+      leave.lastEmailAttemptAt = new Date();
+      leave.emailError = emailResult?.error || "Email service failed to deliver message.";
+      await leave.save();
+    }
+
+    res.status(201).json({
+      message: "Leave applied successfully",
+      leave,
+      emailSent: leave.emailStatus === "sent"
+    });
   } catch (error) {
     console.log("Error applying leave:", error);
     res.status(500).json({ message: error.message });
@@ -86,6 +139,10 @@ exports.getMyleaves = async (req, res) => {
       const from = new Date(leave.fromDate);
       const to = new Date(leave.toDate);
 
+      // Handle legacy leaves: if email tracking fields are absent or attempts is 0, treat as already 'sent'
+      const isLegacy = !leave.emailAttempts || leave.emailAttempts === 0;
+      const computedEmailStatus = isLegacy ? "sent" : (leave.emailStatus || "sent");
+
       return {
         _id: leave._id,
         type: leave.type,
@@ -94,7 +151,11 @@ exports.getMyleaves = async (req, res) => {
         month: from.toLocaleString("default", { month: "short" }),
         from: from.toLocaleDateString("en-GB"),
         to: to.toLocaleDateString("en-GB"),
-        status: leave.status || "pending"
+        status: leave.status || "pending",
+        emailStatus: computedEmailStatus,
+        emailAttempts: leave.emailAttempts || 0,
+        emailError: leave.emailError || "",
+        lastEmailAttemptAt: leave.lastEmailAttemptAt || null
       };
     });
 
@@ -178,6 +239,103 @@ exports.getTeamLeavesForLead = async (req, res) => {
       teamLeaves
     });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 5. RESEND LEAVE NOTIFICATION EMAIL
+exports.resendLeaveEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const leave = await Leave.findById(id).populate("user");
+
+    if (!leave) {
+      return res.status(404).json({ message: "Leave record not found" });
+    }
+
+    // Authorization: User must be the owner, vertical lead of the same vertical, or admin
+    const isOwner = leave.user && leave.user._id.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    const isLead = req.user.isVerticalLead && req.user.vertical === leave.vertical;
+
+    if (!isOwner && !isAdmin && !isLead) {
+      return res.status(403).json({ message: "Not authorized to resend email for this leave" });
+    }
+
+    // Resend is only available after a failed dispatch.
+    if (leave.emailStatus !== "failed") {
+      return res.status(400).json({
+        message: "Email retry is only available for failed email notifications.",
+        emailStatus: leave.emailStatus || "pending"
+      });
+    }
+
+    // 5 seconds rate-limit cooldown
+    const COOLDOWN_SECONDS = 5;
+    if (leave.lastEmailAttemptAt) {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(leave.lastEmailAttemptAt).getTime()) / 1000);
+      if (elapsedSeconds < COOLDOWN_SECONDS) {
+        const remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
+        return res.status(429).json({
+          message: `Please wait ${remainingSeconds} second(s) before retrying email dispatch.`,
+          remainingSeconds
+        });
+      }
+    }
+
+    // Fetch active team & admin emails (excluding soft-deleted/deactivated users)
+    const employee = leave.user;
+    if (!employee || employee.isDeleted) {
+      return res.status(400).json({ message: "Cannot resend email: Employee account is deactivated or deleted." });
+    }
+
+    const teamMembers = await User.find({
+      vertical: employee.vertical,
+      _id: { $ne: employee._id },
+      isDeleted: { $ne: true }
+    }).select("email");
+    const teamEmails = teamMembers.map((m) => m.email);
+
+    const envAdmins = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase());
+    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
+    const dbAdminEmails = dbAdmins.map((a) => a.email);
+    const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+
+    // Re-dispatch email
+    const emailResult = await sendLeaveEmail({
+      leave,
+      employee,
+      recipients: [...teamEmails, ...adminEmails],
+      founderEmails: process.env.FOUNDER_EMAILS || "harihar@barabaricollective.org"
+    });
+
+    leave.emailAttempts = (leave.emailAttempts || 0) + 1;
+    leave.lastEmailAttemptAt = new Date();
+
+    if (emailResult && emailResult.success) {
+      leave.emailStatus = "sent";
+      leave.emailError = "";
+      await leave.save();
+      return res.json({
+        message: "Notification email dispatched successfully!",
+        emailStatus: "sent",
+        leave
+      });
+    } else {
+      leave.emailStatus = "failed";
+      leave.emailError = emailResult?.error || "Failed to dispatch email via Resend";
+      await leave.save();
+      return res.status(502).json({
+        message: "Email dispatch failed. Please retry after cooldown.",
+        emailStatus: "failed",
+        error: leave.emailError,
+        leave
+      });
+    }
+  } catch (error) {
+    console.error("Error in resendLeaveEmail:", error);
     res.status(500).json({ message: error.message });
   }
 };
