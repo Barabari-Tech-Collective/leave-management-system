@@ -1,10 +1,9 @@
-import StatusBadge from "../../components/StatusBadge";
+import EmployeeLeaveTable from "../../components/EmployeeLeaveTable";
 import EmployeeLeaveViewModal from "../../components/EmployeeLeaveViewModal";
-import EmailRetryButton from "../../components/EmailRetryButton";
 import { useEffect, useState, useCallback, useRef } from "react";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
-import { CheckCircle2, AlertCircle, Loader2, Eye } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function History() {
   const [historyData, setHistoryData] = useState([]);
@@ -80,26 +79,39 @@ export default function History() {
   // Max 2 polling attempts for any new leave in 'pending' emailStatus to strictly prevent infinite loops
   useEffect(() => {
     const hasPendingEmail = historyData.some((item) => item.emailStatus === "pending");
+
     if (!hasPendingEmail) {
       pollAttemptsRef.current = 0;
       return;
     }
 
     if (pollAttemptsRef.current >= 2) {
-      return; // Stop polling after 2 attempts
+      return;
     }
 
-    const pollTimer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       pollAttemptsRef.current += 1;
-      fetchHistory(1, false);
-    }, 2500);
+      // Fetch currently displayed count to avoid clobbering loaded pages
+      const currentCount = historyData.length || 10;
+      try {
+        const res = await API.get(`/leave/myleaves?page=1&limit=${currentCount}`);
+        const items = res.data.leaves || (Array.isArray(res.data) ? res.data : []);
+        setHistoryData(items);
+        if (res.data?.pagination) {
+          setTotalLeaves(res.data.pagination.total);
+          setHasMore(items.length < res.data.pagination.total);
+        }
+      } catch (pollErr) {
+        console.error("Polling error:", pollErr);
+      }
+    }, 4000);
 
-    return () => clearTimeout(pollTimer);
-  }, [historyData, fetchHistory]);
+    return () => clearTimeout(timer);
+  }, [historyData]);
 
-  // Countdown timer for cooldowns
+  // Tick active 5s countdown timers for email retry buttons
   useEffect(() => {
-    const hasActiveCooldown = Object.values(cooldowns).some((val) => val > 0);
+    const hasActiveCooldown = Object.values(cooldowns).some((sec) => sec > 0);
     if (!hasActiveCooldown) return;
 
     const timer = setInterval(() => {
@@ -140,27 +152,27 @@ export default function History() {
       setHistoryData((prev) =>
         prev.map((item) =>
           item._id === leaveId
-            ? { ...item, emailStatus: "sent", emailError: "", lastEmailAttemptAt: new Date() }
+            ? { ...item, emailStatus: "sent", emailError: "" }
             : item
         )
       );
 
-      // Keep selected leave in sync if modal is open
-      setSelectedLeaveForView((prev) =>
-        prev && prev._id === leaveId
-          ? { ...prev, emailStatus: "sent", emailError: "", lastEmailAttemptAt: new Date() }
-          : prev
-      );
+      // Keep open modal in sync
+      if (selectedLeaveForView && selectedLeaveForView._id === leaveId) {
+        setSelectedLeaveForView((prev) => ({
+          ...prev,
+          emailStatus: "sent",
+          emailError: "",
+        }));
+      }
     } catch (err) {
       const remainingSeconds = err.response?.data?.remainingSeconds;
       if (err.response?.status === 429 && remainingSeconds) {
         setCooldowns((prev) => ({ ...prev, [leaveId]: remainingSeconds }));
-        toast.error(`Please wait ${remainingSeconds}s before retrying.`);
       } else {
-        toast.error(err.response?.data?.message || "Email dispatch failed. Please try again later.");
+        toast.error(err.response?.data?.message || "Failed to dispatch email.");
         setCooldowns((prev) => ({ ...prev, [leaveId]: 5 }));
       }
-      fetchHistory(1, false);
     } finally {
       setRetryingId(null);
     }
@@ -179,136 +191,54 @@ export default function History() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-500">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-bold tracking-wider border-b border-slate-100">
-            <tr>
-              <th className="py-4 px-5 text-left">Month</th>
-              <th className="py-4 px-5 text-left">Type</th>
-              <th className="py-4 px-5 text-left">Dates</th>
-              <th className="py-4 px-5 text-left">Days</th>
-              <th className="py-4 px-5 text-left">Status</th>
-              <th className="py-4 px-5 text-left">Email Notification</th>
-              <th className="py-4 px-5 text-right">Action</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-50">
-            {loadingInitial ? (
-              <tr>
-                <td colSpan="7" className="p-12 text-center text-slate-400 font-medium">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
-                    <span className="text-xs">Loading leave history...</span>
-                  </div>
-                </td>
-              </tr>
-            ) : historyData.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="p-8 text-center text-slate-400 font-medium">
-                  No leave requests found.
-                </td>
-              </tr>
-            ) : (
-              historyData.map((item) => (
-                <tr
-                  key={item._id}
-                  className="hover:bg-slate-50/80 transition-colors duration-200"
-                >
-                  <td className="py-4 px-5 font-medium text-slate-700">{item.month}</td>
-                  <td className="py-4 px-5 text-slate-700 capitalize font-semibold">{item.type}</td>
-                  <td className="py-4 px-5 text-slate-600 whitespace-nowrap">
-                    {item.from} <span className="text-slate-400 font-normal">to</span> {item.to}
-                  </td>
-                  <td className="py-4 px-5 font-bold text-slate-800">
-                    {item.days} {item.days === 1 ? "day" : "days"}
-                  </td>
-                  <td className="py-4 px-5">
-                    <StatusBadge status={item.status} />
-                  </td>
-                  <td className="py-4 px-5">
-                    {item.emailStatus === "sent" ? (
-                      <span
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        title="Accepted by the email provider; recipient delivery is not independently confirmed."
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Sent
-                      </span>
-                    ) : item.emailStatus === "pending" ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                        Sending...
-                      </span>
-                    ) : item.emailStatus === "failed" ? (
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
-                          title={item.emailError || "Email failed to dispatch"}
-                        >
-                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                          Failed
-                        </span>
-                        <EmailRetryButton
-                          onRetry={() => handleResend(item._id)}
-                          isRetrying={retryingId === item._id}
-                          cooldownSeconds={cooldowns[item._id] || 0}
-                          size="xs"
-                        />
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="py-4 px-5 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => setSelectedLeaveForView(item)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
-                    >
-                      <Eye size={14} />
-                      <span>View</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {/* Load More Footer */}
-        {!loadingInitial && historyData.length > 0 && (
-          <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-xs text-slate-500 font-medium">
-              Showing <span className="font-bold text-slate-800">{historyData.length}</span> of{" "}
-              <span className="font-bold text-slate-800">{totalLeaves}</span> requests
-            </span>
-
-            {hasMore ? (
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Loading more requests...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Load More Leaves</span>
-                    <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">
-                      {totalLeaves - historyData.length} left
-                    </span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <span className="text-xs text-slate-400 font-medium italic">
-                All leave requests loaded
+      {/* Reusable Employee Leave Table */}
+      <EmployeeLeaveTable
+        leaves={historyData}
+        loading={loadingInitial}
+        loadingText="Loading leave history..."
+        onViewLeave={setSelectedLeaveForView}
+        showEmailStatus={true}
+        retryingId={retryingId}
+        cooldowns={cooldowns}
+        onResendEmail={handleResend}
+        emptyMessage="No leave requests found."
+        footer={
+          !loadingInitial && historyData.length > 0 && (
+            <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-xs text-slate-500 font-medium">
+                Showing <span className="font-bold text-slate-800">{historyData.length}</span> of{" "}
+                <span className="font-bold text-slate-800">{totalLeaves}</span> requests
               </span>
-            )}
-          </div>
-        )}
-      </div>
+
+              {hasMore ? (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Loading more requests...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Load More Leaves</span>
+                      <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">
+                        {totalLeaves - historyData.length} left
+                      </span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <span className="text-xs text-slate-400 font-medium italic">
+                  All leave requests loaded
+                </span>
+              )}
+            </div>
+          )
+        }
+      />
 
       {/* Leave Details Modal for Employee */}
       <EmployeeLeaveViewModal

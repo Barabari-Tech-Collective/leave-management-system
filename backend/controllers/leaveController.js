@@ -186,8 +186,9 @@ exports.getMyleaves = async (req, res) => {
       query.skip(skip).limit(limit);
     }
 
-    const [total, leaves] = await Promise.all([
+    const [total, pendingCount, leaves] = await Promise.all([
       Leave.countDocuments({ user: req.user._id }),
+      Leave.countDocuments({ user: req.user._id, status: "pending" }),
       query.exec()
     ]);
 
@@ -241,7 +242,8 @@ exports.getMyleaves = async (req, res) => {
           total,
           totalPages: Math.ceil(total / limit) || 1,
           hasMore: page * limit < total
-        }
+        },
+        pendingCount
       });
     }
 
@@ -295,6 +297,8 @@ exports.updateLeaveStatus = async (req, res) => {
     leave.status = status;
     if (status === "rejected" && rejectionReason) {
       leave.rejectionReason = rejectionReason.trim();
+    } else if (status === "approved") {
+      leave.rejectionReason = "";
     }
     await leave.save();
 

@@ -13,7 +13,8 @@ import {
   User, 
   FileText, 
   CheckCircle2, 
-  XCircle 
+  XCircle,
+  RotateCcw
 } from "lucide-react";
 
 export default function LeaveDetailsModal({ 
@@ -27,6 +28,8 @@ export default function LeaveDetailsModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showRevokeForm, setShowRevokeForm] = useState(false);
+  const [showReapproveConfirm, setShowReapproveConfirm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
   // Lock body scroll when modal is open
@@ -41,7 +44,24 @@ export default function LeaveDetailsModal({
     };
   }, [isOpen]);
 
+  // Reset all sub-forms and state whenever modal is opened or target leave changes
+  useEffect(() => {
+    setShowRejectForm(false);
+    setShowRevokeForm(false);
+    setShowReapproveConfirm(false);
+    setRejectionReason("");
+    setLoading(false);
+  }, [isOpen, leave?._id]);
+
   if (!isOpen || !leave) return null;
+
+  const handleClose = () => {
+    setShowRejectForm(false);
+    setShowRevokeForm(false);
+    setShowReapproveConfirm(false);
+    setRejectionReason("");
+    onClose();
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
@@ -53,6 +73,7 @@ export default function LeaveDetailsModal({
     });
   };
 
+  // 1. Approve / Re-approve Leave
   const handleApprove = async () => {
     try {
       setLoading(true);
@@ -60,10 +81,14 @@ export default function LeaveDetailsModal({
       if (res.data?.emailSent === false) {
         toast("Leave approved, but employee notification email failed to send.", { icon: "⚠️", duration: 5000 });
       } else {
-        toast.success("Leave request approved & employee notified! ✅");
+        toast.success(
+          leave.status === "rejected"
+            ? "Leave request re-approved & employee notified! ✅"
+            : "Leave request approved & employee notified! ✅"
+        );
       }
       if (onStatusUpdated) onStatusUpdated();
-      onClose();
+      handleClose();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to approve leave");
     } finally {
@@ -71,10 +96,11 @@ export default function LeaveDetailsModal({
     }
   };
 
+  // 2. Reject Pending Leave OR Revoke Approved Leave
   const handleConfirmReject = async (e) => {
     e.preventDefault();
     if (!rejectionReason.trim()) {
-      toast.error("Please provide a reason for rejection.");
+      toast.error("Please provide a reason.");
       return;
     }
 
@@ -85,14 +111,18 @@ export default function LeaveDetailsModal({
         rejectionReason: rejectionReason.trim(),
       });
       if (res.data?.emailSent === false) {
-        toast("Leave rejected, but employee notification email failed to send.", { icon: "⚠️", duration: 5000 });
+        toast("Leave status updated, but employee notification email failed to send.", { icon: "⚠️", duration: 5000 });
       } else {
-        toast.success("Leave request rejected & notification email sent! ✅");
+        toast.success(
+          leave.status === "approved"
+            ? "Approved leave revoked & balance refunded to employee! ✅"
+            : "Leave request rejected & notification email sent! ✅"
+        );
       }
       if (onStatusUpdated) onStatusUpdated();
-      onClose();
+      handleClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reject leave");
+      toast.error(err.response?.data?.message || "Failed to update leave status");
     } finally {
       setLoading(false);
     }
@@ -127,7 +157,7 @@ export default function LeaveDetailsModal({
   return createPortal(
     <div 
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div 
         className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[90vh]"
@@ -137,10 +167,10 @@ export default function LeaveDetailsModal({
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
             <h3 className="text-xl font-bold text-slate-900">Leave Request Details</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Review leave application information</p>
+            <p className="text-xs text-slate-500 mt-0.5">Review and manage leave application status</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition cursor-pointer"
           >
             <X size={18} />
@@ -199,7 +229,7 @@ export default function LeaveDetailsModal({
             </div>
           </div>
 
-          {/* Full Reason Box (Supports extensive descriptions smoothly) */}
+          {/* Full Reason Box */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
               <FileText size={14} className="text-indigo-600" />
@@ -212,7 +242,7 @@ export default function LeaveDetailsModal({
             </div>
           </div>
 
-          {/* Rejection Note (if applicable) */}
+          {/* Rejection Note (displayed if status is rejected and reason exists) */}
           {leave.status === "rejected" && leave.rejectionReason && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 uppercase tracking-wider">
@@ -225,8 +255,8 @@ export default function LeaveDetailsModal({
             </div>
           )}
 
-          {/* Inline Rejection Input Form */}
-          {showRejectForm && (
+          {/* 1. Pending Rejection Form (Guarded: only renders if status is strictly pending) */}
+          {leave.status === "pending" && showRejectForm && (
             <form onSubmit={handleConfirmReject} className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3 animate-fadeIn">
               <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
                 <AlertTriangle size={16} />
@@ -245,7 +275,10 @@ export default function LeaveDetailsModal({
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => setShowRejectForm(false)}
+                  onClick={() => {
+                    setShowRejectForm(false);
+                    setRejectionReason("");
+                  }}
                   className="px-3.5 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
                 >
                   Cancel
@@ -260,6 +293,90 @@ export default function LeaveDetailsModal({
               </div>
             </form>
           )}
+
+          {/* 2. Revoke Approved Leave Form (Guarded: only renders if status is approved) */}
+          {leave.status === "approved" && showRevokeForm && (
+            <form onSubmit={handleConfirmReject} className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-3 animate-fadeIn">
+              <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                <RotateCcw size={16} />
+                <span>Revoke / Cancel Approved Leave</span>
+              </div>
+              <div className="p-3 bg-white/90 rounded-xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                <p className="font-semibold text-amber-800">⚠️ Balance Refund Notice:</p>
+                <p className="mt-0.5">
+                  Revoking this leave will refund <strong>{leave.days} {leave.days === 1 ? "day" : "days"}</strong> back to the employee's balance and notify them via email.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Reason for Revoking Leave <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  autoFocus
+                  placeholder="e.g. Employee reported to work / emergency project coverage required."
+                  className="w-full p-3 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-xs text-slate-800 resize-none font-medium"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setShowRevokeForm(false);
+                    setRejectionReason("");
+                  }}
+                  className="px-3.5 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? "Revoking..." : "Confirm Revoke & Refund Balance"}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* 3. Re-approve Rejected Leave Confirmation (Guarded: only renders if status is rejected) */}
+          {leave.status === "rejected" && showReapproveConfirm && (
+            <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-3 animate-fadeIn">
+              <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                <CheckCircle2 size={16} />
+                <span>Re-approve Leave Request</span>
+              </div>
+              <div className="p-3 bg-white/90 rounded-xl border border-emerald-200 text-xs text-emerald-900 leading-relaxed">
+                <p>
+                  Re-approving this request will deduct <strong>{leave.days} {leave.days === 1 ? "day" : "days"}</strong> from the employee's leave balance and send them an approval email.
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setShowReapproveConfirm(false)}
+                  className="px-3.5 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={handleApprove}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? "Re-approving..." : "Confirm Re-approval"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Employee Notification Delivery Card (when status is approved or rejected) */}
           {leave.status !== "pending" && (
             <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -299,36 +416,68 @@ export default function LeaveDetailsModal({
         {/* Modal Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition cursor-pointer"
           >
             Close
           </button>
 
-          {leave.status === "pending" && !showRejectForm && (
-            <div className="flex items-center gap-2">
+          {/* Contextual Actions based on leave status */}
+          <div className="flex items-center gap-2">
+            {/* Pending actions */}
+            {leave.status === "pending" && !showRejectForm && (
+              <>
+                <button
+                  disabled={loading}
+                  onClick={() => setShowRejectForm(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <X size={15} />
+                  <span>Reject</span>
+                </button>
+                <button
+                  disabled={loading}
+                  onClick={handleApprove}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  <Check size={15} />
+                  <span>{loading ? "Approving..." : "Approve"}</span>
+                </button>
+              </>
+            )}
+
+            {/* Approved leave action: Revoke / Cancel */}
+            {leave.status === "approved" && !showRevokeForm && (
               <button
                 disabled={loading}
-                onClick={() => setShowRejectForm(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                onClick={() => {
+                  setShowRevokeForm(true);
+                  setRejectionReason("");
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                title="Revoke this leave and refund balance to the employee"
               >
-                <X size={15} />
-                <span>Reject</span>
+                <RotateCcw size={14} />
+                <span>Revoke / Cancel Leave</span>
               </button>
+            )}
+
+            {/* Rejected leave action: Re-approve */}
+            {leave.status === "rejected" && !showReapproveConfirm && (
               <button
                 disabled={loading}
-                onClick={handleApprove}
-                className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                onClick={() => setShowReapproveConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                title="Change status back to approved"
               >
-                <Check size={15} />
-                <span>{loading ? "Approving..." : "Approve"}</span>
+                <Check size={14} />
+                <span>Re-approve Leave</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>,
     document.body
   );
 }
-
