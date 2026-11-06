@@ -34,6 +34,13 @@ passport.use(
           });
         }
 
+        // Guard: Block soft-deleted / deactivated employees from logging in via Google
+        if (user.isDeleted) {
+          return done(null, false, {
+            message: "Your account has been deactivated. Please contact your Admin."
+          });
+        }
+
         // Elevate role if allowlisted admin
         if (isAllowlistedAdmin && user.role !== "admin") {
           user.role = "admin";
@@ -59,8 +66,13 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser(async (id, done) => {
-  // console.log("Deserialize ID", id);
-  const user = await User.findById(id);
-  // console.log("Deserialize User", user);
-  done(null, user);
+  try {
+    const user = await User.findById(id).select("-password");
+    if (!user || user.isDeleted) {
+      return done(null, false);
+    }
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
 });

@@ -1,11 +1,13 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const ensureAuth = require("../middleware/authMiddleware");
 const {
   applyLeave,
   getMyleaves,
   updateLeaveStatus,
   getTeamLeavesForLead,
-  resendLeaveEmail
+  resendLeaveEmail,
+  resendDecisionEmail
 } = require("../controllers/leaveController");
 const Leave = require("../models/Leave");
 const User = require("../models/User"); // Import User model
@@ -20,14 +22,25 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id) {
-      return res.status(400).json({ message: "Employee ID missing" });
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid or missing employee ID format." });
     }
 
     // 1. Fetch User to get leave balance and details
-    const user = await User.findById(id).select("name email leaveBalance");
+    const user = await User.findById(id).select("name email leaveBalance vertical");
     if (!user) {
       return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Authorization check: Must be Admin, the employee's Vertical Lead, or the employee themselves
+    const isSelf = req.user._id.toString() === id;
+    const isAdmin = req.user.role === "admin";
+    const isTheirLead = req.user.isVerticalLead && req.user.vertical === user.vertical;
+
+    if (!isSelf && !isAdmin && !isTheirLead) {
+      return res.status(403).json({
+        message: "Access denied. You are not authorized to view this employee's records."
+      });
     }
 
     // 2. Fetch User's leaves
@@ -43,9 +56,11 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
         days: leave.days,
         reason: leave.reason,
         status: leave.status || "pending",
+        rejectionReason: leave.rejectionReason || "",
         month: from.toLocaleString("default", { month: "short" }),
         from: from.toLocaleDateString("en-GB"),
         to: to.toLocaleDateString("en-GB"),
+        createdAt: leave.createdAt,
       };
     });
 
@@ -61,6 +76,7 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
 });
 
 router.put("/update-status/:id", ensureAuth, updateLeaveStatus);
+router.post("/resend-decision-email/:id", ensureAuth, resendDecisionEmail);
 router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
 // GET /leave/lead-requests (Admin Only: Fetch all leaves requested by Vertical Leads)

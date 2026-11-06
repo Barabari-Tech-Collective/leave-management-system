@@ -37,7 +37,22 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-  // 1. Automatically hash password before saving if modified
+// Strip password whenever user document is converted to JSON or plain object
+userSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    delete ret.password;
+    return ret;
+  }
+});
+
+userSchema.set("toObject", {
+  transform: (doc, ret) => {
+    delete ret.password;
+    return ret;
+  }
+});
+
+// 1. Automatically hash password before saving if modified
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password") || !this.password) return;
   const salt = await bcrypt.genSalt(10);

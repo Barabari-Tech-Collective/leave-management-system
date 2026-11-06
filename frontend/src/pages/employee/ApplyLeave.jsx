@@ -18,24 +18,25 @@ export default function ApplyLeave() {
   // Get today's date formatted as YYYY-MM-DD for min date restriction
   const todayStr = new Date().toISOString().split("T")[0];
 
-  // Helper function: Calculate total days excluding Sundays
+  // Helper function: Calculate total days excluding Sundays (deterministic UTC arithmetic)
   const calculateDaysExcludingSundays = (fromStr, toStr) => {
     if (!fromStr || !toStr) return 0;
 
-    let start = new Date(fromStr);
-    let end = new Date(toStr);
+    const [y1, m1, d1] = fromStr.split("-").map(Number);
+    const [y2, m2, d2] = toStr.split("-").map(Number);
 
-    if (end < start) return 0;
+    const current = new Date(Date.UTC(y1, m1 - 1, d1));
+    const end = new Date(Date.UTC(y2, m2 - 1, d2));
+
+    if (end < current) return 0;
 
     let count = 0;
-    let current = new Date(start);
-
     while (current <= end) {
-      // 0 represents Sunday in JavaScript Date
-      if (current.getDay() !== 0) {
+      // 0 represents Sunday in UTC Date
+      if (current.getUTCDay() !== 0) {
         count++;
       }
-      current.setDate(current.getDate() + 1);
+      current.setUTCDate(current.getUTCDate() + 1);
     }
 
     return count;

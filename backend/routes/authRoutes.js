@@ -107,7 +107,9 @@ router.post("/login", async (req, res) => {
       if (err) {
         return res.status(500).json({ message: "Session login error" });
       }
-      return res.json({ message: "Login successful", user });
+      const safeUser = user.toObject ? user.toObject() : { ...user };
+      delete safeUser.password;
+      return res.json({ message: "Login successful", user: safeUser });
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
