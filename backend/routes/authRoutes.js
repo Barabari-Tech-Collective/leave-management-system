@@ -7,7 +7,7 @@ const { sendWelcomeEmail } = require("../services/emailService");
 
 const router = express.Router();
 // Fallback frontend URL in case process.env.FRONTEND_URL is missing
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
+const FRONTEND_URL = (process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org").replace(/\/+$/, "");
 
 // Start Google Auth
 router.get(

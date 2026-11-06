@@ -14,22 +14,41 @@ const initHolidayCron = require("./cron/holidayCron");
 
 const app = express();
 
+const defaultAllowedOrigins = [
+  "https://leaveportal.barabaricollective.org",
+  "http://localhost:5173",
+];
+
+if (process.env.FRONTEND_URL) {
+  const customFrontend = process.env.FRONTEND_URL.replace(/\/+$/, "");
+  if (!defaultAllowedOrigins.includes(customFrontend)) {
+    defaultAllowedOrigins.push(customFrontend);
+  }
+}
+
 app.use(cors({
-  origin: [
-    "https://leaveportal.barabaricollective.org",
-    "https://leave-management-system-frontend-7r85.onrender.com",
-    "http://localhost:5173"
-  ],
+  origin: (origin, callback) => {
+    // Allow non-browser requests (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (
+      defaultAllowedOrigins.includes(origin) ||
+      origin.endsWith(".onrender.com") ||
+      origin.endsWith(".barabaricollective.org")
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS policy blocked access from origin: ${origin}`));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
-app.enable("trust proxy"); // Trust all proxies in AWS
+app.enable("trust proxy"); // Trust reverse proxies in Render / AWS
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "default_session_secret",
     resave: false,
     saveUninitialized: false,
     proxy: true,
@@ -40,7 +59,7 @@ app.use(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // true in prod
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      domain: process.env.NODE_ENV === "production" ? ".barabaricollective.org" : undefined
+      domain: process.env.COOKIE_DOMAIN || undefined
     }
   })
 );
