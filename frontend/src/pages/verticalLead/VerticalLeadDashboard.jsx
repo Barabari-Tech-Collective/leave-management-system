@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import LeaveApprovalActions from "../../components/LeaveApprovalActions";
 import { useAuth } from "../../context/AuthContext";
 import { UserPlus } from "lucide-react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://leave-portal-api.barabaricollective.org";
 
 export default function VerticalLeadDashboard() {
   const { user: currentUser } = useAuth();
@@ -28,9 +26,7 @@ export default function VerticalLeadDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/leave/team-dashboard`, {
-        withCredentials: true
-      });
+      const res = await API.get("/leave/team-dashboard");
       setDashboardData(res.data);
       setError("");
     } catch (err) {

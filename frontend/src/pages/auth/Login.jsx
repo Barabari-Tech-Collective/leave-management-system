@@ -39,7 +39,15 @@ export default function Login() {
   // 1. Google OAuth Flow
   const handleGoogleLogin = () => {
     setAuthError("");
-    window.open(`${import.meta.env.VITE_API_URL}/auth/google`, "_self");
+    const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+    if (!apiUrl) {
+      const msg = "Backend URL is not configured. Please set VITE_API_URL in your Render frontend environment variables and rebuild.";
+      setAuthError(msg);
+      toast.error(msg, { duration: 6000 });
+      console.error("[Login] Cannot initiate Google Login because VITE_API_URL is missing.");
+      return;
+    }
+    window.open(`${apiUrl}/auth/google`, "_self");
   };
 
   // 2. Manual Email + Password Login Flow
@@ -53,6 +61,13 @@ export default function Login() {
         password: form.password,
       });
 
+      // Guard against receiving an HTML SPA shell when VITE_API_URL is missing or misconfigured
+      if (!res.data || typeof res.data !== "object" || !res.data.user) {
+        throw new Error(
+          "Received an HTML response instead of JSON. The frontend is requesting itself instead of the backend API. Please configure VITE_API_URL in Render frontend environment variables and rebuild."
+        );
+      }
+
       toast.success("Login Successful 🚀");
 
       const loggedUser = res.data.user;
@@ -63,7 +78,7 @@ export default function Login() {
         window.location.href = "/employee";
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || "Invalid credentials or unauthorized account.";
+      const errMsg = err.response?.data?.message || err.message || "Invalid credentials or unauthorized account.";
       setAuthError(errMsg);
       toast.error(errMsg);
       setSubmitting(false);
