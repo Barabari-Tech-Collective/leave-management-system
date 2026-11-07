@@ -146,9 +146,11 @@ router.post("/create-user", ensureAuth, async (req, res) => {
     let assignedRole = role || "employee";
     let assignedLeadStatus = isVerticalLead || false;
 
-    if (creator.role !== "admin" && creator.isVerticalLead) {
+    // Privilege Guard: Only Admins can appoint Vertical Leads or create non-employee roles
+    if (creator.role !== "admin") {
       assignedVertical = creator.vertical;
       assignedRole = "employee";
+      assignedLeadStatus = false;
     }
 
     const newUser = await User.create({

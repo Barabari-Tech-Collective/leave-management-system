@@ -57,6 +57,7 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
         reason: leave.reason,
         status: leave.status || "pending",
         rejectionReason: leave.rejectionReason || "",
+        isPastLeave: Boolean(leave.isPastLeave),
         month: from.toLocaleString("default", { month: "short" }),
         from: from.toLocaleDateString("en-GB"),
         to: to.toLocaleDateString("en-GB"),

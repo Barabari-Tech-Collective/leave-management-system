@@ -73,8 +73,14 @@ export default function EmployeeLeaveViewModal({
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">Leave Request Details</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Overview of your submitted application</p>
+            <h3 className="text-xl font-bold text-slate-900">
+              {leave.isPastLeave ? "Past Leave Record" : "Leave Request Details"}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {leave.isPastLeave
+                ? "Overview of your recorded past leave"
+                : "Overview of your submitted application"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -86,13 +92,29 @@ export default function EmployeeLeaveViewModal({
 
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto">
+          {leave.isPastLeave && (
+            <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center gap-2 text-xs text-indigo-800 font-medium">
+              <Clock size={16} className="text-indigo-600 shrink-0" />
+              <span>
+                <strong>Past Leave Record:</strong> This leave was taken in the past and was automatically approved.
+              </span>
+            </div>
+          )}
+
           {/* Quick Metrics Bar */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
             <div>
               <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Leave Category</p>
-              <h4 className="text-base font-extrabold text-indigo-950 capitalize mt-0.5">
-                {leave.type} Leave
-              </h4>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h4 className="text-base font-extrabold text-indigo-950 capitalize">
+                  {leave.type} Leave
+                </h4>
+                {leave.isPastLeave && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    Past Leave
+                  </span>
+                )}
+              </div>
             </div>
             <div className="text-right">
               {getStatusBadge(leave.status)}
