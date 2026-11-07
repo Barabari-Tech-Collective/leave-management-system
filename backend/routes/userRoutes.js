@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const ensureAuth = require("../middleware/authMiddleware");
 const User = require("../models/User");
 const Leave = require("../models/Leave");
@@ -44,6 +45,10 @@ router.put("/update-lead/:id", ensureAuth, async (req, res) => {
       return res.status(403).json({ message: "Access denied. Only Admins can update vertical leads." });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user ID format." });
+    }
+
     const { isVerticalLead, vertical } = req.body;
     const userId = req.params.id;
 
@@ -72,6 +77,10 @@ router.put("/update-vertical/:id", ensureAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Only Admins can reassign employee verticals." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user ID format." });
     }
 
     const { vertical } = req.body;
@@ -103,6 +112,10 @@ router.put("/soft-delete/:id", ensureAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Only Admins can deactivate accounts." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user ID format." });
     }
 
     if (req.params.id === req.user._id.toString()) {
@@ -144,6 +157,10 @@ router.put("/restore/:id", ensureAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied. Only Admins can restore accounts." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user ID format." });
     }
 
     const user = await User.findById(req.params.id);

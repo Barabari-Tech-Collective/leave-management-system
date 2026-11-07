@@ -7,7 +7,7 @@ const { sendLeaveEmail, sendApprovalEmail } = require("../services/emailService"
 exports.applyLeave = async (req, res) => {
   try {
     const user = req.user;
-    const { type, fromDate, toDate, reason } = req.body;
+    const { type, fromDate, toDate, reason, isPastLeave = false } = req.body;
 
     if (!type || !fromDate || !toDate) {
       return res.status(400).json({ message: "Leave type, from date, and to date are required." });
@@ -43,6 +43,38 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: "'To Date' cannot be earlier than 'From Date'." });
     }
 
+    // Determine today's date in YYYY-MM-DD according to Indian Standard Time (Asia/Kolkata)
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(new Date());
+
+    if (isPastLeave) {
+      // Past leaves cannot be in the future
+      if (toDate > todayStr) {
+        return res.status(400).json({ message: "Past leave dates cannot be in the future." });
+      }
+      const currentYear = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric"
+      }).format(new Date());
+      const minPastDate = `${currentYear}-01-01`;
+      if (fromDate < minPastDate) {
+        return res.status(400).json({
+          message: `Past leaves can only be reported for the current calendar year (${currentYear}).`
+        });
+      }
+    } else {
+      // Future/regular leaves cannot start in the past
+      if (fromDate < todayStr) {
+        return res.status(400).json({
+          message: "'From Date' cannot be in the past for regular leave requests. Use 'Report Past Leave' instead."
+        });
+      }
+    }
+
     // Calculate total days excluding Sundays (deterministic UTC date operations)
     let days = 0;
     let current = new Date(queryFromDate);
@@ -73,7 +105,7 @@ exports.applyLeave = async (req, res) => {
       const statusLabel = overlappingLeave.status.toUpperCase();
 
       return res.status(400).json({
-        message: `You already have an active (${statusLabel}) leave request from ${existingFrom} to ${existingTo} overlapping with these dates.`
+        message: `You already have an active (${statusLabel}) leave record from ${existingFrom} to ${existingTo} overlapping with these dates.`
       });
     }
 
@@ -106,7 +138,13 @@ exports.applyLeave = async (req, res) => {
 
     let leave;
     try {
-      // C. Create Leave record with initial emailStatus: 'pending'
+      // For past leaves, immediately deduct balance since it is auto-approved
+      if (isPastLeave) {
+        user.leaveBalance[type].taken += days;
+        await user.save({ validateBeforeSave: false });
+      }
+
+      // C. Create Leave record (auto-approved for past leave, pending for regular leave)
       leave = await Leave.create({
         user: user._id,
         vertical: user.vertical,
@@ -115,6 +153,8 @@ exports.applyLeave = async (req, res) => {
         toDate: new Date(`${toDate}T00:00:00.000Z`),
         days,
         reason,
+        isPastLeave: Boolean(isPastLeave),
+        status: isPastLeave ? "approved" : "pending",
         emailStatus: "pending",
         emailAttempts: 0
       });
@@ -148,12 +188,23 @@ exports.applyLeave = async (req, res) => {
       }
 
       res.status(201).json({
-        message: "Leave applied successfully",
+        message: isPastLeave ? "Past leave recorded successfully" : "Leave applied successfully",
         leave,
         emailSent: leave.emailStatus === "sent"
       });
     } catch (innerErr) {
       console.error("Error during leave creation or email processing:", innerErr);
+
+      // Roll back balance deduction if leave creation failed for past leave
+      if (isPastLeave && (!leave || !leave._id)) {
+        try {
+          user.leaveBalance[type].taken = Math.max(0, user.leaveBalance[type].taken - days);
+          await user.save({ validateBeforeSave: false });
+        } catch (rollbackErr) {
+          console.error("Failed to roll back user balance after leave creation error:", rollbackErr);
+        }
+      }
+
       if (leave && leave._id && leave.emailStatus === "pending") {
         try {
           leave.emailStatus = "failed";
@@ -223,6 +274,7 @@ exports.getMyleaves = async (req, res) => {
         to: to.toLocaleDateString("en-GB"),
         status: leave.status || "pending",
         rejectionReason: leave.rejectionReason || "",
+        isPastLeave: Boolean(leave.isPastLeave),
         createdAt: leave.createdAt,
         emailStatus: computedEmailStatus,
         emailAttempts: leave.emailAttempts || 0,
@@ -275,6 +327,13 @@ exports.updateLeaveStatus = async (req, res) => {
     const leave = await Leave.findById(req.params.id).populate("user");
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found" });
+    }
+
+    // Past leaves cannot be modified or revoked as they have already been taken
+    if (leave.isPastLeave) {
+      return res.status(400).json({
+        message: "Status of a past leave cannot be changed or revoked because the leave has already been taken."
+      });
     }
 
     // Prevent Vertical Leads from self-approving their own leave applications

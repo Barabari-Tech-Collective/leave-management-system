@@ -28,6 +28,10 @@ const leaveSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    isPastLeave: {
+      type: Boolean,
+      default: false
+    },
     emailStatus: {
       type: String,
       enum: ["pending", "sent", "failed"],

@@ -104,11 +104,34 @@ const sendLeaveEmail = async ({
 
     const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
     const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
+    const isPastLeave = Boolean(leave.isPastLeave);
 
-    const htmlBody = wrapBarabariTemplate({
-      title: "Leave Request",
-      subtitle: `${employee.vertical || "General"} Vertical`,
-      content: `
+    const emailTitle = isPastLeave ? "Past Leave Record" : "Leave Request";
+    const emailSubtitle = isPastLeave
+      ? `${employee.vertical || "General"} Vertical • Past Leave Record`
+      : `${employee.vertical || "General"} Vertical`;
+    const emailSubject = isPastLeave
+      ? `Past Leave Record (${employee.vertical} Vertical) - ${employee.name}`
+      : `Leave Request (${employee.vertical} Vertical) - ${employee.name}`;
+
+    const contentHtml = isPastLeave
+      ? `
+        <p style="font-size: 16px;">Hi Team,</p>
+        <p><strong>${employee.name}</strong> has recorded a past leave taken.</p>
+        
+        <div class="info-box">
+          <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Leave Details:</p>
+          <ul style="margin: 0; padding-left: 20px; color: #334155;">
+            <li><strong>Leave Type:</strong> ${leave.type.toUpperCase()}</li>
+            <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
+            <li><strong>Reason:</strong> ${leave.reason}</li>
+            <li><strong>Status:</strong> <span style="color: #16A34A; font-weight: 700;">RECORDED</span></li>
+          </ul>
+        </div>
+        
+        <p style="color: #64748B; font-size: 14px;">Note: This leave was already taken in the past and has been automatically recorded in the system. No approval action is required.</p>
+      `
+      : `
         <p style="font-size: 16px;">Hi Team,</p>
         <p><strong>${employee.name}</strong> has submitted a new leave application.</p>
         
@@ -122,13 +145,18 @@ const sendLeaveEmail = async ({
         </div>
         
         <p>Please log in to the portal to review or approve this request.</p>
-      `
+      `;
+
+    const htmlBody = wrapBarabariTemplate({
+      title: emailTitle,
+      subtitle: emailSubtitle,
+      content: contentHtml
     });
 
     const { data, error } = await getResendClient().emails.send({
       from: sender,
       to: allEmails,
-      subject: `Leave Request (${employee.vertical} Vertical) - ${employee.name}`,
+      subject: emailSubject,
       html: htmlBody
     });
 

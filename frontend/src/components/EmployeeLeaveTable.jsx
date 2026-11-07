@@ -80,8 +80,15 @@ export default function EmployeeLeaveTable({
                     {item.month || "—"}
                   </td>
 
-                  <td className="py-4 px-5 text-slate-700 capitalize font-semibold whitespace-nowrap">
-                    {item.type}
+                  <td className="py-4 px-5 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-700 capitalize font-semibold">{item.type}</span>
+                      {item.isPastLeave && (
+                        <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          Past Leave
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   <td className="py-4 px-5 text-slate-600 whitespace-nowrap">

@@ -11,10 +11,8 @@ const connectDB = async () => {
     try {
       await Leave.updateMany(
         {
-          $or: [
-            { emailAttempts: { $exists: false } },
-            { emailAttempts: 0, lastEmailAttemptAt: null }
-          ]
+          emailAttempts: { $exists: false },
+          emailStatus: { $exists: false }
         },
         { $set: { emailStatus: "sent", emailAttempts: 1 } }
       );

@@ -527,8 +527,15 @@ export default function VerticalLeadDashboard() {
                         {leave.user?.name || "Unknown"}
                         <div className="text-xs text-gray-400 font-normal">{leave.user?.email}</div>
                       </td>
-                      <td className="py-4 px-6 capitalize font-semibold text-gray-700">
-                        {leave.type}
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="capitalize font-semibold text-gray-700">{leave.type}</span>
+                          {leave.isPastLeave && (
+                            <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              Past Leave
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-gray-600 whitespace-nowrap">
                         {new Date(leave.fromDate).toLocaleDateString("en-GB")} -{" "}
