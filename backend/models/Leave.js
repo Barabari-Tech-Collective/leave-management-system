@@ -21,12 +21,15 @@ const leaveSchema = new mongoose.Schema(
     reason: String,
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "cancelled"],
       default: "pending"
     },
     rejectionReason: {
       type: String,
       default: ""
+    },
+    cancelledAt: {
+      type: Date
     },
     isPastLeave: {
       type: Boolean,
@@ -62,6 +65,22 @@ const leaveSchema = new mongoose.Schema(
       default: 0
     },
     lastDecisionEmailAttemptAt: {
+      type: Date
+    },
+    cancellationEmailStatus: {
+      type: String,
+      enum: ["none", "sent", "failed"],
+      default: "none"
+    },
+    cancellationEmailError: {
+      type: String,
+      default: ""
+    },
+    cancellationEmailAttempts: {
+      type: Number,
+      default: 0
+    },
+    lastCancellationEmailAttemptAt: {
       type: Date
     }
   },

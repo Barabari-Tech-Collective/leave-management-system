@@ -39,7 +39,7 @@ router.get(
 
       // 2. Redirect Vertical Lead
       if (req.user.isVerticalLead) {
-        return res.redirect(`${FRONTEND_URL}/vertical-lead`);
+        return res.redirect(`${FRONTEND_URL}/employee/team`);
       }
 
       // 3. Default Employee
@@ -126,6 +126,18 @@ router.post("/create-user", ensureAuth, async (req, res) => {
       return res.status(403).json({ message: "Access denied. Only Admins or Vertical Leads can create users." });
     }
 
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ message: "Full name is required." });
+    }
+
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ message: "Email address is required." });
+    }
+
+    if (!password || typeof password !== "string" || !password.trim()) {
+      return res.status(400).json({ message: "Temporary password is required." });
+    }
+
     const cleanedEmail = email.trim().toLowerCase();
 
     // Standard Email Syntax Check
@@ -204,7 +216,17 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, currentPassword, newPassword } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+    if (!currentPassword) {
+      return res.status(400).json({ message: "Current temporary password is required." });
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters long." });
+    }
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       return res.status(404).json({ message: "User account not found." });
     }

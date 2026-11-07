@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Leave = require("../models/Leave");
 const User = require("../models/User");
-const { sendLeaveEmail, sendApprovalEmail } = require("../services/emailService");
+const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("../services/emailService");
 
 // 1. APPLY LEAVE (Notifies Vertical Lead, Teammates & Admins)
 exports.applyLeave = async (req, res) => {
@@ -112,10 +112,32 @@ exports.applyLeave = async (req, res) => {
     }
 
     const balance = user.leaveBalance[type];
-    const remaining = balance.total - balance.taken;
+    const rawRemaining = balance.total - balance.taken;
 
-    if (days > remaining) {
-      return res.status(400).json({ message: `Not enough leave balance. Required: ${days}, Remaining: ${remaining}` });
+    // 1. First check: Does the employee have enough quota left in this category?
+    if (days > rawRemaining) {
+      return res.status(400).json({
+        message: `You don't have enough leaves left to take. Required: ${days}, Remaining: ${rawRemaining}`
+      });
+    }
+
+    // 2. Second check: Account for any active pending leave requests for this category
+    const pendingLeaves = await Leave.find({
+      user: user._id,
+      type,
+      status: "pending"
+    });
+    const pendingDays = pendingLeaves.reduce((sum, l) => sum + (l.days || 0), 0);
+    const effectiveAvailable = rawRemaining - pendingDays;
+
+    if (days > effectiveAvailable) {
+      return res.status(400).json({
+        message: `You have ${rawRemaining} remaining ${type} leave(s), but ${pendingDays} day(s) are currently pending approval. Please cancel your pending leave request(s) to apply for this leave.`,
+        hasPendingConflict: true,
+        pendingDays,
+        rawRemaining,
+        effectiveAvailable
+      });
     }
 
     // A. Fetch Vertical Lead & Teammates in the same vertical (excluding soft-deleted/deactivated users)
@@ -278,12 +300,17 @@ exports.getMyleaves = async (req, res) => {
         rejectionReason: leave.rejectionReason || "",
         isPastLeave: Boolean(leave.isPastLeave),
         createdAt: leave.createdAt,
+        cancelledAt: leave.cancelledAt || null,
         emailStatus: computedEmailStatus,
         emailAttempts: leave.emailAttempts || 0,
         emailError: computedEmailError,
         lastEmailAttemptAt: leave.lastEmailAttemptAt || null,
         decisionEmailStatus: leave.decisionEmailStatus || "none",
-        decisionEmailError: leave.decisionEmailError || ""
+        decisionEmailError: leave.decisionEmailError || "",
+        cancellationEmailStatus: leave.cancellationEmailStatus || "none",
+        cancellationEmailError: leave.cancellationEmailError || "",
+        cancellationEmailAttempts: leave.cancellationEmailAttempts || 0,
+        lastCancellationEmailAttemptAt: leave.lastCancellationEmailAttemptAt || null
       };
     });
 
@@ -338,6 +365,13 @@ exports.updateLeaveStatus = async (req, res) => {
       });
     }
 
+    // Cancelled leaves cannot be modified
+    if (leave.status === "cancelled") {
+      return res.status(400).json({
+        message: "Status of a leave request cancelled by the employee cannot be updated."
+      });
+    }
+
     // Prevent Vertical Leads from self-approving their own leave applications
     const isOwner = leave.user && leave.user._id.toString() === currentCaller._id.toString();
     if (isOwner && currentCaller.role !== "admin") {
@@ -355,6 +389,55 @@ exports.updateLeaveStatus = async (req, res) => {
     }
 
     const previousStatus = leave.status;
+
+    // Balance adjustment atomically based on status transition to prevent race condition overdrafts
+    if (leave.user && leave.user._id) {
+      // 1. Transitioning to approved from pending/rejected -> deduct balance atomically with condition
+      if (previousStatus !== "approved" && status === "approved") {
+        const typeBalance = leave.user.leaveBalance?.[leave.type] || { total: 0, taken: 0 };
+        const totalQuota = typeBalance.total || 0;
+
+        const updatedUser = await User.findOneAndUpdate(
+          {
+            _id: leave.user._id,
+            [`leaveBalance.${leave.type}.taken`]: { $lte: totalQuota - leave.days }
+          },
+          {
+            $inc: { [`leaveBalance.${leave.type}.taken`]: leave.days }
+          },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+          const freshUser = await User.findById(leave.user._id);
+          const freshTaken = freshUser?.leaveBalance?.[leave.type]?.taken || 0;
+          const freshTotal = freshUser?.leaveBalance?.[leave.type]?.total || 0;
+          const freshRemaining = Math.max(0, freshTotal - freshTaken);
+          return res.status(400).json({
+            message: `Cannot approve: Employee only has ${freshRemaining} remaining in ${leave.type} leave, but this request requires ${leave.days} day(s).`
+          });
+        }
+        leave.user = updatedUser;
+      }
+      // 2. Transitioning from approved to rejected -> refund previously deducted balance atomically
+      else if (previousStatus === "approved" && status !== "approved") {
+        const updatedUser = await User.findByIdAndUpdate(
+          leave.user._id,
+          {
+            $inc: { [`leaveBalance.${leave.type}.taken`]: -leave.days }
+          },
+          { new: true }
+        );
+        if (updatedUser) {
+          if (updatedUser.leaveBalance?.[leave.type]?.taken < 0) {
+            updatedUser.leaveBalance[leave.type].taken = 0;
+            await updatedUser.save({ validateBeforeSave: false });
+          }
+          leave.user = updatedUser;
+        }
+      }
+    }
+
     leave.status = status;
     if (status === "rejected" && rejectionReason) {
       leave.rejectionReason = rejectionReason.trim();
@@ -362,29 +445,6 @@ exports.updateLeaveStatus = async (req, res) => {
       leave.rejectionReason = "";
     }
     await leave.save();
-
-    // Balance adjustment based on status transition to prevent double-deduction or unrefunded rejections
-    if (leave.user && leave.user.leaveBalance && leave.user.leaveBalance[leave.type]) {
-      let balanceChanged = false;
-
-      // 1. Transitioning to approved from pending/rejected -> deduct balance
-      if (previousStatus !== "approved" && status === "approved") {
-        leave.user.leaveBalance[leave.type].taken += leave.days;
-        balanceChanged = true;
-      }
-      // 2. Transitioning from approved to rejected -> refund previously deducted balance
-      else if (previousStatus === "approved" && status !== "approved") {
-        leave.user.leaveBalance[leave.type].taken = Math.max(
-          0,
-          leave.user.leaveBalance[leave.type].taken - leave.days
-        );
-        balanceChanged = true;
-      }
-
-      if (balanceChanged) {
-        await leave.user.save({ validateBeforeSave: false });
-      }
-    }
 
     // Dispatch status notification email (Approved or Rejected)
     let emailResult = null;
@@ -421,6 +481,224 @@ exports.updateLeaveStatus = async (req, res) => {
   } catch (err) {
     console.error("Error updating leave status:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// 4. CANCEL LEAVE (Employee self-service for pending leaves, Admin override)
+exports.cancelLeave = async (req, res) => {
+  try {
+    const currentCaller = req.user;
+    const leaveId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(leaveId)) {
+      return res.status(400).json({ message: "Invalid leave ID format." });
+    }
+
+    const leave = await Leave.findById(leaveId).populate("user");
+    if (!leave) {
+      return res.status(404).json({ message: "Leave record not found." });
+    }
+
+    // Verify ownership: only the owner or an admin can cancel
+    const isOwner = leave.user && leave.user._id.toString() === currentCaller._id.toString();
+    if (!isOwner && currentCaller.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. You can only cancel your own leave requests." });
+    }
+
+    // Past leaves cannot be cancelled as they were already taken
+    if (leave.isPastLeave) {
+      return res.status(400).json({
+        message: "Past leaves cannot be cancelled because the leave has already been taken."
+      });
+    }
+
+    // Check status constraints
+    if (leave.status === "cancelled") {
+      return res.status(400).json({ message: "This leave request has already been cancelled." });
+    }
+
+    if (leave.status === "rejected") {
+      return res.status(400).json({ message: "Cannot cancel a leave request that was already rejected." });
+    }
+
+    // Approved leaves cannot be cancelled by employee
+    if (leave.status === "approved" && currentCaller.role !== "admin") {
+      return res.status(400).json({
+        message: "Approved leaves cannot be cancelled by employees. Please contact your Admin to cancel an approved leave."
+      });
+    }
+
+    const previousStatus = leave.status;
+    leave.status = "cancelled";
+    leave.cancelledAt = new Date();
+    await leave.save();
+
+    // If an Admin cancelled an already approved leave, refund the balance atomically
+    if (previousStatus === "approved" && leave.user?._id) {
+      const updatedUser = await User.findByIdAndUpdate(
+        leave.user._id,
+        {
+          $inc: { [`leaveBalance.${leave.type}.taken`]: -leave.days }
+        },
+        { new: true }
+      );
+      if (updatedUser && updatedUser.leaveBalance?.[leave.type]?.taken < 0) {
+        updatedUser.leaveBalance[leave.type].taken = 0;
+        await updatedUser.save({ validateBeforeSave: false });
+      }
+    }
+
+    // Dispatch cancellation email to Vertical Lead, teammates, and admins
+    let emailResult = null;
+    try {
+      const teamMembers = await User.find({
+        vertical: leave.vertical,
+        _id: { $ne: leave.user?._id },
+        isDeleted: { $ne: true }
+      }).select("email");
+      const teamEmails = teamMembers.map((m) => m.email);
+
+      const envAdmins = (process.env.ADMIN_EMAILS || "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase());
+      const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
+      const dbAdminEmails = dbAdmins.map((a) => a.email);
+      const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+
+      emailResult = await sendCancellationEmail({
+        leave,
+        employee: leave.user,
+        cancelledBy: currentCaller,
+        previousStatus,
+        recipients: [...teamEmails, ...adminEmails],
+        founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+      });
+    } catch (emailErr) {
+      console.error("Failed to send cancellation notification email:", emailErr);
+      emailResult = { success: false, error: emailErr.message };
+    }
+
+    const emailSent = Boolean(emailResult && emailResult.success);
+    const emailError = (!emailSent && emailResult?.error) ? emailResult.error : "";
+
+    leave.cancellationEmailStatus = emailSent ? "sent" : (emailResult ? "failed" : "none");
+    leave.cancellationEmailError = emailError;
+    leave.cancellationEmailAttempts = (leave.cancellationEmailAttempts || 0) + 1;
+    leave.lastCancellationEmailAttemptAt = new Date();
+    await leave.save();
+
+    const responseMessage = emailSent
+      ? "Leave request cancelled successfully."
+      : `Leave request cancelled, but notification email failed to send${emailError ? `: ${emailError}` : "."}`;
+
+    res.json({
+      message: responseMessage,
+      leave,
+      emailSent,
+      emailWarning: emailSent ? null : (emailError || "Cancellation email delivery failed")
+    });
+  } catch (error) {
+    console.error("Error cancelling leave:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// 5. RESEND CANCELLATION NOTIFICATION EMAIL
+exports.resendCancellationEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid leave ID format." });
+    }
+
+    const leave = await Leave.findById(id).populate("user");
+    if (!leave) {
+      return res.status(404).json({ message: "Leave record not found." });
+    }
+
+    if (leave.status !== "cancelled") {
+      return res.status(400).json({ message: "Only cancelled leave requests can resend cancellation emails." });
+    }
+
+    // Duplicate check: Prevent resending if cancellation email was already delivered
+    if (leave.cancellationEmailStatus === "sent") {
+      return res.status(400).json({
+        message: "Cancellation notification email was already successfully delivered.",
+        cancellationEmailStatus: "sent"
+      });
+    }
+
+    // Authorization: User must be the owner, vertical lead of the same vertical, or admin
+    const isOwner = leave.user && leave.user._id.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    const isLead = req.user.isVerticalLead && req.user.vertical === leave.vertical;
+
+    if (!isOwner && !isAdmin && !isLead) {
+      return res.status(403).json({ message: "Not authorized to resend cancellation email for this leave." });
+    }
+
+    // 5 seconds rate-limit cooldown
+    const COOLDOWN_SECONDS = 5;
+    if (leave.lastCancellationEmailAttemptAt) {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(leave.lastCancellationEmailAttemptAt).getTime()) / 1000);
+      if (elapsedSeconds < COOLDOWN_SECONDS) {
+        const remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
+        return res.status(429).json({
+          message: `Please wait ${remainingSeconds} second(s) before retrying email dispatch.`,
+          remainingSeconds
+        });
+      }
+    }
+
+    const teamMembers = await User.find({
+      vertical: leave.vertical,
+      _id: { $ne: leave.user?._id },
+      isDeleted: { $ne: true }
+    }).select("email");
+    const teamEmails = teamMembers.map((m) => m.email);
+
+    const envAdmins = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase());
+    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
+    const dbAdminEmails = dbAdmins.map((a) => a.email);
+    const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+
+    const emailResult = await sendCancellationEmail({
+      leave,
+      employee: leave.user,
+      cancelledBy: req.user,
+      previousStatus: leave.cancelledAt ? "cancelled" : "pending",
+      recipients: [...teamEmails, ...adminEmails],
+      founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+    });
+
+    leave.cancellationEmailAttempts = (leave.cancellationEmailAttempts || 0) + 1;
+    leave.lastCancellationEmailAttemptAt = new Date();
+
+    if (emailResult && emailResult.success) {
+      leave.cancellationEmailStatus = "sent";
+      leave.cancellationEmailError = "";
+      await leave.save();
+      return res.json({
+        message: "Cancellation notification email dispatched successfully!",
+        emailStatus: "sent",
+        leave
+      });
+    } else {
+      leave.cancellationEmailStatus = "failed";
+      leave.cancellationEmailError = emailResult?.error || "Email service failed to deliver message.";
+      await leave.save();
+      return res.status(500).json({
+        message: `Failed to dispatch cancellation email`,
+        emailStatus: "failed",
+        leave
+      });
+    }
+  } catch (error) {
+    console.error("Error resending cancellation email:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 // 4. VERTICAL LEAD DASHBOARD: Get Team Leaves & Statistics (Supports server-side filters & pagination)
@@ -484,12 +762,16 @@ exports.getTeamLeavesForLead = async (req, res) => {
           if (!isNaN(m) && m >= 0 && m <= 11) {
             const start = new Date(Date.UTC(y, m, 1, 0, 0, 0));
             const end = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
-            filter.fromDate = { $gte: start, $lte: end };
+            // Match any leave that overlaps with this month interval
+            filter.fromDate = { $lte: end };
+            filter.toDate = { $gte: start };
           }
         } else {
           const start = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
           const end = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
-          filter.fromDate = { $gte: start, $lte: end };
+          // Match any leave that overlaps with this year interval
+          filter.fromDate = { $lte: end };
+          filter.toDate = { $gte: start };
         }
       }
     } else if (month && month !== "all") {
@@ -498,7 +780,12 @@ exports.getTeamLeavesForLead = async (req, res) => {
         filter.$expr = {
           $and: [
             { $eq: [{ $type: "$fromDate" }, "date"] },
-            { $eq: [{ $month: "$fromDate" }, m + 1] }
+            {
+              $or: [
+                { $eq: [{ $month: "$fromDate" }, m + 1] },
+                { $eq: [{ $month: "$toDate" }, m + 1] }
+              ]
+            }
           ]
         };
       }

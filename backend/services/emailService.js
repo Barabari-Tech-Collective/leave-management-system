@@ -12,6 +12,17 @@ const getResendClient = () => {
 const getSenderEmail = () => process.env.EMAIL_FROM || "Leave Portal <leaves@barabaricollective.org>";
 const getFrontendUrl = () => process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
 
+// Helper to escape HTML characters in dynamic user content (XSS protection)
+const escapeHtml = (str) => {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 // Barabari Collective HTML Template Layout Wrapper
 const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 <!DOCTYPE html>
@@ -102,29 +113,32 @@ const sendLeaveEmail = async ({
       return { success: false, error: "No valid recipient emails found." };
     }
 
-    const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
-    const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
+    const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+    const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
     const isPastLeave = Boolean(leave.isPastLeave);
+    const safeEmpName = escapeHtml(employee?.name || "Team Member");
+    const safeVertical = escapeHtml(employee?.vertical || "General");
+    const safeReason = escapeHtml(leave.reason || "N/A");
 
     const emailTitle = isPastLeave ? "Past Leave Record" : "Leave Request";
     const emailSubtitle = isPastLeave
-      ? `${employee.vertical || "General"} Vertical • Past Leave Record`
-      : `${employee.vertical || "General"} Vertical`;
+      ? `${safeVertical} Vertical • Past Leave Record`
+      : `${safeVertical} Vertical`;
     const emailSubject = isPastLeave
-      ? `Past Leave Record (${employee.vertical} Vertical) - ${employee.name}`
-      : `Leave Request (${employee.vertical} Vertical) - ${employee.name}`;
+      ? `Past Leave Record (${safeVertical} Vertical) - ${safeEmpName}`
+      : `Leave Request (${safeVertical} Vertical) - ${safeEmpName}`;
 
     const contentHtml = isPastLeave
       ? `
         <p style="font-size: 16px;">Hi Team,</p>
-        <p><strong>${employee.name}</strong> has recorded a past leave taken.</p>
+        <p><strong>${safeEmpName}</strong> has recorded a past leave taken.</p>
         
         <div class="info-box">
           <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Leave Details:</p>
           <ul style="margin: 0; padding-left: 20px; color: #334155;">
-            <li><strong>Leave Type:</strong> ${leave.type.toUpperCase()}</li>
+            <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
             <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
-            <li><strong>Reason:</strong> ${leave.reason}</li>
+            <li><strong>Reason:</strong> ${safeReason}</li>
             <li><strong>Status:</strong> <span style="color: #16A34A; font-weight: 700;">RECORDED</span></li>
           </ul>
         </div>
@@ -133,14 +147,14 @@ const sendLeaveEmail = async ({
       `
       : `
         <p style="font-size: 16px;">Hi Team,</p>
-        <p><strong>${employee.name}</strong> has submitted a new leave application.</p>
+        <p><strong>${safeEmpName}</strong> has submitted a new leave application.</p>
         
         <div class="info-box">
           <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Application Details:</p>
           <ul style="margin: 0; padding-left: 20px; color: #334155;">
-            <li><strong>Leave Type:</strong> ${leave.type.toUpperCase()}</li>
+            <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
             <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
-            <li><strong>Reason:</strong> ${leave.reason}</li>
+            <li><strong>Reason:</strong> ${safeReason}</li>
           </ul>
         </div>
         
@@ -244,22 +258,25 @@ const sendApprovalEmail = async ({
       return { success: false, error: "RESEND_API_KEY is not configured in server environment." };
     }
 
-    const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB");
-    const toStr = new Date(leave.toDate).toLocaleDateString("en-GB");
+    const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+    const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
     const isApproved = status === "approved";
+    const safeEmpName = escapeHtml(employeeName);
+    const safeReason = escapeHtml(leave.reason || "N/A");
+    const safeRejectionReason = escapeHtml(rejectionReason);
 
     const htmlBody = wrapBarabariTemplate({
       title: isApproved ? "Leave Request Approved ✅" : "Leave Request Declined ❌",
       subtitle: "Status Update Notification",
       content: `
-        <p style="font-size: 16px;">Hi <strong>${employeeName}</strong>,</p>
+        <p style="font-size: 16px;">Hi <strong>${safeEmpName}</strong>,</p>
         <p>Your leave application for <strong>${leave.days} day(s)</strong> (${fromStr} to ${toStr}) has been <strong style="color: ${isApproved ? '#16A34A' : '#DC2626'};">${status.toUpperCase()}</strong>.</p>
         
         <div class="info-box" style="border-left-color: ${isApproved ? '#16A34A' : '#DC2626'}; background-color: ${isApproved ? '#F0FDF4' : '#FEF2F2'};">
-          <p style="margin: 0; color: #334155;"><strong>Your Applied Reason:</strong> ${leave.reason}</p>
+          <p style="margin: 0; color: #334155;"><strong>Your Applied Reason:</strong> ${safeReason}</p>
           ${
-            !isApproved && rejectionReason
-              ? `<p style="margin: 8px 0 0 0; color: #DC2626; font-weight: 700;"><strong>Rejection Remark from Lead/Admin:</strong> ${rejectionReason}</p>`
+            !isApproved && safeRejectionReason
+              ? `<p style="margin: 8px 0 0 0; color: #DC2626; font-weight: 700;"><strong>Rejection Remark from Lead/Admin:</strong> ${safeRejectionReason}</p>`
               : ""
           }
         </div>
@@ -272,7 +289,7 @@ const sendApprovalEmail = async ({
     const { data, error } = await getResendClient().emails.send({
       from: sender,
       to: [cleanedEmail],
-      subject: `Leave Request ${status.toUpperCase()} - ${employeeName}`,
+      subject: `Leave Request ${status.toUpperCase()} - ${safeEmpName}`,
       html: htmlBody
     });
 
@@ -320,8 +337,8 @@ const sendNationalHolidayEmail = async (holidayName, dateStr, allEmployeeEmails)
         
         <div class="info-box">
           <p style="margin:0 0 6px 0; font-weight:700; color:#1E3A8A;">Holiday Details:</p>
-          <p style="margin:0;">• <strong>Occasion:</strong> ${holidayName}</p>
-          <p style="margin:4px 0 0 0;">• <strong>Date:</strong> ${dateStr}</p>
+          <p style="margin:0;">• <strong>Occasion:</strong> ${escapeHtml(holidayName)}</p>
+          <p style="margin:4px 0 0 0;">• <strong>Date:</strong> ${escapeHtml(dateStr)}</p>
           <p style="margin:4px 0 0 0;">• <strong>Type:</strong> Fixed Paid Holiday</p>
         </div>
 
@@ -358,20 +375,24 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
       return false;
     }
 
+    const safeName = escapeHtml(name);
+    const safeVertical = escapeHtml(vertical);
+    const safeJobRole = escapeHtml(jobRole);
+
     const htmlBody = wrapBarabariTemplate({
       title: "Welcome! 🎉",
       subtitle: "Your Account Credentials",
       content: `
-        <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+        <p style="font-size: 16px;">Hi <strong>${safeName}</strong>,</p>
         <p>Welcome to <strong>The Barabari Collective</strong>! Your account for the Leave Portal has been provisioned.</p>
         
         <div class="info-box">
           <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Your Portal Credentials:</p>
           <ul style="margin: 0; padding-left: 20px; color: #334155; line-height: 1.8;">
-            <li><strong>Email:</strong> ${email}</li>
-            <li><strong>Temporary Password:</strong> <code style="background: #DBEAFE; padding: 2px 8px; rounded: 6px; font-weight: bold; color: #1E3A8A;">${password}</code></li>
-            <li><strong>Assigned Vertical:</strong> ${vertical} Vertical</li>
-            ${jobRole ? `<li><strong>Designation:</strong> ${jobRole}</li>` : ""}
+            <li><strong>Email:</strong> ${escapeHtml(email)}</li>
+            <li><strong>Temporary Password:</strong> <code style="background: #DBEAFE; padding: 2px 8px; rounded: 6px; font-weight: bold; color: #1E3A8A;">${escapeHtml(password)}</code></li>
+            <li><strong>Assigned Vertical:</strong> ${safeVertical} Vertical</li>
+            ${safeJobRole ? `<li><strong>Designation:</strong> ${safeJobRole}</li>` : ""}
           </ul>
         </div>
 
@@ -408,4 +429,109 @@ const sendWelcomeEmail = async ({ name, email, password, vertical, jobRole }) =>
   }
 };
 
-module.exports = { sendLeaveEmail, sendApprovalEmail, sendNationalHolidayEmail, sendWelcomeEmail };
+// Send Leave Cancellation Email
+const sendCancellationEmail = async ({
+  leave,
+  employee,
+  cancelledBy = null,
+  previousStatus = "pending",
+  recipients = [],
+  founderEmails = ""
+}) => {
+  try {
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
+      console.warn("⚠️ [Email Warning]: RESEND_API_KEY is not configured. Cancellation email will not be dispatched.");
+      return { success: false, error: "RESEND_API_KEY not configured" };
+    }
+
+    const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+    const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+
+    const safeEmpName = escapeHtml(employee?.name || "Team Member");
+    const safeEmpVertical = escapeHtml(employee?.vertical || leave?.vertical || "General");
+    const safeReason = escapeHtml(leave.reason || "N/A");
+
+    // Distinguish between self-cancellation by employee and administrative cancellation of approved leaves
+    const isAdminOverride = cancelledBy && cancelledBy.role === "admin" && (
+      previousStatus === "approved" ||
+      (cancelledBy._id && employee?._id && cancelledBy._id.toString() !== employee._id.toString())
+    );
+    const isApprovedCancellation = previousStatus === "approved";
+
+    let emailTitle = "Leave Cancelled";
+    let emailSubtitle = `${safeEmpVertical} Vertical • Request Cancelled`;
+    let emailSubject = `Cancelled Leave Request (${safeEmpVertical} Vertical) - ${safeEmpName}`;
+    let introParagraph = `<p><strong>${safeEmpName}</strong> has cancelled their pending leave request.</p>`;
+    let footerNote = `<p style="color: #64748B; font-size: 14px;">Note: This request has been withdrawn by the employee. No approval action is required from your side.</p>`;
+
+    if (isApprovedCancellation && isAdminOverride) {
+      const adminName = escapeHtml(cancelledBy?.name || "Admin");
+      emailTitle = "Approved Leave Cancelled";
+      emailSubtitle = `${safeEmpVertical} Vertical • Approved Leave Cancelled by Admin`;
+      emailSubject = `Approved Leave Cancelled (${safeEmpVertical} Vertical) - ${safeEmpName}`;
+      introParagraph = `<p>An approved leave request for <strong>${safeEmpName}</strong> has been cancelled by an <strong>Administrator (${adminName})</strong>.</p>`;
+      footerNote = `<p style="color: #64748B; font-size: 14px;">Note: This approved leave has been revoked by Admin. The deducted <strong>${leave.days} day(s)</strong> have been automatically restored to the employee's balance.</p>`;
+    } else if (isAdminOverride) {
+      const adminName = escapeHtml(cancelledBy?.name || "Admin");
+      emailTitle = "Leave Cancelled by Admin";
+      emailSubtitle = `${safeEmpVertical} Vertical • Request Cancelled by Admin`;
+      emailSubject = `Leave Request Cancelled by Admin (${safeEmpVertical} Vertical) - ${safeEmpName}`;
+      introParagraph = `<p>A pending leave request for <strong>${safeEmpName}</strong> has been cancelled by an <strong>Administrator (${adminName})</strong>.</p>`;
+      footerNote = `<p style="color: #64748B; font-size: 14px;">Note: This pending leave request was withdrawn by Admin. No further approval action is required.</p>`;
+    }
+
+    const htmlBody = wrapBarabariTemplate({
+      title: emailTitle,
+      subtitle: emailSubtitle,
+      content: `
+        <p style="font-size: 16px;">Hi Team,</p>
+        ${introParagraph}
+        
+        <div class="info-box">
+          <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Cancelled Request Details:</p>
+          <ul style="margin: 0; padding-left: 20px; color: #334155;">
+            <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
+            <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
+            <li><strong>Reason:</strong> ${safeReason}</li>
+            <li><strong>Status:</strong> <span style="color: #64748B; font-weight: 700;">CANCELLED</span></li>
+          </ul>
+        </div>
+        
+        ${footerNote}
+      `
+    });
+
+    const parsedFounders = (founderEmails || "").split(",").map((e) => e.trim());
+    const allEmails = sanitizeEmails([...recipients, ...parsedFounders]);
+
+    if (allEmails.length === 0) {
+      return { success: false, error: "No valid recipient email addresses found." };
+    }
+
+    const { data, error } = await getResendClient().emails.send({
+      from: getSenderEmail(),
+      to: allEmails,
+      subject: emailSubject,
+      html: htmlBody
+    });
+
+    if (error) {
+      console.error("[Resend Error in sendCancellationEmail]:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log("[Resend Success]: Cancellation email dispatched. ID:", data?.id);
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    console.error("[Server Error in sendCancellationEmail]:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+module.exports = {
+  sendLeaveEmail,
+  sendApprovalEmail,
+  sendNationalHolidayEmail,
+  sendWelcomeEmail,
+  sendCancellationEmail
+};

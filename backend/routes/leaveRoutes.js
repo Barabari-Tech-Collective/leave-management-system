@@ -5,9 +5,11 @@ const {
   applyLeave,
   getMyleaves,
   updateLeaveStatus,
+  cancelLeave,
   getTeamLeavesForLead,
   resendLeaveEmail,
-  resendDecisionEmail
+  resendDecisionEmail,
+  resendCancellationEmail
 } = require("../controllers/leaveController");
 const Leave = require("../models/Leave");
 const User = require("../models/User"); // Import User model
@@ -77,7 +79,9 @@ router.get("/employee/:id", ensureAuth, async (req, res) => {
 });
 
 router.put("/update-status/:id", ensureAuth, updateLeaveStatus);
+router.put("/cancel/:id", ensureAuth, cancelLeave);
 router.post("/resend-decision-email/:id", ensureAuth, resendDecisionEmail);
+router.post("/resend-cancellation-email/:id", ensureAuth, resendCancellationEmail);
 router.get("/team-dashboard", ensureAuth, getTeamLeavesForLead);
 
 // GET /leave/lead-requests (Admin Only: Fetch all leaves requested by Vertical Leads)

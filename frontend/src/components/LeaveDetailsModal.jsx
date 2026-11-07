@@ -14,7 +14,8 @@ import {
   FileText, 
   CheckCircle2, 
   XCircle,
-  RotateCcw
+  RotateCcw,
+  Ban
 } from "lucide-react";
 
 export default function LeaveDetailsModal({ 
@@ -144,6 +145,12 @@ export default function LeaveDetailsModal({
             <XCircle size={13} className="text-red-700" /> Rejected
           </span>
         );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+            <Ban size={13} className="text-slate-500" /> Cancelled
+          </span>
+        );
       case "pending":
       default:
         return (
@@ -190,6 +197,15 @@ export default function LeaveDetailsModal({
               <Clock size={16} className="text-indigo-600 shrink-0" />
               <span>
                 <strong>Past Leave Record:</strong> This leave was already taken and automatically approved. Its status cannot be modified or revoked.
+              </span>
+            </div>
+          )}
+
+          {leave.status === "cancelled" && (
+            <div className="p-3.5 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-2.5 text-xs text-slate-700 font-medium">
+              <Ban size={16} className="text-slate-500 shrink-0" />
+              <span>
+                <strong>Leave Cancelled:</strong> This leave request was cancelled by the employee. No approval action is required.
               </span>
             </div>
           )}
@@ -442,6 +458,10 @@ export default function LeaveDetailsModal({
             {leave.isPastLeave ? (
               <span className="text-xs font-medium text-slate-400 italic px-2">
                 Past leave cannot be modified or revoked
+              </span>
+            ) : leave.status === "cancelled" ? (
+              <span className="text-xs font-semibold text-slate-500 italic px-2">
+                This leave was cancelled by the employee
               </span>
             ) : (
               <>
