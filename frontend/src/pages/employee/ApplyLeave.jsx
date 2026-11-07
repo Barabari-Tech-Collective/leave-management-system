@@ -25,6 +25,16 @@ export default function ApplyLeave() {
     day: "2-digit"
   }).format(new Date());
 
+  // Yesterday's date (maximum selectable date for past leaves)
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(yesterdayDate);
+
   const currentYear = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric"
@@ -85,8 +95,8 @@ export default function ApplyLeave() {
     }
 
     if (isPastLeave) {
-      if (form.to > todayStr) {
-        setError("Past leave dates cannot be in the future.");
+      if (form.to >= todayStr) {
+        setError("Past leave dates must be strictly before today. To apply for today or upcoming dates, switch to 'Future Leave Request'.");
         return;
       }
     } else {
@@ -235,7 +245,7 @@ export default function ApplyLeave() {
             <input
               type="date"
               min={isPastLeave ? startOfYearStr : todayStr}
-              max={isPastLeave ? todayStr : undefined}
+              max={isPastLeave ? yesterdayStr : undefined}
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.from}
               onChange={(e) => setForm({ ...form, from: e.target.value })}
@@ -247,7 +257,7 @@ export default function ApplyLeave() {
             <input
               type="date"
               min={form.from || (isPastLeave ? startOfYearStr : todayStr)}
-              max={isPastLeave ? todayStr : undefined}
+              max={isPastLeave ? yesterdayStr : undefined}
               className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
               value={form.to}
               onChange={(e) => setForm({ ...form, to: e.target.value })}

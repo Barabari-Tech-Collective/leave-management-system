@@ -52,9 +52,11 @@ exports.applyLeave = async (req, res) => {
     }).format(new Date());
 
     if (isPastLeave) {
-      // Past leaves cannot be in the future
-      if (toDate > todayStr) {
-        return res.status(400).json({ message: "Past leave dates cannot be in the future." });
+      // Past leaves must be strictly before today (yesterday or earlier)
+      if (toDate >= todayStr) {
+        return res.status(400).json({
+          message: "Past leave dates must be strictly before today. To apply for today or upcoming dates, please use 'Future Leave Request'."
+        });
       }
       const currentYear = new Intl.DateTimeFormat("en-CA", {
         timeZone: "Asia/Kolkata",
