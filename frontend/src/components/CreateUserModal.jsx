@@ -5,11 +5,9 @@ import {
   X, UserPlus, Key, Mail, User, Briefcase, 
   Layers, ShieldCheck, Eye, EyeOff, AlertCircle 
 } from "lucide-react";
+import { VERTICALS } from "../constants/leaveConstants";
 
-const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
-const OFFICIAL_DOMAIN = "@barabaricollective.org";
-
-export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCreated }) {
+export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCreated = () => {} }) {
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "founder";
 
   const [form, setForm] = useState({
@@ -44,15 +42,9 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
       return false;
     }
 
-  // 2. Check official company domain
-  // if (!trimmedEmail.endsWith(OFFICIAL_DOMAIN)) {
-  //   setEmailError(`Please use official company email ending with ${OFFICIAL_DOMAIN}`);
-  //   return false;
-  // }
-
-  setEmailError("");
-  return true;
-};
+    setEmailError("");
+    return true;
+  };
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setForm({ ...form, email: value });
@@ -94,7 +86,9 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
       });
     }
 
-    onUserCreated();
+    if (typeof onUserCreated === "function") {
+      onUserCreated();
+    }
     onClose();
   } catch (err) {
     toast.error(err.response?.data?.message || "Failed to create user");

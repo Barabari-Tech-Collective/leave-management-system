@@ -13,14 +13,7 @@ import {
   PlusCircle,
   FileText
 } from "lucide-react";
-
-// Fixed National Holidays Schedule
-const NATIONAL_HOLIDAYS_2026 = [
-  { name: "Republic Day", date: new Date("2026-01-26") },
-  { name: "Labour Day", date: new Date("2026-05-01") },
-  { name: "Independence Day", date: new Date("2026-08-15") },
-  { name: "Gandhi Jayanti", date: new Date("2026-10-02") },
-];
+import { NATIONAL_HOLIDAYS_2026 } from "../../constants/leaveConstants";
 
 export default function Dashboard() {
   const navigate = useNavigate();

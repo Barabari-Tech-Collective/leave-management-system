@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
+import StatusBadge from "./StatusBadge";
 import { 
   X, 
   Calendar, 
@@ -69,38 +70,6 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
   const flexibleTotal = balances?.flexible?.total ?? 5;
   const flexibleTaken = balances?.flexible?.taken ?? 0;
   const flexibleRemaining = Math.max(0, flexibleTotal - flexibleTaken);
-
-  const getStatusBadge = (status) => {
-    const norm = String(status || "pending").trim().toLowerCase();
-    switch (norm) {
-      case "approved":
-      case "success":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
-            <CheckCircle2 size={12} className="text-green-700" /> {norm === "success" ? "Success" : "Approved"}
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-            <XCircle size={12} className="text-red-700" /> Rejected
-          </span>
-        );
-      case "cancelled":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
-            <Ban size={12} className="text-slate-500" /> Cancelled
-          </span>
-        );
-      case "pending":
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
-            <Clock size={12} className="text-yellow-700" /> Pending
-          </span>
-        );
-    }
-  };
 
   return createPortal(
     <div 
@@ -237,7 +206,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
                             )}
                           </td>
                           <td className="py-3 px-4 whitespace-nowrap">
-                            {getStatusBadge(item.status)}
+                            <StatusBadge status={item.status} />
                           </td>
                         </tr>
                       ))}

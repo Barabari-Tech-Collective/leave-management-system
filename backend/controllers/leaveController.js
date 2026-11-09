@@ -4,6 +4,7 @@ const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("..
 const { parseDateUTC, calculateWorkingDays } = require("../utils/dateUtils");
 const { getNotificationRecipients } = require("../utils/recipientUtils");
 const { checkEmailCooldown } = require("../utils/cooldownUtils");
+const { buildLeaveDateFilter, getAvailableLeaveYears } = require("../utils/leaveFilterUtils");
 
 // 1. APPLY LEAVE (Notifies Vertical Lead, Teammates & Admins)
 exports.applyLeave = async (req, res) => {
@@ -94,8 +95,8 @@ exports.applyLeave = async (req, res) => {
     });
 
     if (overlappingLeave) {
-      const existingFrom = new Date(overlappingLeave.fromDate).toLocaleDateString("en-GB");
-      const existingTo = new Date(overlappingLeave.toDate).toLocaleDateString("en-GB");
+      const existingFrom = new Date(overlappingLeave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+      const existingTo = new Date(overlappingLeave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
       const statusLabel = overlappingLeave.status.toUpperCase();
 
       return res.status(400).json({
@@ -254,22 +255,28 @@ exports.applyLeave = async (req, res) => {
   }
 };
 
-// 2. GET MY LEAVES (Supports server-side pagination with Load More)
+// 2. GET MY LEAVES (Supports server-side pagination with Load More & Filtering by Year, Month, Status)
 exports.getMyleaves = async (req, res) => {
   try {
+    const baseFilter = { user: req.user._id };
+    const { status, year, month } = req.query;
+
+    const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
+
     const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const skip = (page - 1) * limit;
 
-    const query = Leave.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const query = Leave.find(filter).sort({ createdAt: -1 });
     if (isPaginated) {
       query.skip(skip).limit(limit);
     }
 
-    const [total, pendingCount, leaves] = await Promise.all([
-      Leave.countDocuments({ user: req.user._id }),
-      Leave.countDocuments({ user: req.user._id, status: "pending" }),
+    const [availableYears, total, pendingCount, leaves] = await Promise.all([
+      getAvailableLeaveYears(baseFilter),
+      Leave.countDocuments(filter),
+      Leave.countDocuments({ ...baseFilter, status: "pending" }),
       query.exec()
     ]);
 
@@ -299,9 +306,9 @@ exports.getMyleaves = async (req, res) => {
         type: leave.type,
         days: leave.days,
         reason: leave.reason,
-        month: from.toLocaleString("default", { month: "short" }),
-        from: from.toLocaleDateString("en-GB"),
-        to: to.toLocaleDateString("en-GB"),
+        month: from.toLocaleString("default", { month: "short", timeZone: "Asia/Kolkata" }),
+        from: from.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }),
+        to: to.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }),
         status: leave.status || "pending",
         rejectionReason: leave.rejectionReason || "",
         isPastLeave: Boolean(leave.isPastLeave),
@@ -330,6 +337,7 @@ exports.getMyleaves = async (req, res) => {
           totalPages: Math.ceil(total / limit) || 1,
           hasMore: page * limit < total
         },
+        availableYears,
         pendingCount
       });
     }
@@ -711,76 +719,8 @@ exports.getTeamLeavesForLead = async (req, res) => {
       user: { $ne: currentLead._id }
     };
 
-    // Calculate real stats for this vertical
-    const [totalPending, totalApproved] = await Promise.all([
-      Leave.countDocuments({ ...baseFilter, status: "pending" }),
-      Leave.countDocuments({ ...baseFilter, status: "approved" })
-    ]);
-
-    // Available years in the database for this vertical
-    const allLeaveDates = await Leave.find(baseFilter).select("fromDate");
-    const yearsSet = new Set();
-    yearsSet.add(new Date().getFullYear());
-    allLeaveDates.forEach((l) => {
-      if (l.fromDate) {
-        const yr = new Date(l.fromDate).getFullYear();
-        if (!isNaN(yr)) yearsSet.add(yr);
-      }
-    });
-    const availableYears = Array.from(yearsSet).sort((a, b) => b - a);
-
-    // Dynamic filtering by status, year, month
-    const filter = { ...baseFilter };
     const { status, year, month } = req.query;
-
-    if (status && status !== "all") {
-      filter.status = status.toLowerCase();
-    }
-
-    if (year && year !== "all") {
-      const y = parseInt(year);
-      if (!isNaN(y)) {
-        if (month && month !== "all") {
-          const m = parseInt(month);
-          if (!isNaN(m) && m >= 0 && m <= 11) {
-            const start = new Date(Date.UTC(y, m, 1, 0, 0, 0));
-            const end = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
-            // Match any leave that overlaps with this month interval
-            filter.fromDate = { $lte: end };
-            filter.toDate = { $gte: start };
-          }
-        } else {
-          const start = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
-          const end = new Date(Date.UTC(y, 11, 31, 23, 59, 59, 999));
-          // Match any leave that overlaps with this year interval
-          filter.fromDate = { $lte: end };
-          filter.toDate = { $gte: start };
-        }
-      }
-    } else if (month && month !== "all") {
-      const m = parseInt(month);
-      if (!isNaN(m) && m >= 0 && m <= 11) {
-        const targetMonth = m + 1; // 1-indexed month (1..12)
-        filter.$expr = {
-          $and: [
-            { $eq: [{ $type: "$fromDate" }, "date"] },
-            { $eq: [{ $type: "$toDate" }, "date"] },
-            {
-              $or: [
-                { $eq: [{ $month: "$fromDate" }, targetMonth] },
-                { $eq: [{ $month: "$toDate" }, targetMonth] },
-                {
-                  $and: [
-                    { $lte: [{ $month: "$fromDate" }, targetMonth] },
-                    { $gte: [{ $month: "$toDate" }, targetMonth] }
-                  ]
-                }
-              ]
-            }
-          ]
-        };
-      }
-    }
+    const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
 
     const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -795,7 +735,10 @@ exports.getTeamLeavesForLead = async (req, res) => {
       query.skip(skip).limit(limit);
     }
 
-    const [totalFiltered, teamLeaves] = await Promise.all([
+    const [totalPending, totalApproved, availableYears, totalFiltered, teamLeaves] = await Promise.all([
+      Leave.countDocuments({ ...baseFilter, status: "pending" }),
+      Leave.countDocuments({ ...baseFilter, status: "approved" }),
+      getAvailableLeaveYears(baseFilter),
       Leave.countDocuments(filter),
       query.exec()
     ]);
@@ -1033,9 +976,9 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
         status: leave.status || "pending",
         rejectionReason: leave.rejectionReason || "",
         isPastLeave: Boolean(leave.isPastLeave),
-        month: from.toLocaleString("default", { month: "short" }),
-        from: from.toLocaleDateString("en-GB"),
-        to: to.toLocaleDateString("en-GB"),
+        month: from.toLocaleString("default", { month: "short", timeZone: "Asia/Kolkata" }),
+        from: from.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }),
+        to: to.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" }),
         createdAt: leave.createdAt,
       };
     });
@@ -1051,19 +994,30 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
   }
 };
 
-// 10. GET LEAD REQUESTS (Admin Only: Fetch all leaves requested by Vertical Leads)
+// 10. GET LEAD REQUESTS (Admin Only: Fetch all leaves requested by Vertical Leads with server-side filters & availableYears)
 exports.getLeadRequestsForAdmin = async (req, res) => {
   try {
     // Find all users who are Vertical Leads
     const leads = await User.find({ isVerticalLead: true }).select("_id");
     const leadIds = leads.map((l) => l._id);
 
-    // Fetch leaves requested by leads
-    const leadLeaves = await Leave.find({ user: { $in: leadIds } })
-      .populate("user", "name email vertical")
-      .sort({ createdAt: -1 });
+    const baseFilter = { user: { $in: leadIds } };
+    const { status, year, month } = req.query;
+    const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
 
-    res.json(leadLeaves);
+    const [availableYears, pendingCount, leadLeaves] = await Promise.all([
+      getAvailableLeaveYears(baseFilter),
+      Leave.countDocuments({ ...baseFilter, status: "pending" }),
+      Leave.find(filter)
+        .populate("user", "name email vertical")
+        .sort({ createdAt: -1 })
+    ]);
+
+    res.json({
+      leadLeaves,
+      availableYears,
+      pendingCount
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

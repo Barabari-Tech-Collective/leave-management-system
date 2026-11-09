@@ -1,6 +1,7 @@
 import EmployeeLeaveTable from "../../components/EmployeeLeaveTable";
 import EmployeeLeaveViewModal from "../../components/EmployeeLeaveViewModal";
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
+import LeaveFilterBar from "../../components/LeaveFilterBar";
 import { useEffect, useState, useCallback, useRef } from "react";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
@@ -22,7 +23,21 @@ export default function History() {
   const [selectedLeaveForCancel, setSelectedLeaveForCancel] = useState(null);
   const pollAttemptsRef = useRef(0);
 
-  const fetchHistory = useCallback(async (targetPage = 1, append = false) => {
+  // Filter states
+  const [yearFilter, setYearFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [availableYears, setAvailableYears] = useState([new Date().getFullYear()]);
+
+  const hasActiveFilters = yearFilter !== "all" || monthFilter !== "all" || statusFilter !== "all";
+
+  const fetchHistory = useCallback(async (
+    targetPage = 1,
+    append = false,
+    yr = yearFilter,
+    mo = monthFilter,
+    st = statusFilter
+  ) => {
     try {
       if (append) {
         setLoadingMore(true);
@@ -30,7 +45,15 @@ export default function History() {
         setLoadingInitial(true);
       }
 
-      const res = await API.get(`/leave/myleaves?page=${targetPage}&limit=10`);
+      const params = new URLSearchParams({
+        page: targetPage.toString(),
+        limit: "10"
+      });
+      if (yr !== "all") params.append("year", yr);
+      if (mo !== "all") params.append("month", mo);
+      if (st !== "all") params.append("status", st);
+
+      const res = await API.get(`/leave/myleaves?${params.toString()}`);
       const items = res.data.leaves || (Array.isArray(res.data) ? res.data : []);
       const pagination = res.data.pagination;
 
@@ -38,6 +61,10 @@ export default function History() {
         setHistoryData((prev) => [...prev, ...items]);
       } else {
         setHistoryData(items);
+      }
+
+      if (res.data?.availableYears && Array.isArray(res.data.availableYears)) {
+        setAvailableYears(res.data.availableYears);
       }
 
       if (pagination) {
@@ -79,15 +106,38 @@ export default function History() {
       setLoadingInitial(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [yearFilter, monthFilter, statusFilter]);
 
   useEffect(() => {
-    fetchHistory(1, false);
-  }, [fetchHistory]);
+    fetchHistory(1, false, "all", "all", "all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleYearChange = (yr) => {
+    setYearFilter(yr);
+    fetchHistory(1, false, yr, monthFilter, statusFilter);
+  };
+
+  const handleMonthChange = (mo) => {
+    setMonthFilter(mo);
+    fetchHistory(1, false, yearFilter, mo, statusFilter);
+  };
+
+  const handleStatusChange = (st) => {
+    setStatusFilter(st);
+    fetchHistory(1, false, yearFilter, monthFilter, st);
+  };
+
+  const resetFilters = () => {
+    setYearFilter("all");
+    setMonthFilter("all");
+    setStatusFilter("all");
+    fetchHistory(1, false, "all", "all", "all");
+  };
 
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
-      fetchHistory(page + 1, true);
+      fetchHistory(page + 1, true, yearFilter, monthFilter, statusFilter);
     }
   };
 
@@ -109,7 +159,15 @@ export default function History() {
       // Fetch currently displayed count to avoid clobbering loaded pages
       const currentCount = historyData.length || 10;
       try {
-        const res = await API.get(`/leave/myleaves?page=1&limit=${currentCount}`);
+        const params = new URLSearchParams({
+          page: "1",
+          limit: currentCount.toString()
+        });
+        if (yearFilter !== "all") params.append("year", yearFilter);
+        if (monthFilter !== "all") params.append("month", monthFilter);
+        if (statusFilter !== "all") params.append("status", statusFilter);
+
+        const res = await API.get(`/leave/myleaves?${params.toString()}`);
         const items = res.data.leaves || (Array.isArray(res.data) ? res.data : []);
         setHistoryData(items);
         if (res.data?.pagination) {
@@ -122,7 +180,7 @@ export default function History() {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [historyData]);
+  }, [historyData, yearFilter, monthFilter, statusFilter]);
 
   // Tick active 5s countdown timers for email retry buttons
   useEffect(() => {
@@ -286,15 +344,36 @@ export default function History() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <div className="flex justify-between items-end mb-4">
+      {/* Header & Filter Controls Bar */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
-            Leave History
-          </h1>
-          <p className="text-slate-500 mt-2 font-medium">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
+              Leave History
+            </h1>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
+              {hasActiveFilters 
+                ? `Filtered: ${totalLeaves} results` 
+                : `${totalLeaves} Total`}
+            </span>
+          </div>
+          <p className="text-slate-500 mt-2 font-medium text-xs sm:text-sm">
             Review your past and upcoming leave requests.
           </p>
         </div>
+
+        {/* Reusable Filter Controls Bar */}
+        <LeaveFilterBar
+          yearFilter={yearFilter}
+          onYearChange={handleYearChange}
+          availableYears={availableYears}
+          monthFilter={monthFilter}
+          onMonthChange={handleMonthChange}
+          statusFilter={statusFilter}
+          onStatusChange={handleStatusChange}
+          onReset={resetFilters}
+          hasActiveFilters={hasActiveFilters}
+        />
       </div>
 
       {/* Reusable Employee Leave Table */}
@@ -312,13 +391,28 @@ export default function History() {
         onResendCancellation={handleResendCancellation}
         retryingCancellationId={retryingCancellationId}
         cancellationCooldowns={cancellationCooldowns}
-        emptyMessage="No leave requests found."
+        emptyMessage={
+          hasActiveFilters
+            ? "No leave requests match the selected filters."
+            : "No leave requests found."
+        }
+        emptyAction={
+          hasActiveFilters ? (
+            <button
+              onClick={resetFilters}
+              className="mt-2 text-xs text-indigo-600 font-bold hover:underline cursor-pointer"
+            >
+              Reset filters to view all
+            </button>
+          ) : null
+        }
         footer={
           !loadingInitial && historyData.length > 0 && (
             <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               <span className="text-xs text-slate-500 font-medium">
                 Showing <span className="font-bold text-slate-800">{historyData.length}</span> of{" "}
-                <span className="font-bold text-slate-800">{totalLeaves}</span> requests
+                <span className="font-bold text-slate-800">{totalLeaves}</span>{" "}
+                {hasActiveFilters ? "filtered requests" : "requests"}
               </span>
 
               {hasMore ? (
@@ -343,7 +437,7 @@ export default function History() {
                 </button>
               ) : (
                 <span className="text-xs text-slate-400 font-medium italic">
-                  All leave requests loaded
+                  All {hasActiveFilters ? "matching" : ""} leave requests loaded
                 </span>
               )}
             </div>

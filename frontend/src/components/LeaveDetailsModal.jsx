@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
 import toast from "react-hot-toast";
 import EmailRetryButton from "./EmailRetryButton";
+import StatusBadge from "./StatusBadge";
 import { 
   X, 
   Check, 
@@ -70,7 +71,8 @@ export default function LeaveDetailsModal({
     return d.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
+      timeZone: "Asia/Kolkata"
     });
   };
 
@@ -126,38 +128,6 @@ export default function LeaveDetailsModal({
       toast.error(err.response?.data?.message || "Failed to update leave status");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const norm = String(status || "pending").trim().toLowerCase();
-    switch (norm) {
-      case "approved":
-      case "success":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
-            <CheckCircle2 size={13} className="text-green-700" /> {norm === "success" ? "Success" : "Approved"}
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
-            <XCircle size={13} className="text-red-700" /> Rejected
-          </span>
-        );
-      case "cancelled":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
-            <Ban size={13} className="text-slate-500" /> Cancelled
-          </span>
-        );
-      case "pending":
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
-            <Clock size={13} className="text-yellow-700" /> Pending Approval
-          </span>
-        );
     }
   };
 
@@ -226,7 +196,7 @@ export default function LeaveDetailsModal({
                 )}
               </div>
             </div>
-            <div>{getStatusBadge(leave.status)}</div>
+            <div><StatusBadge status={leave.status} /></div>
           </div>
 
           {/* Quick Metrics Grid */}
@@ -408,8 +378,8 @@ export default function LeaveDetailsModal({
             </div>
           )}
 
-          {/* Employee Notification Delivery Card (when status is approved or rejected, and not past leave) */}
-          {!leave.isPastLeave && leave.status !== "pending" && (
+          {/* Employee Notification Delivery Card (only for regular leaves that are approved or rejected, with an attempted decision email) */}
+          {!leave.isPastLeave && (leave.status === "approved" || leave.status === "rejected") && leave.decisionEmailStatus && leave.decisionEmailStatus !== "none" && (
             <div className="p-4 rounded-2xl border bg-slate-50 border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${

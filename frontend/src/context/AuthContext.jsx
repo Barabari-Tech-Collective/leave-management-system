@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import API from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
-import Loader from "../components/Loader";
 
 const AuthContext = createContext();
 
@@ -10,69 +9,37 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-//   const fetchUser = async () => {
-//     try {
-//       const res = await API.get("/auth/me");
-//       console.log("User from API:", res.data);
-//        if (res.data && res.data._id) {
-//       setUser(res.data);
-//     } else {
-//       setUser(null);
-//     }
-// setUser(res.data);
-//     } catch (error) {
-//       console.log("Error fetching user:", error);
-//       if (error.response?.status !== 401) {
-//   setUser(null);
-// }
-//     } finally {
-//       setLoading(false
-// );
-//     }
-//   };
-
-const fetchUser = async () => {
-  try {
-
-    const res = await API.get("/auth/me");
-
-    console.log("User from API:", res.data);
-
-    if (res.data && res.data._id) {
-      setUser(res.data);
-    } else {
+  const fetchUser = async () => {
+    try {
+      const res = await API.get("/auth/me");
+      if (res.data && res.data._id) {
+        setUser(res.data);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-
-    console.log("Error fetching user:", error);
-
-    setUser(null);
-
-  } finally {
-
-    setLoading(false);
-
-  }
-};
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUser();
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchUser();
   }, []);
 
   const logout = async () => {
-  try {
-    await API.post("/auth/logout");
+    // Immediately clear local user state so components (like Login) never see a stale user during transition
     setUser(null);
-    navigate("/");
-  } catch (error) {
-    console.log(error);
-  }
-};
+    try {
+      await API.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      navigate("/", { replace: true });
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, setUser, logout, loading }}>
