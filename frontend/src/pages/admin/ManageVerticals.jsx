@@ -3,9 +3,8 @@ import { createPortal } from "react-dom";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
 import RecycleBinModal from "../../components/RecycleBinModal";
-import { Trash2, Layers, RefreshCw, AlertTriangle } from "lucide-react";
-
-const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
+import { Trash2, RefreshCw, AlertTriangle } from "lucide-react";
+import { VERTICALS } from "../../constants/leaveConstants";
 
 export default function ManageVerticals() {
   const [users, setUsers] = useState([]);

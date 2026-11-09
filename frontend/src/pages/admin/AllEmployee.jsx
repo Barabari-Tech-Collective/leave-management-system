@@ -1,55 +1,74 @@
 import { useEffect, useState } from "react";
 import API from "../../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 
 export default function AllEmployee() {
   const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchEmployees = async () => {
-      const res = await API.get("/users/all");
-      setEmployees(res.data);
+      try {
+        setLoading(true);
+        const res = await API.get("/users/all");
+        setEmployees(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+        toast.error("Failed to load employee list");
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchEmployees();
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fadeIn">
       <h1 className="text-3xl font-bold text-textDark">All Employees</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {employees.map((emp) => (
-          <div
-            key={emp._id}
-            onClick={() => navigate(`/admin/employee/${emp._id}`)}
-            className="cursor-pointer bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition text-center"
-          >
-            {/* Circle Avatar */}
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold">
-              {emp.name?.charAt(0).toUpperCase()}
+      {loading ? (
+        <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-xs font-semibold">Loading employees...</p>
+        </div>
+      ) : employees.length === 0 ? (
+        <div className="py-12 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-100">
+          No employees found.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {employees.map((emp) => (
+            <div
+              key={emp._id}
+              onClick={() => navigate(`/admin/employee/${emp._id}`)}
+              className="cursor-pointer bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition text-center"
+            >
+              {/* Circle Avatar */}
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold">
+                {emp.name?.charAt(0).toUpperCase()}
+              </div>
+              <div className="mt-4 w-full space-y-1">
+                <p className="font-bold text-slate-800 text-base truncate w-full" title={emp.name}>
+                  {emp.name}
+                </p>
+
+                {/* Fixed Email Overflow with truncate and title tooltip */}
+                <p className="text-xs text-slate-500 font-medium truncate w-full px-1" title={emp.email}>
+                  {emp.email}
+                </p>
+
+                <span className="inline-block mt-2 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  {emp.vertical || "None"} Vertical
+                </span>
+              </div>
             </div>
-            <div className="mt-4 w-full space-y-1">
-              <p className="font-bold text-slate-800 text-base truncate w-full" title={emp.name}>
-                {emp.name}
-              </p>
-
-              {/* Fixed Email Overflow with truncate and title tooltip */}
-              <p className="text-xs text-slate-500 font-medium truncate w-full px-1" title={emp.email}>
-                {emp.email}
-              </p>
-
-              <span className="inline-block mt-2 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                {emp.vertical || "None"} Vertical
-              </span>
-            </div>
-
-            {/* <p className="mt-3 font-semibold">{emp.name}</p>
-            <p className="text-sm text-gray-500">{emp.email}</p> */}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

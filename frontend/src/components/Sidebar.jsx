@@ -1,11 +1,10 @@
 // src/components/Sidebar.jsx
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Layers, ShieldCheck, Users, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Sidebar() {
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   const baseStyle =
     "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium group";
@@ -15,9 +14,8 @@ export default function Sidebar() {
   const activeStyle =
     "bg-primary/10 text-primary font-semibold shadow-[absolute_inset_0_0_10px_rgba(79,70,229,0.1)]";
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (

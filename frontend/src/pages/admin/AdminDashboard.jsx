@@ -6,7 +6,21 @@ import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
 import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 import StatusBadge from "../../components/StatusBadge";
-import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Layers, Briefcase, Eye } from "lucide-react";
+import EmailRetryButton from "../../components/EmailRetryButton";
+import LeaveFilterBar from "../../components/LeaveFilterBar";
+import { 
+  UserPlus, 
+  CheckCircle, 
+  CheckCircle2, 
+  XCircle, 
+  Users, 
+  ShieldCheck, 
+  Layers, 
+  Briefcase, 
+  Eye, 
+  AlertCircle, 
+  Loader2 
+} from "lucide-react";
 
 const VERTICALS = ["All", "Program", "Placement", "EdTech", "Operations", "None"];
 
@@ -16,7 +30,7 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState("all"); // "all" | "operations" | "leadApprovals"
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true );
+  const [loading, setLoading] = useState(true);
   const [selectedVertical, setSelectedVertical] = useState("All");
   const [employees, setEmployees] = useState([]);
   
@@ -27,6 +41,14 @@ export default function AdminDashboard() {
   const [selectedLeaveForDetails, setSelectedLeaveForDetails] = useState(null);
   const [retryingDecisionId, setRetryingDecisionId] = useState(null);
   const [decisionCooldowns, setDecisionCooldowns] = useState({});
+
+  // Vertical Lead Requests Filter State
+  const [leadYearFilter, setLeadYearFilter] = useState("all");
+  const [leadMonthFilter, setLeadMonthFilter] = useState("all");
+  const [leadStatusFilter, setLeadStatusFilter] = useState("all");
+  const [leadAvailableYears, setLeadAvailableYears] = useState([new Date().getFullYear()]);
+  const [leadTableLoading, setLeadTableLoading] = useState(false);
+  const [leadPendingCount, setLeadPendingCount] = useState(0);
 
   // Countdown timer for decision email cooldowns
   useEffect(() => {
@@ -62,7 +84,25 @@ export default function AdminDashboard() {
           ? { ...prev, decisionEmailStatus: "sent", decisionEmailError: "" }
           : prev
       );
-      fetchAllDashboardData();
+
+      // Instantly update lead leaves state
+      setLeadLeaves((prev) =>
+        prev.map((l) =>
+          l._id === leaveId
+            ? { ...l, decisionEmailStatus: "sent", decisionEmailError: "" }
+            : l
+        )
+      );
+
+      // Instantly update Operations vertical state
+      setOpsData((prev) => ({
+        ...prev,
+        teamLeaves: (prev.teamLeaves || []).map((l) =>
+          l._id === leaveId
+            ? { ...l, decisionEmailStatus: "sent", decisionEmailError: "" }
+            : l
+        )
+      }));
     } catch (err) {
       const remainingSeconds = err.response?.data?.remainingSeconds;
       if (err.response?.status === 429 && remainingSeconds) {
@@ -75,7 +115,6 @@ export default function AdminDashboard() {
       setRetryingDecisionId(null);
     }
   };
-  // const [actionLoading, setActionLoading] = useState(null);
   
   useEffect(() => {
     fetchAllDashboardData();
@@ -91,17 +130,88 @@ export default function AdminDashboard() {
         API.get("/leave/lead-requests")
       ]);
 
-      setEmployees(empRes.data);
-      setOpsData(opsRes.data);
-      setLeadLeaves(leadRes.data);
-    } catch (err) {
+      setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
+      setOpsData(opsRes.data || { teamLeaves: [] });
 
+      const leadLeavesData = leadRes.data?.leadLeaves || (Array.isArray(leadRes.data) ? leadRes.data : []);
+      setLeadLeaves(leadLeavesData);
+      if (leadRes.data?.availableYears && Array.isArray(leadRes.data.availableYears)) {
+        setLeadAvailableYears(leadRes.data.availableYears);
+      }
+      if (leadRes.data?.pendingCount !== undefined) {
+        setLeadPendingCount(leadRes.data.pendingCount);
+      } else {
+        setLeadPendingCount(leadLeavesData.filter((l) => l.status === "pending").length);
+      }
+    } catch (err) {
       if (err.response?.status === 401) return;
       console.error("Failed to fetch admin dashboard data:", err);
       toast.error("Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filtered fetch for Vertical Lead Requests
+  const fetchLeadLeaves = async (
+    yr = leadYearFilter,
+    mo = leadMonthFilter,
+    st = leadStatusFilter,
+    silent = false
+  ) => {
+    try {
+      if (!silent) setLeadTableLoading(true);
+      const params = new URLSearchParams();
+      if (yr !== "all") params.append("year", yr);
+      if (mo !== "all") params.append("month", mo);
+      if (st !== "all") params.append("status", st);
+
+      const res = await API.get(`/leave/lead-requests?${params.toString()}`);
+      const leaves = res.data?.leadLeaves || (Array.isArray(res.data) ? res.data : []);
+      setLeadLeaves(leaves);
+      if (res.data?.availableYears && Array.isArray(res.data.availableYears)) {
+        setLeadAvailableYears(res.data.availableYears);
+      }
+      if (res.data?.pendingCount !== undefined) {
+        setLeadPendingCount(res.data.pendingCount);
+      }
+    } catch (err) {
+      console.error("Failed to fetch lead leaves:", err);
+      toast.error("Failed to load vertical lead leave requests");
+    } finally {
+      setLeadTableLoading(false);
+    }
+  };
+
+  const handleLeadYearChange = (yr) => {
+    setLeadYearFilter(yr);
+    fetchLeadLeaves(yr, leadMonthFilter, leadStatusFilter);
+  };
+
+  const handleLeadMonthChange = (mo) => {
+    setLeadMonthFilter(mo);
+    fetchLeadLeaves(leadYearFilter, mo, leadStatusFilter);
+  };
+
+  const handleLeadStatusChange = (st) => {
+    setLeadStatusFilter(st);
+    fetchLeadLeaves(leadYearFilter, leadMonthFilter, st);
+  };
+
+  const resetLeadFilters = () => {
+    setLeadYearFilter("all");
+    setLeadMonthFilter("all");
+    setLeadStatusFilter("all");
+    fetchLeadLeaves("all", "all", "all");
+  };
+
+  const hasActiveLeadFilters = leadYearFilter !== "all" || leadMonthFilter !== "all" || leadStatusFilter !== "all";
+
+  const handleLeaveStatusUpdated = async () => {
+    await Promise.all([
+      fetchLeadLeaves(leadYearFilter, leadMonthFilter, leadStatusFilter, true),
+      API.get("/leave/team-dashboard?vertical=Operations").then((opsRes) => setOpsData(opsRes.data || { teamLeaves: [] }))
+    ]);
   };
   //   useEffect(() => {
   //     fetchEmployees();
@@ -226,9 +336,9 @@ export default function AdminDashboard() {
           }`}
         >
           <ShieldCheck size={16} /> Vertical Leads Approvals
-          {pendingLeadCount > 0 && (
+          {leadPendingCount > 0 && (
             <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-              {pendingLeadCount}
+              {leadPendingCount}
             </span>
           )}
         </button>
@@ -313,6 +423,9 @@ export default function AdminDashboard() {
             leaves={opsData.teamLeaves || []}
             onRefresh={fetchAllDashboardData}
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
+            onResendEmail={handleResendDecisionEmail}
+            retryingId={retryingDecisionId}
+            cooldowns={decisionCooldowns}
           />
         </div>
       )}
@@ -320,14 +433,51 @@ export default function AdminDashboard() {
       {/* TAB 3: VERTICAL LEADS APPROVALS */}
       {activeTab === "leadApprovals" && (
         <div className="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
-          <h2 className="text-lg font-bold text-slate-800">
-            Vertical Lead Requests (Requires Admin Approval)
-          </h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-slate-800">
+                  Vertical Lead Requests (Requires Admin Approval)
+                </h2>
+                <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
+                  {hasActiveLeadFilters 
+                    ? `Filtered: ${leadLeaves.length} results` 
+                    : `${leadLeaves.length} Total`}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 font-medium">
+                Review and approve leave requests submitted by designated Vertical Leads.
+              </p>
+            </div>
+
+            <LeaveFilterBar
+              yearFilter={leadYearFilter}
+              onYearChange={handleLeadYearChange}
+              availableYears={leadAvailableYears}
+              monthFilter={leadMonthFilter}
+              onMonthChange={handleLeadMonthChange}
+              statusFilter={leadStatusFilter}
+              onStatusChange={handleLeadStatusChange}
+              onReset={resetLeadFilters}
+              hasActiveFilters={hasActiveLeadFilters}
+            />
+          </div>
+
           <LeaveTableData
             leaves={leadLeaves}
+            loading={leadTableLoading}
             onRefresh={fetchAllDashboardData}
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
+            onResendEmail={handleResendDecisionEmail}
+            retryingId={retryingDecisionId}
+            cooldowns={decisionCooldowns}
             showVertical
+            emptyMessage={
+              hasActiveLeadFilters
+                ? "No vertical lead requests match the selected filters."
+                : "No leave applications found from vertical leads."
+            }
+            onResetFilters={hasActiveLeadFilters ? resetLeadFilters : null}
           />
         </div>
       )}
@@ -345,7 +495,7 @@ export default function AdminDashboard() {
           isOpen={!!selectedLeaveForDetails}
           onClose={() => setSelectedLeaveForDetails(null)}
           leave={selectedLeaveForDetails}
-          onStatusUpdated={fetchAllDashboardData}
+          onStatusUpdated={handleLeaveStatusUpdated}
           onResendDecisionEmail={handleResendDecisionEmail}
           isRetryingDecisionEmail={retryingDecisionId === selectedLeaveForDetails?._id}
           decisionEmailCooldownSeconds={selectedLeaveForDetails ? (decisionCooldowns[selectedLeaveForDetails._id] || 0) : 0}
@@ -356,54 +506,145 @@ export default function AdminDashboard() {
 }
 
 // Sub-component rendering Leave Table with full View / Manage actions
-function LeaveTableData({ leaves, onRefresh, onViewLeave, showVertical }) {
+function LeaveTableData({
+  leaves = [],
+  loading = false,
+  onRefresh,
+  onViewLeave,
+  showVertical = false,
+  onResendEmail,
+  retryingId = null,
+  cooldowns = {},
+  emptyMessage = "No leave applications found.",
+  onResetFilters = null
+}) {
+  if (loading) {
+    return (
+      <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-400">
+        <Loader2 className="w-7 h-7 animate-spin text-primary" />
+        <p className="text-xs font-medium">Loading requests...</p>
+      </div>
+    );
+  }
+
   if (leaves.length === 0) {
-    return <div className="text-slate-400 py-8 text-center">No leave applications found.</div>;
+    return (
+      <div className="p-12 text-center text-slate-400 space-y-2">
+        <p className="text-sm font-medium">{emptyMessage}</p>
+        {onResetFilters && (
+          <button
+            onClick={onResetFilters}
+            className="text-xs text-primary font-bold hover:underline cursor-pointer"
+          >
+            Reset filters to view all
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="w-full text-left text-sm border-collapse">
         <thead>
-          <tr className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold border-b">
-            <th className="p-3">Member</th>
-            {showVertical && <th className="p-3">Vertical</th>}
-            <th className="p-3">Type</th>
-            <th className="p-3">Days</th>
-            <th className="p-3">Reason</th>
-            <th className="p-3">Status</th>
-            <th className="p-3 text-right">Actions</th>
+          <tr className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold border-b border-slate-100">
+            <th className="py-3.5 px-4">Member</th>
+            {showVertical && <th className="py-3.5 px-4">Vertical</th>}
+            <th className="py-3.5 px-4">Type</th>
+            <th className="py-3.5 px-4">Dates</th>
+            <th className="py-3.5 px-4">Days</th>
+            <th className="py-3.5 px-4">Status</th>
+            <th className="py-3.5 px-4">Email Confirmation</th>
+            <th className="py-3.5 px-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {leaves.map((leave) => (
-            <tr key={leave._id} className="hover:bg-slate-50 transition">
-              <td className="p-3 font-semibold text-slate-900">
-                {leave.user?.name}
-                <div className="text-xs text-slate-400 font-normal">{leave.user?.email}</div>
-              </td>
-              {showVertical && (
-                <td className="p-3 font-semibold text-indigo-600">{leave.user?.vertical}</td>
-              )}
-              <td className="p-3 capitalize font-medium">{leave.type}</td>
-              <td className="p-3 font-bold">{leave.days}</td>
-              <td className="p-3 max-w-xs truncate text-slate-600">{leave.reason}</td>
-              <td className="p-3">
-                <StatusBadge status={leave.status} />
-              </td>
-              <td className="p-3 text-right whitespace-nowrap">
-                <button
-                  type="button"
-                  onClick={() => onViewLeave && onViewLeave(leave)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
-                  title="View full details and manage approval status"
-                >
-                  <Eye size={14} />
-                  <span>View / Manage</span>
-                </button>
-              </td>
-            </tr>
-          ))}
+          {leaves.map((leave) => {
+            const isEmailNotApplicable =
+              leave.status === "pending" ||
+              leave.status === "cancelled" ||
+              leave.isPastLeave ||
+              !leave.decisionEmailStatus ||
+              leave.decisionEmailStatus === "none";
+
+            return (
+              <tr key={leave._id} className="hover:bg-slate-50/70 transition">
+                <td className="py-4 px-4 font-semibold text-slate-900">
+                  {leave.user?.name || "Unknown"}
+                  <div className="text-xs text-slate-400 font-normal">{leave.user?.email}</div>
+                </td>
+                {showVertical && (
+                  <td className="py-4 px-4 font-semibold text-indigo-600 whitespace-nowrap">
+                    {leave.user?.vertical || leave.vertical}
+                  </td>
+                )}
+                <td className="py-4 px-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <span className="capitalize font-semibold text-slate-700">{leave.type}</span>
+                    {leave.isPastLeave && (
+                      <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Past Leave
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
+                  {new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })} -{" "}
+                  {new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })}
+                </td>
+                <td className="py-4 px-4 font-bold text-slate-800 whitespace-nowrap">
+                  {leave.days} {leave.days === 1 ? "day" : "days"}
+                </td>
+                <td className="py-4 px-4 whitespace-nowrap">
+                  <StatusBadge status={leave.status} />
+                </td>
+                <td className="py-4 px-4 whitespace-nowrap">
+                  {isEmailNotApplicable ? (
+                    <span className="text-gray-400 font-bold text-sm px-2">-</span>
+                  ) : leave.decisionEmailStatus === "failed" ? (
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+                        title={leave.decisionEmailError || "Status email delivery failed"}
+                      >
+                        <AlertCircle size={12} className="text-rose-600" />
+                        Failed
+                      </span>
+                      {onResendEmail && (
+                        <EmailRetryButton
+                          onRetry={() => onResendEmail(leave._id)}
+                          isRetrying={retryingId === leave._id}
+                          cooldownSeconds={cooldowns[leave._id] || 0}
+                          size="xs"
+                        />
+                      )}
+                    </div>
+                  ) : leave.decisionEmailStatus === "sent" ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      title="Notification email sent to employee"
+                    >
+                      <CheckCircle2 size={12} className="text-emerald-600" />
+                      Sent
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 font-bold text-sm px-2">-</span>
+                  )}
+                </td>
+                <td className="py-4 px-4 text-right whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => onViewLeave && onViewLeave(leave)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                    title="View full details and manage approval status"
+                  >
+                    <Eye size={14} />
+                    <span>View / Manage</span>
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
