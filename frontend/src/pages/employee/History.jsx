@@ -1,5 +1,6 @@
 import EmployeeLeaveTable from "../../components/EmployeeLeaveTable";
 import EmployeeLeaveViewModal from "../../components/EmployeeLeaveViewModal";
+import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
 import { useEffect, useState, useCallback, useRef } from "react";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
@@ -13,8 +14,12 @@ export default function History() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [retryingId, setRetryingId] = useState(null);
+  const [retryingCancellationId, setRetryingCancellationId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
   const [cooldowns, setCooldowns] = useState({});
+  const [cancellationCooldowns, setCancellationCooldowns] = useState({});
   const [selectedLeaveForView, setSelectedLeaveForView] = useState(null);
+  const [selectedLeaveForCancel, setSelectedLeaveForCancel] = useState(null);
   const pollAttemptsRef = useRef(0);
 
   const fetchHistory = useCallback(async (targetPage = 1, append = false) => {
@@ -44,9 +49,10 @@ export default function History() {
         setTotalLeaves(items.length);
       }
 
-      // Initialize any active 5s cooldowns based on lastEmailAttemptAt
+      // Initialize any active 5s cooldowns based on lastEmailAttemptAt and lastCancellationEmailAttemptAt
       const now = Date.now();
       const updatedCooldowns = {};
+      const updatedCancellationCooldowns = {};
       items.forEach((item) => {
         if (item.emailStatus === "failed" && item.lastEmailAttemptAt) {
           const elapsed = Math.floor((now - new Date(item.lastEmailAttemptAt).getTime()) / 1000);
@@ -54,9 +60,18 @@ export default function History() {
             updatedCooldowns[item._id] = 5 - elapsed;
           }
         }
+        if (item.cancellationEmailStatus === "failed" && item.lastCancellationEmailAttemptAt) {
+          const elapsed = Math.floor((now - new Date(item.lastCancellationEmailAttemptAt).getTime()) / 1000);
+          if (elapsed < 5) {
+            updatedCancellationCooldowns[item._id] = 5 - elapsed;
+          }
+        }
       });
       if (Object.keys(updatedCooldowns).length > 0) {
         setCooldowns((prev) => ({ ...prev, ...updatedCooldowns }));
+      }
+      if (Object.keys(updatedCancellationCooldowns).length > 0) {
+        setCancellationCooldowns((prev) => ({ ...prev, ...updatedCancellationCooldowns }));
       }
     } catch (err) {
       console.error("Failed to fetch leave history:", err);
@@ -111,16 +126,31 @@ export default function History() {
 
   // Tick active 5s countdown timers for email retry buttons
   useEffect(() => {
-    const hasActiveCooldown = Object.values(cooldowns).some((sec) => sec > 0);
-    if (!hasActiveCooldown) return;
-
     const timer = setInterval(() => {
       setCooldowns((prev) => {
-        const next = { ...prev };
         let changed = false;
+        const next = { ...prev };
         Object.keys(next).forEach((id) => {
-          if (next[id] > 0) {
+          if (next[id] > 1) {
             next[id] -= 1;
+            changed = true;
+          } else {
+            delete next[id];
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+
+      setCancellationCooldowns((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        Object.keys(next).forEach((id) => {
+          if (next[id] > 1) {
+            next[id] -= 1;
+            changed = true;
+          } else {
+            delete next[id];
             changed = true;
           }
         });
@@ -129,7 +159,7 @@ export default function History() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [cooldowns]);
+  }, []);
 
   // Handle retry email dispatch
   const handleResend = async (leaveId) => {
@@ -178,6 +208,82 @@ export default function History() {
     }
   };
 
+  // Handle retry cancellation email dispatch
+  const handleResendCancellation = async (leaveId) => {
+    if (retryingCancellationId === leaveId || (cancellationCooldowns[leaveId] > 0)) return;
+
+    try {
+      setRetryingCancellationId(leaveId);
+      const res = await API.post(`/leave/resend-cancellation-email/${leaveId}`);
+      toast.success(res.data?.message || "Cancellation notification email dispatched successfully!");
+
+      setHistoryData((prev) =>
+        prev.map((item) =>
+          item._id === leaveId
+            ? { ...item, cancellationEmailStatus: "sent", cancellationEmailError: "" }
+            : item
+        )
+      );
+
+      setSelectedLeaveForView((prev) =>
+        prev && prev._id === leaveId
+          ? { ...prev, cancellationEmailStatus: "sent", cancellationEmailError: "" }
+          : prev
+      );
+    } catch (err) {
+      const remainingSeconds = err.response?.data?.remainingSeconds;
+      if (err.response?.status === 429 && remainingSeconds) {
+        setCancellationCooldowns((prev) => ({ ...prev, [leaveId]: remainingSeconds }));
+      } else {
+        toast.error(err.response?.data?.message || "Failed to dispatch cancellation email.");
+        setCancellationCooldowns((prev) => ({ ...prev, [leaveId]: 5 }));
+      }
+    } finally {
+      setRetryingCancellationId(null);
+    }
+  };
+
+  // Open confirmation modal for leave cancellation (closes view modal to prevent stacking)
+  const handleCancelLeave = (leave) => {
+    if (!leave || leave.status !== "pending") return;
+    setSelectedLeaveForView(null);
+    setSelectedLeaveForCancel(leave);
+  };
+
+  // Perform confirmed cancellation
+  const handleConfirmCancellation = async () => {
+    if (!selectedLeaveForCancel) return;
+    const leave = selectedLeaveForCancel;
+
+    try {
+      setCancellingId(leave._id);
+      const res = await API.put(`/leave/cancel/${leave._id}`);
+      const updatedLeave = res.data?.leave || {};
+      toast.success(res.data?.message || "Leave request cancelled successfully!");
+      setSelectedLeaveForCancel(null);
+
+      // Update state locally with cancellation and email status
+      setHistoryData((prev) =>
+        prev.map((item) =>
+          item._id === leave._id
+            ? {
+                ...item,
+                status: "cancelled",
+                cancelledAt: updatedLeave.cancelledAt || new Date(),
+                cancellationEmailStatus: updatedLeave.cancellationEmailStatus || (res.data?.emailSent ? "sent" : "failed"),
+                cancellationEmailError: updatedLeave.cancellationEmailError || ""
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error("Error cancelling leave:", err);
+      toast.error(err.response?.data?.message || "Failed to cancel leave request.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex justify-between items-end mb-4">
@@ -197,10 +303,15 @@ export default function History() {
         loading={loadingInitial}
         loadingText="Loading leave history..."
         onViewLeave={setSelectedLeaveForView}
+        onCancelLeave={handleCancelLeave}
+        cancellingId={cancellingId}
         showEmailStatus={true}
         retryingId={retryingId}
         cooldowns={cooldowns}
         onResendEmail={handleResend}
+        onResendCancellation={handleResendCancellation}
+        retryingCancellationId={retryingCancellationId}
+        cancellationCooldowns={cancellationCooldowns}
         emptyMessage="No leave requests found."
         footer={
           !loadingInitial && historyData.length > 0 && (
@@ -248,6 +359,28 @@ export default function History() {
         onResend={handleResend}
         isRetrying={retryingId === selectedLeaveForView?._id}
         cooldownSeconds={selectedLeaveForView ? (cooldowns[selectedLeaveForView._id] || 0) : 0}
+        onCancelLeave={handleCancelLeave}
+        isCancelling={cancellingId === selectedLeaveForView?._id}
+        onResendCancellation={handleResendCancellation}
+        isRetryingCancellation={retryingCancellationId === selectedLeaveForView?._id}
+        cancellationCooldownSeconds={selectedLeaveForView ? (cancellationCooldowns[selectedLeaveForView._id] || 0) : 0}
+      />
+
+      {/* Branded Leave Cancellation Confirmation Modal */}
+      <LeaveSummaryConfirmModal
+        isOpen={!!selectedLeaveForCancel}
+        onClose={() => setSelectedLeaveForCancel(null)}
+        onConfirm={handleConfirmCancellation}
+        isSubmitting={cancellingId === selectedLeaveForCancel?._id}
+        mode="cancel"
+        leaveData={selectedLeaveForCancel ? {
+          type: selectedLeaveForCancel.type,
+          from: selectedLeaveForCancel.from,
+          to: selectedLeaveForCancel.to,
+          days: selectedLeaveForCancel.days,
+          reason: selectedLeaveForCancel.reason,
+          isPastLeave: selectedLeaveForCancel.isPastLeave
+        } : null}
       />
     </div>
   );

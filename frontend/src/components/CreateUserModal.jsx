@@ -10,7 +10,7 @@ const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
 const OFFICIAL_DOMAIN = "@barabaricollective.org";
 
 export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCreated }) {
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "founder";
 
   const [form, setForm] = useState({
     name: "",

@@ -1,17 +1,22 @@
 import React from "react";
 import StatusBadge from "./StatusBadge";
 import EmailRetryButton from "./EmailRetryButton";
-import { Eye, CheckCircle2, AlertCircle, Loader2, Calendar } from "lucide-react";
+import { Eye, CheckCircle2, AlertCircle, Loader2, Calendar, X } from "lucide-react";
 
 export default function EmployeeLeaveTable({
   leaves = [],
   loading = false,
   loadingText = "Loading leave requests...",
   onViewLeave,
+  onCancelLeave,
+  cancellingId = null,
   showEmailStatus = true,
   retryingId = null,
   cooldowns = {},
   onResendEmail,
+  onResendCancellation = null,
+  retryingCancellationId = null,
+  cancellationCooldowns = {},
   emptyMessage = "No leave requests found.",
   emptyAction = null,
   footer = null,
@@ -103,53 +108,98 @@ export default function EmployeeLeaveTable({
                     <StatusBadge status={item.status} />
                   </td>
 
-                  {showEmailStatus && (
-                    <td className="py-4 px-5 whitespace-nowrap">
-                      {item.emailStatus === "sent" ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          title="Accepted by the email provider; recipient delivery is not independently confirmed."
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Sent
-                        </span>
-                      ) : item.emailStatus === "pending" ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                          Sending...
-                        </span>
-                      ) : item.emailStatus === "failed" ? (
-                        <div className="flex items-center gap-2">
+                  {showEmailStatus && (() => {
+                    const isCancelled = item.status === "cancelled";
+                    const activeEmailStatus = isCancelled
+                      ? (item.cancellationEmailStatus && item.cancellationEmailStatus !== "none" ? item.cancellationEmailStatus : "none")
+                      : item.emailStatus;
+                    const activeEmailError = isCancelled ? item.cancellationEmailError : item.emailError;
+                    const isRetryingActiveEmail = isCancelled
+                      ? retryingCancellationId === item._id
+                      : retryingId === item._id;
+                    const activeCooldown = isCancelled
+                      ? (cancellationCooldowns[item._id] || 0)
+                      : (cooldowns[item._id] || 0);
+                    const handleActiveRetry = isCancelled
+                      ? (onResendCancellation ? () => onResendCancellation(item._id) : null)
+                      : (onResendEmail ? () => onResendEmail(item._id) : null);
+
+                    return (
+                      <td className="py-4 px-5 whitespace-nowrap">
+                        {activeEmailStatus === "sent" ? (
                           <span
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
-                            title={item.emailError || "Email failed to dispatch"}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            title={
+                              isCancelled
+                                ? "Cancellation email delivered to manager and team notification queue."
+                                : "Accepted by the email provider; recipient delivery is not independently confirmed."
+                            }
                           >
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                            Failed
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Sent
                           </span>
-                          {onResendEmail && (
-                            <EmailRetryButton
-                              onRetry={() => onResendEmail(item._id)}
-                              isRetrying={retryingId === item._id}
-                              cooldownSeconds={cooldowns[item._id] || 0}
-                              size="xs"
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
-                  )}
+                        ) : activeEmailStatus === "pending" ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                            Sending...
+                          </span>
+                        ) : activeEmailStatus === "failed" ? (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
+                              title={
+                                activeEmailError ||
+                                (isCancelled
+                                  ? "Cancellation email failed to dispatch"
+                                  : "Email failed to dispatch")
+                              }
+                            >
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                              Failed
+                            </span>
+                            {handleActiveRetry && (
+                              <EmailRetryButton
+                                onRetry={handleActiveRetry}
+                                isRetrying={isRetryingActiveEmail}
+                                cooldownSeconds={activeCooldown}
+                                size="xs"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+                    );
+                  })()}
 
                   <td className="py-4 px-5 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => onViewLeave && onViewLeave(item)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
-                    >
-                      <Eye size={14} />
-                      <span>View</span>
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      {onCancelLeave && item.status === "pending" && (
+                        <button
+                          type="button"
+                          disabled={cancellingId === item._id}
+                          onClick={() => onCancelLeave(item)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl text-xs transition border border-rose-200 cursor-pointer shadow-2xs disabled:opacity-50"
+                          title="Cancel this pending leave request"
+                        >
+                          {cancellingId === item._id ? (
+                            <Loader2 size={13} className="animate-spin text-rose-600" />
+                          ) : (
+                            <X size={13} />
+                          )}
+                          <span>Cancel</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => onViewLeave && onViewLeave(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                      >
+                        <Eye size={14} />
+                        <span>View</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

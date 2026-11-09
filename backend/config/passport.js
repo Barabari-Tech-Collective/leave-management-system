@@ -17,12 +17,19 @@ passport.use(
 
         const email = profile.emails[0].value.toLowerCase();
 
-        // Parse admin emails from .env
+        // Parse admin and founder emails from environment variables
         const adminList = (process.env.ADMIN_EMAILS || "")
           .split(",")
-          .map((e) => e.trim().toLowerCase());
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
+
+        const founderList = (process.env.FOUNDER_EMAILS || "")
+          .split(",")
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
 
         const isAllowlistedAdmin = adminList.includes(email);
+        const isAllowlistedFounder = founderList.includes(email);
 
         // Check if user exists by email or googleId
         let user = await User.findOne({ email });
@@ -41,8 +48,12 @@ passport.use(
           });
         }
 
-        // Elevate role if allowlisted admin
-        if (isAllowlistedAdmin && user.role !== "admin") {
+        // Elevate/preserve role appropriately: Never demote a Founder to Admin
+        if (isAllowlistedFounder) {
+          if (user.role !== "founder") {
+            user.role = "founder";
+          }
+        } else if (isAllowlistedAdmin && user.role !== "admin" && user.role !== "founder") {
           user.role = "admin";
         }
 

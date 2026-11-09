@@ -4,8 +4,9 @@ import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
-import LeaveApprovalActions from "../../components/LeaveApprovalActions"; 
-import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Layers, Briefcase } from "lucide-react";
+import LeaveDetailsModal from "../../components/LeaveDetailsModal";
+import StatusBadge from "../../components/StatusBadge";
+import { UserPlus, CheckCircle, XCircle, Users, ShieldCheck, Layers, Briefcase, Eye } from "lucide-react";
 
 const VERTICALS = ["All", "Program", "Placement", "EdTech", "Operations", "None"];
 
@@ -23,6 +24,57 @@ export default function AdminDashboard() {
   const [opsData, setOpsData] = useState({ teamLeaves: [] });
   const [leadLeaves, setLeadLeaves] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLeaveForDetails, setSelectedLeaveForDetails] = useState(null);
+  const [retryingDecisionId, setRetryingDecisionId] = useState(null);
+  const [decisionCooldowns, setDecisionCooldowns] = useState({});
+
+  // Countdown timer for decision email cooldowns
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDecisionCooldowns((prev) => {
+        let changed = false;
+        const updated = { ...prev };
+        Object.keys(updated).forEach((id) => {
+          if (updated[id] > 1) {
+            updated[id] -= 1;
+            changed = true;
+          } else {
+            delete updated[id];
+            changed = true;
+          }
+        });
+        return changed ? updated : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleResendDecisionEmail = async (leaveId) => {
+    if (retryingDecisionId === leaveId || (decisionCooldowns[leaveId] > 0)) return;
+
+    try {
+      setRetryingDecisionId(leaveId);
+      const res = await API.post(`/leave/resend-decision-email/${leaveId}`);
+      toast.success(res.data?.message || "Notification email dispatched successfully!");
+
+      setSelectedLeaveForDetails((prev) =>
+        prev && prev._id === leaveId
+          ? { ...prev, decisionEmailStatus: "sent", decisionEmailError: "" }
+          : prev
+      );
+      fetchAllDashboardData();
+    } catch (err) {
+      const remainingSeconds = err.response?.data?.remainingSeconds;
+      if (err.response?.status === 429 && remainingSeconds) {
+        setDecisionCooldowns((prev) => ({ ...prev, [leaveId]: remainingSeconds }));
+      } else {
+        toast.error(err.response?.data?.message || "Failed to dispatch email.");
+        setDecisionCooldowns((prev) => ({ ...prev, [leaveId]: 5 }));
+      }
+    } finally {
+      setRetryingDecisionId(null);
+    }
+  };
   // const [actionLoading, setActionLoading] = useState(null);
   
   useEffect(() => {
@@ -260,6 +312,7 @@ export default function AdminDashboard() {
           <LeaveTableData
             leaves={opsData.teamLeaves || []}
             onRefresh={fetchAllDashboardData}
+            onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
           />
         </div>
       )}
@@ -273,6 +326,7 @@ export default function AdminDashboard() {
           <LeaveTableData
             leaves={leadLeaves}
             onRefresh={fetchAllDashboardData}
+            onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
             showVertical
           />
         </div>
@@ -284,12 +338,25 @@ export default function AdminDashboard() {
         currentUser={currentUser}
         onUserCreated={fetchAllDashboardData}
       />
+
+      {/* Reusable Leave Management Details Modal for Admin */}
+      {selectedLeaveForDetails && (
+        <LeaveDetailsModal
+          isOpen={!!selectedLeaveForDetails}
+          onClose={() => setSelectedLeaveForDetails(null)}
+          leave={selectedLeaveForDetails}
+          onStatusUpdated={fetchAllDashboardData}
+          onResendDecisionEmail={handleResendDecisionEmail}
+          isRetryingDecisionEmail={retryingDecisionId === selectedLeaveForDetails?._id}
+          decisionEmailCooldownSeconds={selectedLeaveForDetails ? (decisionCooldowns[selectedLeaveForDetails._id] || 0) : 0}
+        />
+      )}
     </div>
   );
 }
 
-// Sub-component rendering Leave Table with LeaveApprovalActions
-function LeaveTableData({ leaves, onRefresh, showVertical }) {
+// Sub-component rendering Leave Table with full View / Manage actions
+function LeaveTableData({ leaves, onRefresh, onViewLeave, showVertical }) {
   if (leaves.length === 0) {
     return <div className="text-slate-400 py-8 text-center">No leave applications found.</div>;
   }
@@ -322,27 +389,18 @@ function LeaveTableData({ leaves, onRefresh, showVertical }) {
               <td className="p-3 font-bold">{leave.days}</td>
               <td className="p-3 max-w-xs truncate text-slate-600">{leave.reason}</td>
               <td className="p-3">
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold capitalize ${
-                    leave.status === "approved" || leave.status === "success"
-                      ? "bg-green-100 text-green-800 border border-green-300"
-                      : leave.status === "rejected"
-                      ? "bg-red-100 text-red-800 border border-red-300"
-                      : "bg-yellow-100 text-yellow-800 border border-yellow-300"
-                  }`}
-                >
-                  {leave.status === "success" ? "Success" : leave.status}
-                </span>
+                <StatusBadge status={leave.status} />
               </td>
-              <td className="p-3 text-right space-x-2 whitespace-nowrap">
-                {leave.status === "pending" ? (
-                  <LeaveApprovalActions
-                    leaveId={leave._id}
-                    onStatusUpdated={onRefresh}
-                  />
-                ) : (
-                  <span className="text-xs text-slate-400 italic">No action needed</span>
-                )}
+              <td className="p-3 text-right whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => onViewLeave && onViewLeave(leave)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                  title="View full details and manage approval status"
+                >
+                  <Eye size={14} />
+                  <span>View / Manage</span>
+                </button>
               </td>
             </tr>
           ))}

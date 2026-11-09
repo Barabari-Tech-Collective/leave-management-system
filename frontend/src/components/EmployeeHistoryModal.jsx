@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   XCircle, 
   AlertCircle,
-  FileText
+  FileText,
+  Ban
 } from "lucide-react";
 
 export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
@@ -83,6 +84,12 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
             <XCircle size={12} className="text-red-700" /> Rejected
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+            <Ban size={12} className="text-slate-500" /> Cancelled
           </span>
         );
       case "pending":

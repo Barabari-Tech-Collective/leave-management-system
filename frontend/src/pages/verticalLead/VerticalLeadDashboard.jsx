@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Ban
 } from "lucide-react";
 
 const MONTHS = [
@@ -467,6 +468,7 @@ export default function VerticalLeadDashboard() {
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -551,11 +553,14 @@ export default function VerticalLeadDashboard() {
                               ? "bg-green-100 text-green-800 border border-green-300"
                               : leave.status === "rejected"
                               ? "bg-red-100 text-red-800 border border-red-300"
+                              : leave.status === "cancelled"
+                              ? "bg-slate-100 text-slate-700 border border-slate-300"
                               : "bg-yellow-100 text-yellow-800 border border-yellow-300"
                           }`}
                         >
                           {(leave.status === "approved" || leave.status === "success") && <CheckCircle2 size={12} className="text-green-700" />}
                           {leave.status === "rejected" && <XCircle size={12} className="text-red-700" />}
+                          {leave.status === "cancelled" && <Ban size={12} className="text-slate-500" />}
                           {leave.status === "pending" && <Clock size={12} className="text-yellow-700" />}
                           {leave.status === "success" ? "Success" : leave.status}
                         </span>

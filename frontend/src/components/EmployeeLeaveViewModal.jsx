@@ -10,7 +10,8 @@ import {
   XCircle, 
   AlertCircle, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  Ban
 } from "lucide-react";
 
 export default function EmployeeLeaveViewModal({ 
@@ -19,7 +20,12 @@ export default function EmployeeLeaveViewModal({
   leave, 
   onResend, 
   isRetrying, 
-  cooldownSeconds 
+  cooldownSeconds,
+  onCancelLeave,
+  isCancelling,
+  onResendCancellation,
+  isRetryingCancellation = false,
+  cancellationCooldownSeconds = 0
 }) {
   // Lock body scroll when modal is open to prevent page movement
   useEffect(() => {
@@ -49,6 +55,12 @@ export default function EmployeeLeaveViewModal({
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
             <XCircle size={13} className="text-red-700" /> Rejected
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+            <Ban size={13} className="text-slate-500" /> Cancelled
           </span>
         );
       case "pending":
@@ -97,6 +109,15 @@ export default function EmployeeLeaveViewModal({
               <Clock size={16} className="text-indigo-600 shrink-0" />
               <span>
                 <strong>Past Leave Record:</strong> This leave was taken in the past and was automatically approved.
+              </span>
+            </div>
+          )}
+
+          {leave.status === "cancelled" && (
+            <div className="p-3 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-2 text-xs text-slate-700 font-medium">
+              <Ban size={16} className="text-slate-500 shrink-0" />
+              <span>
+                <strong>Leave Cancelled:</strong> This request was cancelled by you. No approval action is required.
               </span>
             </div>
           )}
@@ -203,10 +224,66 @@ export default function EmployeeLeaveViewModal({
               />
             )}
           </div>
+
+          {/* Cancellation Notification Email Dispatch (When Leave is Cancelled) */}
+          {leave.status === "cancelled" && leave.cancellationEmailStatus && leave.cancellationEmailStatus !== "none" && (
+            <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/60 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {leave.cancellationEmailStatus === "sent" ? (
+                  <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                    <CheckCircle2 size={16} />
+                  </div>
+                ) : leave.cancellationEmailStatus === "pending" ? (
+                  <div className="p-2 bg-amber-100 text-amber-700 rounded-xl animate-pulse">
+                    <Loader2 size={16} className="animate-spin" />
+                  </div>
+                ) : (
+                  <div className="p-2 bg-rose-100 text-rose-700 rounded-xl">
+                    <AlertCircle size={16} />
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Cancellation Notification Email
+                  </p>
+                  <p className="text-xs font-bold text-slate-800 mt-0.5">
+                    {leave.cancellationEmailStatus === "sent" && "Delivered to manager & teammates"}
+                    {leave.cancellationEmailStatus === "pending" && "Sending cancellation email in background..."}
+                    {leave.cancellationEmailStatus === "failed" && (leave.cancellationEmailError || "Cancellation email delivery failed")}
+                  </p>
+                </div>
+              </div>
+
+              {leave.cancellationEmailStatus === "failed" && onResendCancellation && (
+                <EmailRetryButton
+                  onRetry={() => onResendCancellation(leave._id)}
+                  isRetrying={isRetryingCancellation}
+                  cooldownSeconds={cancellationCooldownSeconds}
+                  size="sm"
+                  label="Retry Email"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div>
+            {onCancelLeave && leave.status === "pending" && (
+              <button
+                type="button"
+                disabled={isCancelling}
+                onClick={() => onCancelLeave(leave)}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-2xs"
+              >
+                {isCancelling ? <Loader2 size={13} className="animate-spin text-rose-600" /> : <X size={14} />}
+                <span>Cancel Request</span>
+              </button>
+            )}
+          </div>
+
           <button
             onClick={onClose}
             className="px-5 py-2 bg-white text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition cursor-pointer"

@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/auth/Login";
 import EmployeeLayout from "../layouts/EmployeeLayout";
 import AdminLayout from "../layouts/AdminLayout";
@@ -53,6 +53,9 @@ export default function AppRoutes() {
         <Route path="history" element={<History />} />
         <Route path="employee/:id" element={<EmployeeDetail />} />
       </Route>
+
+      {/* Catch-all Route: Redirect unknown routes back to home/login */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
