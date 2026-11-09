@@ -37,13 +37,13 @@ export default function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-11 h-11 rounded-full bg-linear-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-lg focus:outline-none"
+        className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-linear-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-sm sm:text-lg focus:outline-none shrink-0"
       >
         {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "E"}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-72 bg-white/90 backdrop-blur-2xl border border-slate-100 rounded-3xl shadow-2xl p-6 space-y-5 animate-dropdown z-50">
+        <div className="absolute right-0 mt-3 w-72 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-2xl border border-slate-100 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 animate-dropdown z-50">
           <div className="pb-3 border-b border-slate-100 space-y-1">
             <p className="font-extrabold text-slate-800 text-base tracking-tight truncate">
               {user?.name || "Employee"}

@@ -25,17 +25,17 @@ export default function LeaveCard({ title, total, taken }) {
   }, [remaining]);
 
   return (
-    <div className="bg-white rounded-3xl p-7 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 transition-all duration-500 space-y-5 relative group overflow-hidden">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1.5 transition-all duration-500 space-y-4 sm:space-y-5 relative group overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
       <div className="flex justify-between items-center relative z-10">
-        <h2 className="font-bold text-lg text-textDark tracking-tight">{title}</h2>
-        <span className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+        <h2 className="font-bold text-base sm:text-lg text-textDark tracking-tight truncate pr-2">{title}</h2>
+        <span className="text-xs sm:text-sm font-medium text-slate-500 bg-slate-50 px-2.5 sm:px-3 py-1 rounded-full border border-slate-100 shrink-0">
           {taken}/{total} used
         </span>
       </div>
 
-      <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-500 tracking-tight relative z-10 drop-shadow-sm">
+      <div className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-500 tracking-tight relative z-10 drop-shadow-sm">
         {displayValue}
       </div>
 
@@ -49,7 +49,7 @@ export default function LeaveCard({ title, total, taken }) {
             <div className="absolute inset-0 bg-white/20"></div>
           </div>
         </div>
-        <p className="text-sm font-medium text-slate-500">Remaining Leaves</p>
+        <p className="text-xs sm:text-sm font-medium text-slate-500">Remaining Leaves</p>
       </div>
     </div>
   );

@@ -121,11 +121,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-5 my-auto">
+    <div className="min-h-screen w-full overflow-y-auto py-6 sm:py-10 px-3 sm:px-4 flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-4 sm:space-y-5 my-auto">
         
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
             {isResetMode ? "Reset Password" : "Login to Leave System"}
           </h2>
           <p className="text-xs text-slate-500 mt-1 font-medium">

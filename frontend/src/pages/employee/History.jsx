@@ -343,12 +343,12 @@ export default function History() {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn">
       {/* Header & Filter Controls Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-2 sm:mb-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
               Leave History
             </h1>
             <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
@@ -357,7 +357,7 @@ export default function History() {
                 : `${totalLeaves} Total`}
             </span>
           </div>
-          <p className="text-slate-500 mt-2 font-medium text-xs sm:text-sm">
+          <p className="text-slate-500 mt-1 font-medium text-xs sm:text-sm">
             Review your past and upcoming leave requests.
           </p>
         </div>

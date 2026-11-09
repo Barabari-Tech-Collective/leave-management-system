@@ -275,51 +275,50 @@ export default function AdminDashboard() {
     return matchesSearch && matchesVertical;
   });
 
-  const pendingLeadCount = leadLeaves.filter((l) => l.status === "pending").length;
   const pendingOpsCount = (opsData.teamLeaves || []).filter((l) => l.status === "pending").length;
 
   return (
-    <div className="space-y-8 p-2">
+    <div className="space-y-6 sm:space-y-8 p-1 sm:p-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-textDark">Admin Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-textDark">Admin Dashboard</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">
             Manage organization members, Operations vertical, and Vertical Lead approvals.
           </p>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition cursor-pointer"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition cursor-pointer text-xs sm:text-sm"
         >
           <UserPlus size={18} />
-          Create New Member
+          <span>Create New Member</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap border-b border-slate-200 gap-2 font-medium text-sm">
+      <div className="flex flex-wrap border-b border-slate-200 gap-1 sm:gap-2 font-medium text-xs sm:text-sm">
         <button
           onClick={() => setActiveTab("all")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`py-2.5 px-3 sm:pb-3 sm:px-4 font-bold transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
             activeTab === "all"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Users size={16} /> All Employees ({employees.length})
+          <Users size={16} /> <span>All Employees ({employees.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("operations")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`py-2.5 px-3 sm:pb-3 sm:px-4 font-bold transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
             activeTab === "operations"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Briefcase size={16} /> Operations Vertical
+          <Briefcase size={16} /> <span>Operations Vertical</span>
           {pendingOpsCount > 0 && (
             <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
               {pendingOpsCount}
@@ -329,13 +328,13 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setActiveTab("leadApprovals")}
-          className={`pb-3 px-4 font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`py-2.5 px-3 sm:pb-3 sm:px-4 font-bold transition flex items-center gap-1.5 sm:gap-2 cursor-pointer ${
             activeTab === "leadApprovals"
               ? "border-b-2 border-primary text-primary"
               : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          <ShieldCheck size={16} /> Vertical Leads Approvals
+          <ShieldCheck size={16} /> <span>Vertical Leads Approvals</span>
           {leadPendingCount > 0 && (
             <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
               {leadPendingCount}
@@ -347,11 +346,11 @@ export default function AdminDashboard() {
       {/* TAB 1: ALL EMPLOYEES */}
       {activeTab === "all" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <select
               value={selectedVertical}
               onChange={(e) => setSelectedVertical(e.target.value)}
-              className="p-3 border rounded-xl bg-white text-sm outline-none focus:ring-2 focus:ring-primary shadow-xs"
+              className="p-2.5 sm:p-3 border rounded-xl bg-white text-xs sm:text-sm outline-none focus:ring-2 focus:ring-primary shadow-xs w-full sm:w-auto cursor-pointer"
             >
               {VERTICALS.map((v) => (
                 <option key={v} value={v}>
@@ -363,23 +362,23 @@ export default function AdminDashboard() {
             <input
               type="text"
               placeholder="Search employee..."
-              className="p-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm w-full sm:w-64"
+              className="p-2.5 sm:p-3 border rounded-xl focus:ring-2 focus:ring-primary outline-none text-xs sm:text-sm w-full sm:w-64"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+            <table className="w-full text-xs sm:text-sm">
+              <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sm:text-xs">
                 <tr>
-                  <th className="p-4 text-left">Name</th>
-                  <th className="p-4 text-left">Email</th>
-                  <th className="p-4 text-left">Vertical</th>
-                  <th className="p-4 text-left">Casual Used</th>
-                  <th className="p-4 text-left">Sick Used</th>
-                  <th className="p-4 text-left">Flexible Used</th>
-                  <th className="p-4 text-left">Action</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Name</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Email</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Vertical</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Casual Used</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Sick Used</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Flexible Used</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -392,16 +391,16 @@ export default function AdminDashboard() {
                 ) : (
                   filteredEmployees.map((emp) => (
                     <tr key={emp._id} className="border-t hover:bg-gray-50 transition">
-                      <td className="p-4 font-medium">{emp.name}</td>
-                      <td className="p-4 text-gray-500">{emp.email}</td>
-                      <td className="p-4 font-semibold text-indigo-600">{emp.vertical}</td>
-                      <td className="p-4">{emp.leaveBalance?.casual?.taken ?? 0}</td>
-                      <td className="p-4">{emp.leaveBalance?.sick?.taken ?? 0}</td>
-                      <td className="p-4">{emp.leaveBalance?.flexible?.taken ?? 0}</td>
-                      <td className="p-4">
+                      <td className="p-3 sm:p-4 font-medium whitespace-nowrap">{emp.name}</td>
+                      <td className="p-3 sm:p-4 text-gray-500 whitespace-nowrap">{emp.email}</td>
+                      <td className="p-3 sm:p-4 font-semibold text-indigo-600 whitespace-nowrap">{emp.vertical}</td>
+                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.casual?.taken ?? 0}</td>
+                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.sick?.taken ?? 0}</td>
+                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.flexible?.taken ?? 0}</td>
+                      <td className="p-3 sm:p-4 whitespace-nowrap">
                         <button
                           onClick={() => navigate(`/admin/employee/${emp._id}`)}
-                          className="bg-primary text-white px-4 py-2 rounded-xl hover:scale-105 transition text-xs font-medium cursor-pointer"
+                          className="bg-primary text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl hover:scale-105 transition text-xs font-medium cursor-pointer"
                         >
                           View Details
                         </button>
@@ -417,8 +416,8 @@ export default function AdminDashboard() {
 
       {/* TAB 2: OPERATIONS VERTICAL */}
       {activeTab === "operations" && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
-          <h2 className="text-lg font-bold text-slate-800">Operations Team Leave Requests</h2>
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-md p-4 sm:p-6 border border-slate-100 space-y-4">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800">Operations Team Leave Requests</h2>
           <LeaveTableData
             leaves={opsData.teamLeaves || []}
             onRefresh={fetchAllDashboardData}
@@ -432,11 +431,11 @@ export default function AdminDashboard() {
 
       {/* TAB 3: VERTICAL LEADS APPROVALS */}
       {activeTab === "leadApprovals" && (
-        <div className="bg-white rounded-2xl shadow-md p-6 border border-slate-100 space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-md p-4 sm:p-6 border border-slate-100 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4">
             <div>
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-slate-800">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">
                   Vertical Lead Requests (Requires Admin Approval)
                 </h2>
                 <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
@@ -509,7 +508,6 @@ export default function AdminDashboard() {
 function LeaveTableData({
   leaves = [],
   loading = false,
-  onRefresh,
   onViewLeave,
   showVertical = false,
   onResendEmail,
@@ -545,17 +543,17 @@ function LeaveTableData({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm border-collapse">
+      <table className="w-full text-left text-xs sm:text-sm border-collapse">
         <thead>
-          <tr className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold border-b border-slate-100">
-            <th className="py-3.5 px-4">Member</th>
-            {showVertical && <th className="py-3.5 px-4">Vertical</th>}
-            <th className="py-3.5 px-4">Type</th>
-            <th className="py-3.5 px-4">Dates</th>
-            <th className="py-3.5 px-4">Days</th>
-            <th className="py-3.5 px-4">Status</th>
-            <th className="py-3.5 px-4">Email Confirmation</th>
-            <th className="py-3.5 px-4 text-right">Actions</th>
+          <tr className="bg-slate-50 text-slate-500 uppercase text-[11px] sm:text-xs font-semibold border-b border-slate-100">
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Member</th>
+            {showVertical && <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Vertical</th>}
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Type</th>
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Dates</th>
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Days</th>
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Status</th>
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Email Confirmation</th>
+            <th className="py-3 px-3 sm:py-3.5 sm:px-4 text-right whitespace-nowrap">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -569,16 +567,16 @@ function LeaveTableData({
 
             return (
               <tr key={leave._id} className="hover:bg-slate-50/70 transition">
-                <td className="py-4 px-4 font-semibold text-slate-900">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-semibold text-slate-900 whitespace-nowrap">
                   {leave.user?.name || "Unknown"}
                   <div className="text-xs text-slate-400 font-normal">{leave.user?.email}</div>
                 </td>
                 {showVertical && (
-                  <td className="py-4 px-4 font-semibold text-indigo-600 whitespace-nowrap">
+                  <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-semibold text-indigo-600 whitespace-nowrap">
                     {leave.user?.vertical || leave.vertical}
                   </td>
                 )}
-                <td className="py-4 px-4 whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <span className="capitalize font-semibold text-slate-700">{leave.type}</span>
                     {leave.isPastLeave && (
@@ -588,17 +586,17 @@ function LeaveTableData({
                     )}
                   </div>
                 </td>
-                <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 text-slate-600 whitespace-nowrap">
                   {new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })} -{" "}
                   {new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })}
                 </td>
-                <td className="py-4 px-4 font-bold text-slate-800 whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-bold text-slate-800 whitespace-nowrap">
                   {leave.days} {leave.days === 1 ? "day" : "days"}
                 </td>
-                <td className="py-4 px-4 whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
                   <StatusBadge status={leave.status} />
                 </td>
-                <td className="py-4 px-4 whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
                   {isEmailNotApplicable ? (
                     <span className="text-gray-400 font-bold text-sm px-2">-</span>
                   ) : leave.decisionEmailStatus === "failed" ? (
@@ -631,11 +629,11 @@ function LeaveTableData({
                     <span className="text-gray-400 font-bold text-sm px-2">-</span>
                   )}
                 </td>
-                <td className="py-4 px-4 text-right whitespace-nowrap">
+                <td className="py-3.5 px-3 sm:py-4 sm:px-4 text-right whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => onViewLeave && onViewLeave(leave)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
                     title="View full details and manage approval status"
                   >
                     <Eye size={14} />

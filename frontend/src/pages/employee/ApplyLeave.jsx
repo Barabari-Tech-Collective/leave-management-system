@@ -241,18 +241,18 @@ export default function ApplyLeave() {
   };
 
   return (
-    <div className="flex justify-center items-center py-6 px-4">
+    <div className="flex justify-center items-center py-3 sm:py-6 px-1 sm:px-4">
       <form
         onSubmit={handleReviewClick}
-        className="relative bg-white w-full max-w-2xl p-10 rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 space-y-7 animate-fadeIn overflow-hidden"
+        className="relative bg-white w-full max-w-2xl p-4 sm:p-7 md:p-10 rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 space-y-5 sm:space-y-7 animate-fadeIn overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-1.5 bg-linear-to-r from-primary via-indigo-400 to-indigo-600"></div>
 
         <div>
-          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary to-indigo-600 tracking-tight text-center">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-primary to-indigo-600 tracking-tight text-center">
             {isPastLeave ? "Report Past Leave" : "Apply for Leave"}
           </h2>
-          <p className="text-center text-slate-500 mt-2 font-medium text-sm">
+          <p className="text-center text-slate-500 mt-1 sm:mt-2 font-medium text-xs sm:text-sm">
             {isPastLeave
               ? "Record a leave you have already taken without needing lead approval."
               : "Fill in the details below to submit a future leave request."}
@@ -260,37 +260,37 @@ export default function ApplyLeave() {
         </div>
 
         {/* Mode Selector Segmented Tabs */}
-        <div className="grid grid-cols-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200">
+        <div className="grid grid-cols-2 p-1 sm:p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200">
           <button
             type="button"
             onClick={() => handleModeChange(false)}
-            className={`py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
               !isPastLeave
                 ? "bg-white text-primary shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Calendar size={16} />
-            <span>Future Leave Request</span>
+            <Calendar size={15} className="shrink-0" />
+            <span className="truncate">Future Leave Request</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleModeChange(true)}
-            className={`py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 sm:py-3 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer ${
               isPastLeave
                 ? "bg-white text-indigo-700 shadow-sm"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <Clock size={16} />
-            <span>Report Past Leave</span>
+            <Clock size={15} className="shrink-0" />
+            <span className="truncate">Report Past Leave</span>
           </button>
         </div>
 
         {/* Automated Notification Info Banner */}
         <div
-          className={`p-4 border rounded-2xl flex items-start gap-3 text-xs font-medium transition-all ${
+          className={`p-3.5 sm:p-4 border rounded-2xl flex items-start gap-2.5 sm:gap-3 text-xs font-medium transition-all ${
             isPastLeave
               ? "bg-emerald-50/70 border-emerald-200 text-emerald-800"
               : "bg-indigo-50/70 border-indigo-100 text-indigo-700"
@@ -316,11 +316,11 @@ export default function ApplyLeave() {
 
         {/* Leave Type Selector with Live Balance Pill */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-bold text-slate-700">Leave Type</label>
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <label className="font-bold text-slate-700 text-sm">Leave Type</label>
             {selectedTypeKey && currentCategoryBalance && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold shadow-2xs">
-                <Wallet size={13} className="text-emerald-600" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-[11px] sm:text-xs font-bold shadow-2xs">
+                <Wallet size={12} className="text-emerald-600" />
                 Available: {effectiveAvailable} day(s)
                 {pendingCount > 0 && (
                   <span className="text-amber-700 font-semibold">({pendingCount} pending)</span>
@@ -330,7 +330,7 @@ export default function ApplyLeave() {
           </div>
 
           <select
-            className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium cursor-pointer"
+            className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium cursor-pointer text-sm"
             value={form.type}
             onChange={(e) => {
               setForm({ ...form, type: e.target.value });
@@ -346,14 +346,14 @@ export default function ApplyLeave() {
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
-            <label className="block mb-2 font-bold text-slate-700">From Date</label>
+            <label className="block mb-1.5 font-bold text-slate-700 text-sm">From Date</label>
             <input
               type="date"
               min={isPastLeave ? startOfYearStr : todayStr}
               max={isPastLeave ? yesterdayStr : undefined}
-              className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
+              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm"
               value={form.from}
               onChange={(e) => {
                 setForm({ ...form, from: e.target.value });
@@ -364,12 +364,12 @@ export default function ApplyLeave() {
           </div>
 
           <div>
-            <label className="block mb-2 font-bold text-slate-700">To Date</label>
+            <label className="block mb-1.5 font-bold text-slate-700 text-sm">To Date</label>
             <input
               type="date"
               min={form.from || (isPastLeave ? startOfYearStr : todayStr)}
               max={isPastLeave ? yesterdayStr : undefined}
-              className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium"
+              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm"
               value={form.to}
               onChange={(e) => {
                 setForm({ ...form, to: e.target.value });
@@ -382,14 +382,14 @@ export default function ApplyLeave() {
 
         {/* Live Days Counter (Excluding Sundays) */}
         {calculatedDays > 0 && (
-          <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl text-center space-y-1">
-            <span className="text-xs text-primary font-bold tracking-wide uppercase">
+          <div className="bg-primary/5 border border-primary/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center space-y-1">
+            <span className="text-[11px] sm:text-xs text-primary font-bold tracking-wide uppercase">
               {isPastLeave ? "Total Working Days Recorded" : "Total Working Days Requested"}
             </span>
-            <div className="text-3xl font-extrabold text-primary">
+            <div className="text-2xl sm:text-3xl font-extrabold text-primary">
               {calculatedDays} {calculatedDays === 1 ? "Day" : "Days"}
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium">
               (Intervening Sundays are excluded as per Rule)
             </p>
           </div>
@@ -397,15 +397,15 @@ export default function ApplyLeave() {
 
         {/* Reason */}
         <div>
-          <label className="block mb-2 font-bold text-slate-700">Reason</label>
+          <label className="block mb-1.5 font-bold text-slate-700 text-sm">Reason</label>
           <textarea
-            rows="4"
+            rows="3"
             placeholder={
               isPastLeave
                 ? "State the reason for this past leave..."
                 : "Briefly describe the reason for your leave..."
             }
-            className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium resize-none"
+            className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium resize-none text-sm"
             value={form.reason}
             onChange={(e) => {
               setForm({ ...form, reason: e.target.value });
@@ -417,7 +417,7 @@ export default function ApplyLeave() {
 
         {/* Error / Conflict Feedback */}
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium space-y-2">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-medium space-y-2">
             <div className="flex items-start gap-2.5">
               <AlertTriangle size={18} className="text-rose-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed">{error}</p>
@@ -429,9 +429,9 @@ export default function ApplyLeave() {
                 <button
                   type="button"
                   onClick={() => navigate("/employee/history")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
                 >
-                  <span>Go to Leave History to Cancel Pending Leaves</span>
+                  <span>Go to Leave History</span>
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -442,7 +442,7 @@ export default function ApplyLeave() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 hover:scale-[1.01] transition-all duration-300 cursor-pointer text-lg tracking-wide disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer text-base sm:text-lg tracking-wide disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <span>{isPastLeave ? "Review Past Leave Record" : "Review & Submit Leave"}</span>
           <ArrowRight size={18} />

@@ -27,8 +27,8 @@ export default function AllEmployee() {
   }, []);
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <h1 className="text-3xl font-bold text-textDark">All Employees</h1>
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+      <h1 className="text-2xl sm:text-3xl font-bold text-textDark">All Employees</h1>
 
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
@@ -40,12 +40,12 @@ export default function AllEmployee() {
           No employees found.
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {employees.map((emp) => (
             <div
               key={emp._id}
               onClick={() => navigate(`/admin/employee/${emp._id}`)}
-              className="cursor-pointer bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition text-center"
+              className="cursor-pointer bg-white p-5 sm:p-6 rounded-2xl shadow-sm hover:shadow-xl transition text-center border border-slate-100"
             >
               {/* Circle Avatar */}
               <div className="w-16 h-16 mx-auto rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold">
