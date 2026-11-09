@@ -41,54 +41,56 @@ export default function EmployeeDetail() {
   }, [id]);
 
   return (
-    <div className="space-y-7">
-      <h1 className="text-3xl font-bold text-textDark">
+    <div className="space-y-6 sm:space-y-7">
+      <h1 className="text-2xl sm:text-3xl font-bold text-textDark">
         {employeeName ? `${employeeName}'s Details` : "Employee Details"}
       </h1>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
         {totalLeaves.map((leave, index) => (
           <LeaveCard key={index} {...leave} />
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-            <tr>
-              <th className="p-4 text-left">Month</th>
-              <th className="p-4 text-left">Type</th>
-              <th className="p-4 text-left">Days</th>
-              <th className="p-4 text-left">From</th>
-              <th className="p-4 text-left">To</th>
-              <th className="p-4 text-left">Reason</th>
-              <th className="p-4 text-left">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.length === 0 ? (
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sm:text-xs">
               <tr>
-                <td colSpan="7" className="text-center p-6 text-gray-400">
-                  No leave history found
-                </td>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">Month</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">Type</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">Days</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">From</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">To</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">Reason</th>
+                <th className="p-3 sm:p-4 text-left whitespace-nowrap">Status</th>
               </tr>
-            ) : (
-              history.map((item) => (
-                <tr key={item._id} className="border-t hover:bg-gray-50 transition">
-                  <td className="p-4">{item.month}</td>
-                  <td className="p-4 capitalize">{item.type}</td>
-                  <td className="p-4 font-semibold">{item.days}</td>
-                  <td className="p-4">{item.from}</td>
-                  <td className="p-4">{item.to}</td>
-                  <td className="p-4 max-w-xs truncate">{item.reason}</td>
-                  <td className="p-4">
-                    <StatusBadge status={item.status} />
+            </thead>
+            <tbody>
+              {history.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center p-6 text-gray-400">
+                    No leave history found
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                history.map((item) => (
+                  <tr key={item._id} className="border-t hover:bg-gray-50 transition">
+                    <td className="p-3 sm:p-4 whitespace-nowrap">{item.month}</td>
+                    <td className="p-3 sm:p-4 capitalize whitespace-nowrap">{item.type}</td>
+                    <td className="p-3 sm:p-4 font-semibold whitespace-nowrap">{item.days}</td>
+                    <td className="p-3 sm:p-4 whitespace-nowrap">{item.from}</td>
+                    <td className="p-3 sm:p-4 whitespace-nowrap">{item.to}</td>
+                    <td className="p-3 sm:p-4 max-w-xs truncate">{item.reason}</td>
+                    <td className="p-3 sm:p-4 whitespace-nowrap">
+                      <StatusBadge status={item.status} />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -246,83 +246,83 @@ export default function VerticalLeadDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-6 md:p-10 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-5 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4 sm:pb-5 gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               {dashboardData.vertical} Vertical Dashboard
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Overview of team leave balance and approval requests.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 bg-indigo-600 text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
             >
               <UserPlus size={16} />
-              Add Team Member
+              <span>Add Team Member</span>
             </button>
 
             <button
               onClick={() => fetchDashboardData()}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 text-sm font-medium transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl shadow-sm hover:bg-gray-50 text-xs sm:text-sm font-medium transition cursor-pointer"
             >
               <RotateCcw size={15} />
-              Refresh
+              <span>Refresh</span>
             </button>
           </div>
         </div>
 
         {/* Stats Summary Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Team Strength
               </p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-1">
+              <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">
                 {dashboardData.totalTeamMembers}
               </h3>
             </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg text-xl">👥</div>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl text-xl">👥</div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Pending Requests
               </p>
-              <h3 className="text-3xl font-bold text-amber-600 mt-1">
+              <h3 className="text-2xl sm:text-3xl font-bold text-amber-600 mt-1">
                 {pendingCount}
               </h3>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-lg text-xl">⏳</div>
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl text-xl">⏳</div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Approved Leaves
               </p>
-              <h3 className="text-3xl font-bold text-emerald-600 mt-1">
+              <h3 className="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">
                 {approvedCount}
               </h3>
             </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-xl">✅</div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xl">✅</div>
           </div>
         </div>
 
         {/* Section 1: Team Member Leave Balance Breakdown */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs p-4 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
                 Team Members Leave Balances
               </h2>
               <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -339,13 +339,13 @@ export default function VerticalLeadDashboard() {
               No non-lead team members assigned to this vertical.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {dashboardData.teamMembers
                 .filter((member) => !member.isVerticalLead)
                 .map((member) => (
                   <div
                     key={member._id}
-                    className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+                    className="p-4 sm:p-5 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
                   >
                     <div>
                       <h4 className="font-bold text-slate-900 text-base truncate" title={member.name}>
@@ -357,32 +357,32 @@ export default function VerticalLeadDashboard() {
                     </div>
 
                     {/* Color-Coded Leave Stats */}
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div className="bg-indigo-50/80 border border-indigo-100 p-2.5 rounded-xl space-y-0.5">
-                        <p className="text-indigo-600 font-bold text-[11px]">Casual</p>
-                        <p className="font-black text-indigo-950 text-sm">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-xs">
+                      <div className="bg-indigo-50/80 border border-indigo-100 p-2 sm:p-2.5 rounded-xl space-y-0.5">
+                        <p className="text-indigo-600 font-bold text-[10px] sm:text-[11px]">Casual</p>
+                        <p className="font-black text-indigo-950 text-xs sm:text-sm">
                           {member.leaveBalance?.casual?.taken ?? 0}{" "}
-                          <span className="text-slate-400 text-xs font-normal">
+                          <span className="text-slate-400 text-[10px] sm:text-xs font-normal">
                             / {member.leaveBalance?.casual?.total ?? 11}
                           </span>
                         </p>
                       </div>
 
-                      <div className="bg-rose-50/80 border border-rose-100 p-2.5 rounded-xl space-y-0.5">
-                        <p className="text-rose-600 font-bold text-[11px]">Sick</p>
-                        <p className="font-black text-rose-950 text-sm">
+                      <div className="bg-rose-50/80 border border-rose-100 p-2 sm:p-2.5 rounded-xl space-y-0.5">
+                        <p className="text-rose-600 font-bold text-[10px] sm:text-[11px]">Sick</p>
+                        <p className="font-black text-rose-950 text-xs sm:text-sm">
                           {member.leaveBalance?.sick?.taken ?? 0}{" "}
-                          <span className="text-slate-400 text-xs font-normal">
+                          <span className="text-slate-400 text-[10px] sm:text-xs font-normal">
                             / {member.leaveBalance?.sick?.total ?? 10}
                           </span>
                         </p>
                       </div>
 
-                      <div className="bg-emerald-50/80 border border-emerald-100 p-2.5 rounded-xl space-y-0.5">
-                        <p className="text-emerald-600 font-bold text-[11px]">Flexible</p>
-                        <p className="font-black text-emerald-950 text-sm">
+                      <div className="bg-emerald-50/80 border border-emerald-100 p-2 sm:p-2.5 rounded-xl space-y-0.5">
+                        <p className="text-emerald-600 font-bold text-[10px] sm:text-[11px]">Flexible</p>
+                        <p className="font-black text-emerald-950 text-xs sm:text-sm">
                           {member.leaveBalance?.flexible?.taken ?? 0}{" "}
-                          <span className="text-slate-400 text-xs font-normal">
+                          <span className="text-slate-400 text-[10px] sm:text-xs font-normal">
                             / {member.leaveBalance?.flexible?.total ?? 5}
                           </span>
                         </p>
@@ -404,11 +404,11 @@ export default function VerticalLeadDashboard() {
         </div>
 
         {/* Section 2: Team Leave Requests with Server-Side Filters & Pagination */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Header & Filter Controls Bar */}
-          <div className="px-6 py-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white">
+          <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 bg-white">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-gray-800">Team Leave Requests</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-800">Team Leave Requests</h2>
               <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
                 {hasActiveFilters 
                   ? `Filtered: ${pagination.total} results` 
@@ -542,15 +542,15 @@ export default function VerticalLeadDashboard() {
 
           {/* Server-Side Pagination Bar with Rows Per Page & Navigation Arrows */}
           {!tableLoading && pagination.total > 0 && (
-            <div className="px-6 py-4 border-t border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left Side: Rows per page selector & Total count */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-600">Rows per page:</span>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="font-semibold text-gray-600">Rows:</span>
                   <select
                     value={pageSize}
                     onChange={(e) => handlePageSizeChange(e.target.value)}
-                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
+                    className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
                   >
                     <option value="25">25</option>
                     <option value="50">50</option>
@@ -560,7 +560,7 @@ export default function VerticalLeadDashboard() {
 
                 <span className="text-gray-300">|</span>
 
-                <span>
+                <span className="text-center sm:text-left">
                   Showing <span className="font-bold text-gray-800">{(currentPage - 1) * pagination.limit + 1}</span> to{" "}
                   <span className="font-bold text-gray-800">
                     {Math.min(currentPage * pagination.limit, pagination.total)}
@@ -570,15 +570,15 @@ export default function VerticalLeadDashboard() {
               </div>
 
               {/* Right Side: Arrow Navigation & Page Numbers */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={!pagination.hasPrevPage || tableLoading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                   title="Previous page"
                 >
                   <ChevronLeft size={15} />
-                  <span>Previous</span>
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
 
                 {/* Page Number Buttons */}
@@ -609,10 +609,10 @@ export default function VerticalLeadDashboard() {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!pagination.hasNextPage || tableLoading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                   title="Next page"
                 >
-                  <span>Next</span>
+                  <span className="hidden sm:inline">Next</span>
                   <ChevronRight size={15} />
                 </button>
               </div>

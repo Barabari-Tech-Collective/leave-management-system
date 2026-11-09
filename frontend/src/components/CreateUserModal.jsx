@@ -97,24 +97,24 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
   }
 };
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-50 p-2 sm:p-4 animate-fadeIn">
+      <div className="bg-white w-full max-w-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[92vh]">
         
         {/* Top Header Bar */}
-        <div className="bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 p-4 sm:p-6 text-white relative">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
+            className="absolute top-4 sm:top-5 right-4 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
           >
             <X size={18} />
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-white/15 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner">
-              <UserPlus size={22} className="text-white" />
+          <div className="flex items-center gap-3 pr-8">
+            <div className="p-2.5 sm:p-3 bg-white/15 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner shrink-0">
+              <UserPlus size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Onboard New Member</h2>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight">Onboard New Member</h2>
               <p className="text-xs text-indigo-100 mt-0.5 font-medium">
                 {isAdmin
                   ? "Provision credentials and assign roles across organization verticals."
@@ -125,10 +125,10 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1 text-sm font-medium">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1 text-sm font-medium">
           
           {/* Full Name & Email */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
                 Full Name
@@ -174,7 +174,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
           </div>
 
           {/* Password with Eye Toggle & Job Title */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block mb-1.5 text-xs font-bold uppercase tracking-wider text-slate-600">
                 Temporary Password
@@ -241,12 +241,12 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
 
           {/* Admin Exclusive Permissions Box */}
           {isAdmin && (
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+            <div className="p-3.5 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-primary" /> Privilege & Governance Settings
               </span>
 
-              <div className="grid grid-cols-2 gap-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1">
                 <div
                   onClick={() => setForm({ ...form, isVerticalLead: !form.isVerticalLead })}
                   className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition select-none ${
@@ -282,18 +282,18 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
           )}
 
           {/* Modal Actions Footer */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition cursor-pointer"
+              className="w-full sm:flex-1 py-2.5 sm:py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition cursor-pointer text-xs sm:text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || Boolean(emailError)}
-              className="flex-1 py-3 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition cursor-pointer disabled:opacity-50"
+              className="w-full sm:flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/30 transition cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
             >
               {loading ? "Onboarding..." : "Confirm & Save Member"}
             </button>

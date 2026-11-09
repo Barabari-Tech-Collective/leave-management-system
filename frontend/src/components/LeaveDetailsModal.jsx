@@ -133,17 +133,17 @@ export default function LeaveDetailsModal({
 
   return createPortal(
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4"
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-2 sm:p-4"
       onClick={handleClose}
     >
       <div 
-        className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[92vh] sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900">
               {leave.isPastLeave ? "Past Leave Record" : "Leave Request Details"}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -154,16 +154,16 @@ export default function LeaveDetailsModal({
           </div>
           <button
             onClick={handleClose}
-            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition cursor-pointer shrink-0"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
           {leave.isPastLeave && (
-            <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center gap-2.5 text-xs text-indigo-800 font-medium">
+            <div className="p-3 sm:p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center gap-2.5 text-xs text-indigo-800 font-medium">
               <Clock size={16} className="text-indigo-600 shrink-0" />
               <span>
                 <strong>Past Leave Record:</strong> This leave was already taken and automatically approved. Its status cannot be modified or revoked.
@@ -172,7 +172,7 @@ export default function LeaveDetailsModal({
           )}
 
           {leave.status === "cancelled" && (
-            <div className="p-3.5 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-2.5 text-xs text-slate-700 font-medium">
+            <div className="p-3 sm:p-3.5 bg-slate-100 border border-slate-200 rounded-2xl flex items-center gap-2.5 text-xs text-slate-700 font-medium">
               <Ban size={16} className="text-slate-500 shrink-0" />
               <span>
                 <strong>Leave Cancelled:</strong> This leave request was cancelled by the employee. No approval action is required.
@@ -181,16 +181,16 @@ export default function LeaveDetailsModal({
           )}
 
           {/* Employee Info Header Card */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+          <div className="flex flex-wrap items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm sm:text-base shadow-sm shrink-0">
                 {leave.user?.name ? leave.user.name.charAt(0).toUpperCase() : <User size={18} />}
               </div>
-              <div>
-                <h4 className="font-bold text-slate-900 text-base">{leave.user?.name || "Unknown User"}</h4>
-                <p className="text-xs text-slate-500">{leave.user?.email || "No email"}</p>
+              <div className="truncate">
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{leave.user?.name || "Unknown User"}</h4>
+                <p className="text-xs text-slate-500 truncate">{leave.user?.email || "No email"}</p>
                 {leave.vertical && (
-                  <span className="inline-block mt-1 text-[11px] font-semibold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                  <span className="inline-block mt-1 text-[10px] sm:text-[11px] font-semibold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
                     {leave.vertical} Vertical
                   </span>
                 )}
@@ -200,20 +200,20 @@ export default function LeaveDetailsModal({
           </div>
 
           {/* Quick Metrics Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Leave Type</p>
-              <p className="text-sm font-bold text-slate-800 capitalize mt-0.5">{leave.type || "-"}</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 text-center sm:text-left">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Leave Type</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-800 capitalize mt-0.5 truncate">{leave.type || "-"}</p>
             </div>
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Duration</p>
-              <p className="text-sm font-bold text-slate-800 mt-0.5">
+            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 text-center sm:text-left">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Duration</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
                 {leave.days} {leave.days === 1 ? "Day" : "Days"}
               </p>
             </div>
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Applied On</p>
-              <p className="text-sm font-bold text-slate-800 mt-0.5">{formatDate(leave.createdAt)}</p>
+            <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 text-center sm:text-left">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Applied On</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5 truncate">{formatDate(leave.createdAt)}</p>
             </div>
           </div>
 
@@ -415,16 +415,16 @@ export default function LeaveDetailsModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           <button
             onClick={handleClose}
-            className="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 transition cursor-pointer text-center"
           >
             Close
           </button>
 
           {/* Contextual Actions based on leave status */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
             {leave.isPastLeave ? (
               <span className="text-xs font-medium text-slate-400 italic px-2">
                 Past leave cannot be modified or revoked

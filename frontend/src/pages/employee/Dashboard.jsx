@@ -278,69 +278,61 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn p-2">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn p-1 sm:p-2">
       {/* Header with Title and Quick Apply Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4 sm:pb-5">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-textDark tracking-tight drop-shadow-sm">
             Dashboard Overview
           </h1>
-          <p className="text-slate-500 mt-1 font-medium text-sm sm:text-base">
+          <p className="text-slate-500 mt-1 font-medium text-xs sm:text-sm md:text-base">
             Track your leave balance, pending approvals, and recent leave history at a glance.
           </p>
         </div>
-
-        {/* <button
-          onClick={() => navigate("/employee/apply")}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-white font-semibold text-sm rounded-xl shadow-sm transition hover:shadow cursor-pointer self-start sm:self-auto shrink-0"
-        >
-          <PlusCircle size={17} />
-          <span>Apply for Leave</span>
-        </button> */}
       </div>
 
       {/* Pending Approvals Summary Banner */}
       {loading ? (
-        <div className="rounded-2xl p-5 border border-slate-200 bg-slate-50/70 animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-200 shrink-0" />
+        <div className="rounded-2xl p-4 sm:p-5 border border-slate-200 bg-slate-50/70 animate-pulse">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-200 shrink-0" />
             <div className="space-y-2 flex-1">
-              <div className="h-4 w-40 bg-slate-200 rounded" />
-              <div className="h-3 w-64 bg-slate-200 rounded" />
+              <div className="h-4 w-32 sm:w-40 bg-slate-200 rounded" />
+              <div className="h-3 w-48 sm:w-64 bg-slate-200 rounded" />
             </div>
           </div>
         </div>
       ) : (
         <div
-          className={`rounded-2xl p-5 border shadow-2xs transition-all duration-300 ${
+          className={`rounded-2xl p-4 sm:p-5 border shadow-2xs transition-all duration-300 ${
             pendingCount > 0
               ? "bg-gradient-to-r from-amber-50/90 via-orange-50/50 to-amber-50/80 border-amber-200"
               : "bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-emerald-50/70 border-emerald-200"
           }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 border mt-0.5 sm:mt-0 ${
                   pendingCount > 0
                     ? "bg-amber-100 text-amber-700 border-amber-300 shadow-2xs"
                     : "bg-emerald-100 text-emerald-700 border-emerald-300 shadow-2xs"
                 }`}
               >
                 {pendingCount > 0 ? (
-                  <Clock className="w-6 h-6 animate-pulse" />
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
                 ) : (
-                  <CheckCircle2 className="w-6 h-6" />
+                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2.5">
-                  <h3 className="font-bold text-slate-800 text-base sm:text-lg">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                  <h3 className="font-bold text-slate-800 text-sm sm:text-base md:text-lg">
                     Pending for Approval
                   </h3>
                   <span
-                    className={`text-xs px-2.5 py-0.5 rounded-full font-bold tracking-wide border ${
+                    className={`text-[11px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full font-bold tracking-wide border ${
                       pendingCount > 0
                         ? "bg-amber-200/80 text-amber-900 border-amber-300"
                         : "bg-emerald-200/80 text-emerald-900 border-emerald-300"
@@ -361,16 +353,16 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 self-end sm:self-auto">
+            <div className="flex items-center gap-3 self-start sm:self-auto shrink-0">
               <button
                 onClick={() => navigate("/employee/history")}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs ${
+                className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs ${
                   pendingCount > 0
                     ? "bg-amber-600 hover:bg-amber-700 text-white"
                     : "bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
                 }`}
               >
-                <span>{pendingCount > 0 ? "View Pending in History" : "View All History"}</span>
+                <span>{pendingCount > 0 ? "View Pending" : "View All History"}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -380,12 +372,12 @@ export default function Dashboard() {
 
       {/* Leave Balances Grid */}
       <div>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Leave Quota & Balances</h2>
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Leave Quota & Balances</h2>
           <p className="text-xs text-slate-500">Overview of remaining days across each category for 2026</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {leaveData.map((leave, index) => (
             <LeaveCard key={index} {...leave} />
           ))}
@@ -398,7 +390,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-indigo-600" />
-              <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">
                 Recent Leave Applications
               </h2>
             </div>
@@ -410,7 +402,7 @@ export default function Dashboard() {
           {/* View More Button Redirecting to History */}
           <button
             onClick={() => navigate("/employee/history")}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-2xs group border border-indigo-100"
+            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-2xs group border border-indigo-100 self-start sm:self-auto shrink-0"
           >
             <span>View More</span>
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
