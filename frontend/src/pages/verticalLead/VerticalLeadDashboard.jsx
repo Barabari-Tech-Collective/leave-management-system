@@ -4,20 +4,14 @@ import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 import EmployeeHistoryModal from "../../components/EmployeeHistoryModal";
-import EmailRetryButton from "../../components/EmailRetryButton";
 import LeaveFilterBar from "../../components/LeaveFilterBar";
-import StatusBadge from "../../components/StatusBadge";
+import TablePagination from "../../components/TablePagination";
+import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
 import { useAuth } from "../../context/AuthContext";
 import { 
   UserPlus, 
   RotateCcw, 
-  Eye, 
-  History, 
-  CheckCircle2, 
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  AlertCircle
+  History 
 } from "lucide-react";
 
 export default function VerticalLeadDashboard() {
@@ -431,193 +425,32 @@ export default function VerticalLeadDashboard() {
           </div>
 
           {/* Leaves Table */}
-          {tableLoading ? (
-            <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-400">
-              <Loader2 className="w-7 h-7 animate-spin text-indigo-600" />
-              <p className="text-xs font-medium">Loading requests...</p>
-            </div>
-          ) : dashboardData.teamLeaves.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
-              {hasActiveFilters ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-slate-600">No leave requests match the selected filters.</p>
-                  <button
-                    onClick={resetFilters}
-                    className="text-xs text-indigo-600 font-bold hover:underline cursor-pointer"
-                  >
-                    Reset filters to view all
-                  </button>
-                </div>
-              ) : (
-                <p className="text-sm">No leave applications found for this team.</p>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold border-b border-gray-100">
-                    <th className="py-3.5 px-6">Employee</th>
-                    <th className="py-3.5 px-6">Type</th>
-                    <th className="py-3.5 px-6">Dates</th>
-                    <th className="py-3.5 px-6">Days</th>
-                    <th className="py-3.5 px-6">Status</th>
-                    <th className="py-3.5 px-6">Email</th>
-                    <th className="py-3.5 px-6 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
-                  {dashboardData.teamLeaves.map((leave) => (
-                    <tr key={leave._id} className="hover:bg-gray-50/50 transition">
-                      <td className="py-4 px-6 font-medium text-gray-900">
-                        {leave.user?.name || "Unknown"}
-                        <div className="text-xs text-gray-400 font-normal">{leave.user?.email}</div>
-                      </td>
-                      <td className="py-4 px-6 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="capitalize font-semibold text-gray-700">{leave.type}</span>
-                          {leave.isPastLeave && (
-                            <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              Past Leave
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-gray-600 whitespace-nowrap">
-                        {new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })} -{" "}
-                        {new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })}
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-gray-800">
-                        {leave.days} {leave.days === 1 ? "day" : "days"}
-                      </td>
-                      <td className="py-4 px-6">
-                        <StatusBadge status={leave.status} />
-                      </td>
-                      <td className="py-4 px-6 whitespace-nowrap">
-                        {leave.status === "pending" || leave.status === "cancelled" || leave.isPastLeave || !leave.decisionEmailStatus || leave.decisionEmailStatus === "none" ? (
-                          <span className="text-gray-400 font-bold text-sm px-2">-</span>
-                        ) : leave.decisionEmailStatus === "failed" ? (
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
-                              title={leave.decisionEmailError || "Status email delivery failed"}
-                            >
-                              <AlertCircle size={12} className="text-rose-600" />
-                              Failed
-                            </span>
-                            <EmailRetryButton
-                              onRetry={() => handleResendDecisionEmail(leave._id)}
-                              isRetrying={retryingEmailId === leave._id}
-                              cooldownSeconds={cooldowns[leave._id] || 0}
-                              size="xs"
-                            />
-                          </div>
-                        ) : leave.decisionEmailStatus === "sent" ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            title="Notification email sent to employee"
-                          >
-                            <CheckCircle2 size={12} className="text-emerald-600" />
-                            Sent
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 font-bold text-sm px-2">-</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedLeaveForReview(leave)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
-                        >
-                          <Eye size={14} />
-                          <span>View</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ApprovalLeaveTable
+            leaves={dashboardData.teamLeaves}
+            loading={tableLoading}
+            actionLabel="View"
+            memberColumnLabel="Employee"
+            onViewLeave={setSelectedLeaveForReview}
+            onResendEmail={handleResendDecisionEmail}
+            retryingId={retryingEmailId}
+            cooldowns={cooldowns}
+            emptyMessage={
+              hasActiveFilters
+                ? "No leave requests match the selected filters."
+                : "No leave applications found for this team."
+            }
+            onResetFilters={hasActiveFilters ? resetFilters : null}
+          />
 
-          {/* Server-Side Pagination Bar with Rows Per Page & Navigation Arrows */}
-          {!tableLoading && pagination.total > 0 && (
-            <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-100 bg-white flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-              {/* Left Side: Rows per page selector & Total count */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-xs text-gray-500">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="font-semibold text-gray-600">Rows:</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => handlePageSizeChange(e.target.value)}
-                    className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-2xs"
-                  >
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                </div>
-
-                <span className="text-gray-300">|</span>
-
-                <span className="text-center sm:text-left">
-                  Showing <span className="font-bold text-gray-800">{(currentPage - 1) * pagination.limit + 1}</span> to{" "}
-                  <span className="font-bold text-gray-800">
-                    {Math.min(currentPage * pagination.limit, pagination.total)}
-                  </span>{" "}
-                  of <span className="font-bold text-gray-800">{pagination.total}</span> requests
-                </span>
-              </div>
-
-              {/* Right Side: Arrow Navigation & Page Numbers */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={!pagination.hasPrevPage || tableLoading}
-                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
-                  title="Previous page"
-                >
-                  <ChevronLeft size={15} />
-                  <span className="hidden sm:inline">Previous</span>
-                </button>
-
-                {/* Page Number Buttons */}
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-                    .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - currentPage) <= 1)
-                    .map((p, index, array) => {
-                      const showEllipsis = index > 0 && p - array[index - 1] > 1;
-                      return (
-                        <React.Fragment key={p}>
-                          {showEllipsis && <span className="px-1 text-xs text-gray-400">...</span>}
-                          <button
-                            onClick={() => handlePageChange(p)}
-                            disabled={tableLoading}
-                            className={`w-7 h-7 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                              currentPage === p
-                                ? "bg-indigo-600 text-white shadow-xs"
-                                : "bg-white hover:bg-gray-100 text-gray-700 border border-gray-200"
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        </React.Fragment>
-                      );
-                    })}
-                </div>
-
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!pagination.hasNextPage || tableLoading}
-                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
-                  title="Next page"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Server-Side Pagination Bar */}
+          <TablePagination
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            loading={tableLoading}
+            itemLabel="requests"
+            className="px-4 py-3 sm:px-6 sm:py-4 bg-white"
+          />
         </div>
 
       </div>

@@ -994,29 +994,59 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
   }
 };
 
-// 10. GET LEAD REQUESTS (Admin Only: Fetch all leaves requested by Vertical Leads with server-side filters & availableYears)
+// 10. GET LEAD REQUESTS (Admin Only: Fetch all leaves requested by Vertical Leads with server-side filters, pagination & availableYears)
 exports.getLeadRequestsForAdmin = async (req, res) => {
   try {
-    // Find all users who are Vertical Leads
-    const leads = await User.find({ isVerticalLead: true }).select("_id");
-    const leadIds = leads.map((l) => l._id);
+    const { status, year, month, vertical } = req.query;
 
-    const baseFilter = { user: { $in: leadIds } };
-    const { status, year, month } = req.query;
+    // Find all users who are Vertical Leads
+    const allLeads = await User.find({ isVerticalLead: true }).select("_id vertical");
+    const allLeadIds = allLeads.map((l) => l._id);
+
+    let filteredLeadIds = allLeadIds;
+    if (vertical && vertical !== "all") {
+      filteredLeadIds = allLeads.filter((l) => l.vertical === vertical).map((l) => l._id);
+    }
+
+    const baseFilter = { user: { $in: filteredLeadIds } };
+    if (vertical && vertical !== "all") {
+      baseFilter.vertical = vertical;
+    }
+
     const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
 
-    const [availableYears, pendingCount, leadLeaves] = await Promise.all([
+    const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+    const skip = (page - 1) * limit;
+
+    const query = Leave.find(filter)
+      .populate("user", "name email vertical")
+      .sort({ createdAt: -1 });
+
+    if (isPaginated) {
+      query.skip(skip).limit(limit);
+    }
+
+    const [availableYears, pendingCount, totalFiltered, leadLeaves] = await Promise.all([
       getAvailableLeaveYears(baseFilter),
-      Leave.countDocuments({ ...baseFilter, status: "pending" }),
-      Leave.find(filter)
-        .populate("user", "name email vertical")
-        .sort({ createdAt: -1 })
+      Leave.countDocuments({ user: { $in: allLeadIds }, status: "pending" }),
+      Leave.countDocuments(filter),
+      query.exec()
     ]);
 
     res.json({
       leadLeaves,
       availableYears,
-      pendingCount
+      pendingCount,
+      pagination: {
+        page,
+        limit,
+        total: totalFiltered,
+        totalPages: Math.ceil(totalFiltered / limit) || 1,
+        hasNextPage: page < Math.ceil(totalFiltered / limit),
+        hasPrevPage: page > 1
+      }
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

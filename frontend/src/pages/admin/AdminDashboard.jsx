@@ -8,6 +8,8 @@ import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 import StatusBadge from "../../components/StatusBadge";
 import EmailRetryButton from "../../components/EmailRetryButton";
 import LeaveFilterBar from "../../components/LeaveFilterBar";
+import TablePagination from "../../components/TablePagination";
+import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
 import { 
   UserPlus, 
   CheckCircle, 
@@ -34,21 +36,50 @@ export default function AdminDashboard() {
   const [selectedVertical, setSelectedVertical] = useState("All");
   const [employees, setEmployees] = useState([]);
   
-  // Tab-specific state
+  // Operations Vertical (Tab 2) State
   const [opsData, setOpsData] = useState({ teamLeaves: [] });
-  const [leadLeaves, setLeadLeaves] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedLeaveForDetails, setSelectedLeaveForDetails] = useState(null);
-  const [retryingDecisionId, setRetryingDecisionId] = useState(null);
-  const [decisionCooldowns, setDecisionCooldowns] = useState({});
+  const [opsPage, setOpsPage] = useState(1);
+  const [opsPageSize, setOpsPageSize] = useState(25);
+  const [opsYearFilter, setOpsYearFilter] = useState("all");
+  const [opsMonthFilter, setOpsMonthFilter] = useState("all");
+  const [opsStatusFilter, setOpsStatusFilter] = useState("all");
+  const [opsAvailableYears, setOpsAvailableYears] = useState([new Date().getFullYear()]);
+  const [opsTableLoading, setOpsTableLoading] = useState(false);
+  const [opsPendingCount, setOpsPendingCount] = useState(0);
+  const [opsPagination, setOpsPagination] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
 
-  // Vertical Lead Requests Filter State
+  // Vertical Leads Approvals (Tab 3) State
+  const [leadLeaves, setLeadLeaves] = useState([]);
+  const [leadPage, setLeadPage] = useState(1);
+  const [leadPageSize, setLeadPageSize] = useState(25);
+  const [leadVerticalFilter, setLeadVerticalFilter] = useState("all");
   const [leadYearFilter, setLeadYearFilter] = useState("all");
   const [leadMonthFilter, setLeadMonthFilter] = useState("all");
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
   const [leadAvailableYears, setLeadAvailableYears] = useState([new Date().getFullYear()]);
   const [leadTableLoading, setLeadTableLoading] = useState(false);
   const [leadPendingCount, setLeadPendingCount] = useState(0);
+  const [leadPagination, setLeadPagination] = useState({
+    page: 1,
+    limit: 25,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+
+  // Modal & Retry State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLeaveForDetails, setSelectedLeaveForDetails] = useState(null);
+  const [retryingDecisionId, setRetryingDecisionId] = useState(null);
+  const [decisionCooldowns, setDecisionCooldowns] = useState({});
 
   // Countdown timer for decision email cooldowns
   useEffect(() => {
@@ -126,15 +157,32 @@ export default function AdminDashboard() {
       setLoading(true);
       const [empRes, opsRes, leadRes] = await Promise.all([
         API.get("/users/all"),
-        API.get("/leave/team-dashboard?vertical=Operations"),
-        API.get("/leave/lead-requests")
+        API.get(`/leave/team-dashboard?vertical=Operations&page=1&limit=${opsPageSize}`),
+        API.get(`/leave/lead-requests?page=1&limit=${leadPageSize}`)
       ]);
 
       setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
-      setOpsData(opsRes.data || { teamLeaves: [] });
 
+      // Set Operations data
+      setOpsData(opsRes.data || { teamLeaves: [] });
+      if (opsRes.data?.pagination) {
+        setOpsPagination(opsRes.data.pagination);
+      }
+      if (opsRes.data?.availableYears && Array.isArray(opsRes.data.availableYears)) {
+        setOpsAvailableYears(opsRes.data.availableYears);
+      }
+      if (opsRes.data?.stats?.pending !== undefined) {
+        setOpsPendingCount(opsRes.data.stats.pending);
+      } else {
+        setOpsPendingCount((opsRes.data?.teamLeaves || []).filter((l) => l.status === "pending").length);
+      }
+
+      // Set Lead data
       const leadLeavesData = leadRes.data?.leadLeaves || (Array.isArray(leadRes.data) ? leadRes.data : []);
       setLeadLeaves(leadLeavesData);
+      if (leadRes.data?.pagination) {
+        setLeadPagination(leadRes.data.pagination);
+      }
       if (leadRes.data?.availableYears && Array.isArray(leadRes.data.availableYears)) {
         setLeadAvailableYears(leadRes.data.availableYears);
       }
@@ -152,8 +200,92 @@ export default function AdminDashboard() {
     }
   };
 
-  // Filtered fetch for Vertical Lead Requests
+  // Filtered & Paginated fetch for Operations Vertical Leaves
+  const fetchOpsLeaves = async (
+    targetPage = opsPage,
+    limit = opsPageSize,
+    yr = opsYearFilter,
+    mo = opsMonthFilter,
+    st = opsStatusFilter,
+    silent = false
+  ) => {
+    try {
+      if (!silent) setOpsTableLoading(true);
+      const params = new URLSearchParams({
+        vertical: "Operations",
+        page: targetPage.toString(),
+        limit: limit.toString()
+      });
+      if (yr !== "all") params.append("year", yr);
+      if (mo !== "all") params.append("month", mo);
+      if (st !== "all") params.append("status", st);
+
+      const res = await API.get(`/leave/team-dashboard?${params.toString()}`);
+
+      // Gracefully fall back to previous page if current page became empty after approving/rejecting
+      if (res.data?.teamLeaves?.length === 0 && targetPage > 1 && (res.data?.pagination?.total || 0) > 0) {
+        return fetchOpsLeaves(targetPage - 1, limit, yr, mo, st, silent);
+      }
+
+      setOpsData(res.data || { teamLeaves: [] });
+      if (res.data?.pagination) {
+        setOpsPagination(res.data.pagination);
+      }
+      if (res.data?.availableYears && Array.isArray(res.data.availableYears)) {
+        setOpsAvailableYears(res.data.availableYears);
+      }
+      if (res.data?.stats?.pending !== undefined) {
+        setOpsPendingCount(res.data.stats.pending);
+      }
+      setOpsPage(targetPage);
+    } catch (err) {
+      console.error("Failed to fetch operations leaves:", err);
+      toast.error("Failed to load operations leave requests");
+    } finally {
+      setOpsTableLoading(false);
+    }
+  };
+
+  const handleOpsPageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= (opsPagination?.totalPages || 1)) {
+      fetchOpsLeaves(newPage, opsPageSize, opsYearFilter, opsMonthFilter, opsStatusFilter);
+    }
+  };
+
+  const handleOpsPageSizeChange = (newSize) => {
+    setOpsPageSize(newSize);
+    fetchOpsLeaves(1, newSize, opsYearFilter, opsMonthFilter, opsStatusFilter);
+  };
+
+  const handleOpsYearChange = (yr) => {
+    setOpsYearFilter(yr);
+    fetchOpsLeaves(1, opsPageSize, yr, opsMonthFilter, opsStatusFilter);
+  };
+
+  const handleOpsMonthChange = (mo) => {
+    setOpsMonthFilter(mo);
+    fetchOpsLeaves(1, opsPageSize, opsYearFilter, mo, opsStatusFilter);
+  };
+
+  const handleOpsStatusChange = (st) => {
+    setOpsStatusFilter(st);
+    fetchOpsLeaves(1, opsPageSize, opsYearFilter, opsMonthFilter, st);
+  };
+
+  const resetOpsFilters = () => {
+    setOpsYearFilter("all");
+    setOpsMonthFilter("all");
+    setOpsStatusFilter("all");
+    fetchOpsLeaves(1, opsPageSize, "all", "all", "all");
+  };
+
+  const hasActiveOpsFilters = opsYearFilter !== "all" || opsMonthFilter !== "all" || opsStatusFilter !== "all";
+
+  // Filtered & Paginated fetch for Vertical Lead Requests
   const fetchLeadLeaves = async (
+    targetPage = leadPage,
+    limit = leadPageSize,
+    vert = leadVerticalFilter,
     yr = leadYearFilter,
     mo = leadMonthFilter,
     st = leadStatusFilter,
@@ -161,20 +293,34 @@ export default function AdminDashboard() {
   ) => {
     try {
       if (!silent) setLeadTableLoading(true);
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        page: targetPage.toString(),
+        limit: limit.toString()
+      });
+      if (vert !== "all") params.append("vertical", vert);
       if (yr !== "all") params.append("year", yr);
       if (mo !== "all") params.append("month", mo);
       if (st !== "all") params.append("status", st);
 
       const res = await API.get(`/leave/lead-requests?${params.toString()}`);
+
+      // Gracefully fall back to previous page if current page became empty after approving/rejecting
+      if (res.data?.leadLeaves?.length === 0 && targetPage > 1 && (res.data?.pagination?.total || 0) > 0) {
+        return fetchLeadLeaves(targetPage - 1, limit, vert, yr, mo, st, silent);
+      }
+
       const leaves = res.data?.leadLeaves || (Array.isArray(res.data) ? res.data : []);
       setLeadLeaves(leaves);
+      if (res.data?.pagination) {
+        setLeadPagination(res.data.pagination);
+      }
       if (res.data?.availableYears && Array.isArray(res.data.availableYears)) {
         setLeadAvailableYears(res.data.availableYears);
       }
       if (res.data?.pendingCount !== undefined) {
         setLeadPendingCount(res.data.pendingCount);
       }
+      setLeadPage(targetPage);
     } catch (err) {
       console.error("Failed to fetch lead leaves:", err);
       toast.error("Failed to load vertical lead leave requests");
@@ -183,34 +329,51 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLeadVerticalChange = (vert) => {
+    setLeadVerticalFilter(vert);
+    fetchLeadLeaves(1, leadPageSize, vert, leadYearFilter, leadMonthFilter, leadStatusFilter);
+  };
+
+  const handleLeadPageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= (leadPagination?.totalPages || 1)) {
+      fetchLeadLeaves(newPage, leadPageSize, leadVerticalFilter, leadYearFilter, leadMonthFilter, leadStatusFilter);
+    }
+  };
+
+  const handleLeadPageSizeChange = (newSize) => {
+    setLeadPageSize(newSize);
+    fetchLeadLeaves(1, newSize, leadVerticalFilter, leadYearFilter, leadMonthFilter, leadStatusFilter);
+  };
+
   const handleLeadYearChange = (yr) => {
     setLeadYearFilter(yr);
-    fetchLeadLeaves(yr, leadMonthFilter, leadStatusFilter);
+    fetchLeadLeaves(1, leadPageSize, leadVerticalFilter, yr, leadMonthFilter, leadStatusFilter);
   };
 
   const handleLeadMonthChange = (mo) => {
     setLeadMonthFilter(mo);
-    fetchLeadLeaves(leadYearFilter, mo, leadStatusFilter);
+    fetchLeadLeaves(1, leadPageSize, leadVerticalFilter, leadYearFilter, mo, leadStatusFilter);
   };
 
   const handleLeadStatusChange = (st) => {
     setLeadStatusFilter(st);
-    fetchLeadLeaves(leadYearFilter, leadMonthFilter, st);
+    fetchLeadLeaves(1, leadPageSize, leadVerticalFilter, leadYearFilter, leadMonthFilter, st);
   };
 
   const resetLeadFilters = () => {
+    setLeadVerticalFilter("all");
     setLeadYearFilter("all");
     setLeadMonthFilter("all");
     setLeadStatusFilter("all");
-    fetchLeadLeaves("all", "all", "all");
+    fetchLeadLeaves(1, leadPageSize, "all", "all", "all", "all");
   };
 
-  const hasActiveLeadFilters = leadYearFilter !== "all" || leadMonthFilter !== "all" || leadStatusFilter !== "all";
+  const hasActiveLeadFilters = leadVerticalFilter !== "all" || leadYearFilter !== "all" || leadMonthFilter !== "all" || leadStatusFilter !== "all";
 
   const handleLeaveStatusUpdated = async () => {
     await Promise.all([
-      fetchLeadLeaves(leadYearFilter, leadMonthFilter, leadStatusFilter, true),
-      API.get("/leave/team-dashboard?vertical=Operations").then((opsRes) => setOpsData(opsRes.data || { teamLeaves: [] }))
+      fetchLeadLeaves(leadPage, leadPageSize, leadVerticalFilter, leadYearFilter, leadMonthFilter, leadStatusFilter, true),
+      fetchOpsLeaves(opsPage, opsPageSize, opsYearFilter, opsMonthFilter, opsStatusFilter, true)
     ]);
   };
   //   useEffect(() => {
@@ -275,7 +438,7 @@ export default function AdminDashboard() {
     return matchesSearch && matchesVertical;
   });
 
-  const pendingOpsCount = (opsData.teamLeaves || []).filter((l) => l.status === "pending").length;
+  const displayPendingOpsCount = opsPendingCount || (opsData.teamLeaves || []).filter((l) => l.status === "pending").length;
 
   return (
     <div className="space-y-6 sm:space-y-8 p-1 sm:p-2">
@@ -319,9 +482,9 @@ export default function AdminDashboard() {
           }`}
         >
           <Briefcase size={16} /> <span>Operations Vertical</span>
-          {pendingOpsCount > 0 && (
+          {displayPendingOpsCount > 0 && (
             <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-              {pendingOpsCount}
+              {displayPendingOpsCount}
             </span>
           )}
         </button>
@@ -417,14 +580,58 @@ export default function AdminDashboard() {
       {/* TAB 2: OPERATIONS VERTICAL */}
       {activeTab === "operations" && (
         <div className="bg-white rounded-2xl sm:rounded-3xl shadow-md p-4 sm:p-6 border border-slate-100 space-y-4">
-          <h2 className="text-base sm:text-lg font-bold text-slate-800">Operations Team Leave Requests</h2>
-          <LeaveTableData
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">
+                  Operations Team Leave Requests
+                </h2>
+                <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
+                  {hasActiveOpsFilters 
+                    ? `Filtered: ${opsPagination.total} results` 
+                    : `${opsPagination.total} Total`}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 font-medium">
+                Review and manage leave requests for members in the Operations vertical.
+              </p>
+            </div>
+
+            <LeaveFilterBar
+              yearFilter={opsYearFilter}
+              onYearChange={handleOpsYearChange}
+              availableYears={opsAvailableYears}
+              monthFilter={opsMonthFilter}
+              onMonthChange={handleOpsMonthChange}
+              statusFilter={opsStatusFilter}
+              onStatusChange={handleOpsStatusChange}
+              onReset={resetOpsFilters}
+              hasActiveFilters={hasActiveOpsFilters}
+              showVerticalFilter={false}
+            />
+          </div>
+
+          <ApprovalLeaveTable
             leaves={opsData.teamLeaves || []}
-            onRefresh={fetchAllDashboardData}
+            loading={opsTableLoading}
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
             onResendEmail={handleResendDecisionEmail}
             retryingId={retryingDecisionId}
             cooldowns={decisionCooldowns}
+            emptyMessage={
+              hasActiveOpsFilters
+                ? "No operations requests match the selected filters."
+                : "No leave applications found for operations vertical."
+            }
+            onResetFilters={hasActiveOpsFilters ? resetOpsFilters : null}
+          />
+
+          <TablePagination
+            pagination={opsPagination}
+            onPageChange={handleOpsPageChange}
+            onPageSizeChange={handleOpsPageSizeChange}
+            loading={opsTableLoading}
+            itemLabel="requests"
           />
         </div>
       )}
@@ -440,8 +647,8 @@ export default function AdminDashboard() {
                 </h2>
                 <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
                   {hasActiveLeadFilters 
-                    ? `Filtered: ${leadLeaves.length} results` 
-                    : `${leadLeaves.length} Total`}
+                    ? `Filtered: ${leadPagination.total} results` 
+                    : `${leadPagination.total} Total`}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -450,6 +657,10 @@ export default function AdminDashboard() {
             </div>
 
             <LeaveFilterBar
+              showVerticalFilter={true}
+              verticalFilter={leadVerticalFilter}
+              onVerticalChange={handleLeadVerticalChange}
+              verticalOptions={["Program", "EdTech", "Placement"]}
               yearFilter={leadYearFilter}
               onYearChange={handleLeadYearChange}
               availableYears={leadAvailableYears}
@@ -462,10 +673,9 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <LeaveTableData
+          <ApprovalLeaveTable
             leaves={leadLeaves}
             loading={leadTableLoading}
-            onRefresh={fetchAllDashboardData}
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
             onResendEmail={handleResendDecisionEmail}
             retryingId={retryingDecisionId}
@@ -477,6 +687,14 @@ export default function AdminDashboard() {
                 : "No leave applications found from vertical leads."
             }
             onResetFilters={hasActiveLeadFilters ? resetLeadFilters : null}
+          />
+
+          <TablePagination
+            pagination={leadPagination}
+            onPageChange={handleLeadPageChange}
+            onPageSizeChange={handleLeadPageSizeChange}
+            loading={leadTableLoading}
+            itemLabel="requests"
           />
         </div>
       )}
@@ -500,151 +718,6 @@ export default function AdminDashboard() {
           decisionEmailCooldownSeconds={selectedLeaveForDetails ? (decisionCooldowns[selectedLeaveForDetails._id] || 0) : 0}
         />
       )}
-    </div>
-  );
-}
-
-// Sub-component rendering Leave Table with full View / Manage actions
-function LeaveTableData({
-  leaves = [],
-  loading = false,
-  onViewLeave,
-  showVertical = false,
-  onResendEmail,
-  retryingId = null,
-  cooldowns = {},
-  emptyMessage = "No leave applications found.",
-  onResetFilters = null
-}) {
-  if (loading) {
-    return (
-      <div className="p-16 flex flex-col items-center justify-center gap-3 text-slate-400">
-        <Loader2 className="w-7 h-7 animate-spin text-primary" />
-        <p className="text-xs font-medium">Loading requests...</p>
-      </div>
-    );
-  }
-
-  if (leaves.length === 0) {
-    return (
-      <div className="p-12 text-center text-slate-400 space-y-2">
-        <p className="text-sm font-medium">{emptyMessage}</p>
-        {onResetFilters && (
-          <button
-            onClick={onResetFilters}
-            className="text-xs text-primary font-bold hover:underline cursor-pointer"
-          >
-            Reset filters to view all
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-xs sm:text-sm border-collapse">
-        <thead>
-          <tr className="bg-slate-50 text-slate-500 uppercase text-[11px] sm:text-xs font-semibold border-b border-slate-100">
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Member</th>
-            {showVertical && <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Vertical</th>}
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Type</th>
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Dates</th>
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Days</th>
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Status</th>
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 whitespace-nowrap">Email Confirmation</th>
-            <th className="py-3 px-3 sm:py-3.5 sm:px-4 text-right whitespace-nowrap">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {leaves.map((leave) => {
-            const isEmailNotApplicable =
-              leave.status === "pending" ||
-              leave.status === "cancelled" ||
-              leave.isPastLeave ||
-              !leave.decisionEmailStatus ||
-              leave.decisionEmailStatus === "none";
-
-            return (
-              <tr key={leave._id} className="hover:bg-slate-50/70 transition">
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-semibold text-slate-900 whitespace-nowrap">
-                  {leave.user?.name || "Unknown"}
-                  <div className="text-xs text-slate-400 font-normal">{leave.user?.email}</div>
-                </td>
-                {showVertical && (
-                  <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-semibold text-indigo-600 whitespace-nowrap">
-                    {leave.user?.vertical || leave.vertical}
-                  </td>
-                )}
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span className="capitalize font-semibold text-slate-700">{leave.type}</span>
-                    {leave.isPastLeave && (
-                      <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        Past Leave
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 text-slate-600 whitespace-nowrap">
-                  {new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })} -{" "}
-                  {new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })}
-                </td>
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 font-bold text-slate-800 whitespace-nowrap">
-                  {leave.days} {leave.days === 1 ? "day" : "days"}
-                </td>
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
-                  <StatusBadge status={leave.status} />
-                </td>
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
-                  {isEmailNotApplicable ? (
-                    <span className="text-gray-400 font-bold text-sm px-2">-</span>
-                  ) : leave.decisionEmailStatus === "failed" ? (
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200"
-                        title={leave.decisionEmailError || "Status email delivery failed"}
-                      >
-                        <AlertCircle size={12} className="text-rose-600" />
-                        Failed
-                      </span>
-                      {onResendEmail && (
-                        <EmailRetryButton
-                          onRetry={() => onResendEmail(leave._id)}
-                          isRetrying={retryingId === leave._id}
-                          cooldownSeconds={cooldowns[leave._id] || 0}
-                          size="xs"
-                        />
-                      )}
-                    </div>
-                  ) : leave.decisionEmailStatus === "sent" ? (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      title="Notification email sent to employee"
-                    >
-                      <CheckCircle2 size={12} className="text-emerald-600" />
-                      Sent
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 font-bold text-sm px-2">-</span>
-                  )}
-                </td>
-                <td className="py-3.5 px-3 sm:py-4 sm:px-4 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => onViewLeave && onViewLeave(leave)}
-                    className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
-                    title="View full details and manage approval status"
-                  >
-                    <Eye size={14} />
-                    <span>View / Manage</span>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
