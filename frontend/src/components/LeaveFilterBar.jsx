@@ -12,12 +12,35 @@ export default function LeaveFilterBar({
   onMonthChange = noop,
   statusFilter = "all",
   onStatusChange = noop,
+  showVerticalFilter = false,
+  verticalFilter = "all",
+  onVerticalChange = noop,
+  verticalOptions = ["Program", "EdTech", "Placement"],
   onReset = noop,
   hasActiveFilters = false,
   className = ""
 }) {
   return (
     <div className={`flex flex-wrap items-center gap-2 sm:gap-2.5 ${className}`}>
+      {/* Vertical Filter (Optional for Vertical Lead Approvals) */}
+      {showVerticalFilter && (
+        <div className="flex items-center">
+          <select
+            value={verticalFilter}
+            onChange={(e) => onVerticalChange(e.target.value)}
+            aria-label="Filter by Vertical"
+            className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100 transition"
+          >
+            <option value="all">All Verticals</option>
+            {verticalOptions.map((v) => (
+              <option key={v} value={v}>
+                {v} Vertical
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Year Filter */}
       <div className="flex items-center">
         <select
