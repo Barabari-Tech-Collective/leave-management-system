@@ -72,7 +72,7 @@ export default function Login() {
 
       const loggedUser = res.data.user;
 
-      if (loggedUser.role === "admin") {
+      if (loggedUser.role === "admin" || loggedUser.role === "founder") {
         window.location.href = "/admin";
       } else if (loggedUser.isVerticalLead) {
         window.location.href = "/employee/team";
@@ -115,7 +115,7 @@ export default function Login() {
   }
 
   if (user) {
-    if (user.role === "admin") return <Navigate to="/admin" replace />;
+    if (user.role === "admin" || user.role === "founder") return <Navigate to="/admin" replace />;
     if (user.isVerticalLead) return <Navigate to="/employee/team" replace />;
     return <Navigate to="/employee" replace />;
   }

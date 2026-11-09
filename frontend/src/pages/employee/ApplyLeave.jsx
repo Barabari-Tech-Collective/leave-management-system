@@ -171,7 +171,7 @@ export default function ApplyLeave() {
 
       // 2. Pending leaves conflict check
       if (calculatedDays > effectiveAvailable) {
-        const errorMsg = `You have ${rawRemaining} remaining ${form.type} leave(s), but ${pendingCount} day(s) are currently pending approval. Please cancel your pending leave request(s) to apply for this leave.`;
+        const errorMsg = `You have ${rawRemaining} remaining ${form.type} leave(s), but ${pendingCount} day(s) are currently pending for  approval. Please cancel your pending leave request(s) to apply for this leave.`;
         setError(errorMsg);
         setPendingConflict({
           hasConflict: true,

@@ -31,6 +31,10 @@ const leaveSchema = new mongoose.Schema(
     cancelledAt: {
       type: Date
     },
+    cancelledFromStatus: {
+      type: String,
+      default: ""
+    },
     isPastLeave: {
       type: Boolean,
       default: false

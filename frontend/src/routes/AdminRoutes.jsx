@@ -6,7 +6,7 @@ export default function AdminRoute({ children }) {
 
   if (loading || user === undefined) return null;
 
-  if (user === null || user.role !== "admin") {
+  if (user === null || (user.role !== "admin" && user.role !== "founder")) {
     return <Navigate to="/employee" />;
   }
 

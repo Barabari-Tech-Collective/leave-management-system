@@ -1,7 +1,9 @@
-const mongoose = require("mongoose");
 const Leave = require("../models/Leave");
 const User = require("../models/User");
 const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("../services/emailService");
+const { parseDateUTC, calculateWorkingDays } = require("../utils/dateUtils");
+const { getNotificationRecipients } = require("../utils/recipientUtils");
+const { checkEmailCooldown } = require("../utils/cooldownUtils");
 
 // 1. APPLY LEAVE (Notifies Vertical Lead, Teammates & Admins)
 exports.applyLeave = async (req, res) => {
@@ -78,17 +80,7 @@ exports.applyLeave = async (req, res) => {
     }
 
     // Calculate total days excluding Sundays (deterministic UTC date operations)
-    let days = 0;
-    let current = new Date(queryFromDate);
-    const endDate = new Date(`${toDate}T00:00:00.000Z`);
-
-    while (current <= endDate) {
-      if (current.getUTCDay() !== 0) { // Skip Sundays (0)
-        days++;
-      }
-      current.setUTCDate(current.getUTCDate() + 1);
-    }
-
+    const days = calculateWorkingDays(fromDate, toDate, true);
     if (days <= 0) {
       return res.status(400).json({ message: "No working days selected (Sundays excluded)." });
     }
@@ -111,8 +103,18 @@ exports.applyLeave = async (req, res) => {
       });
     }
 
-    const balance = user.leaveBalance[type];
-    const rawRemaining = balance.total - balance.taken;
+    // Fetch fresh user balance to prevent stale snapshot race conditions
+    const freshUser = await User.findById(user._id);
+    if (!freshUser || !freshUser.leaveBalance || !freshUser.leaveBalance[type]) {
+      return res.status(400).json({
+        message: "Employee leave balance record not found. Please contact your Admin."
+      });
+    }
+
+    const balance = freshUser.leaveBalance[type];
+    const totalQuota = balance.total || 0;
+    const takenCount = balance.taken || 0;
+    const rawRemaining = Math.max(0, totalQuota - takenCount);
 
     // 1. First check: Does the employee have enough quota left in this category?
     if (days > rawRemaining) {
@@ -140,32 +142,35 @@ exports.applyLeave = async (req, res) => {
       });
     }
 
-    // A. Fetch Vertical Lead & Teammates in the same vertical (excluding soft-deleted/deactivated users)
-    const teamMembers = await User.find({
-      vertical: user.vertical,
-      _id: { $ne: user._id },
-      isDeleted: { $ne: true }
-    }).select("email");
-    const teamEmails = teamMembers.map((member) => member.email);
-
-    // B. Fetch Admins (excluding soft-deleted/deactivated admins)
-    const envAdmins = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase());
-
-    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
-    const dbAdminEmails = dbAdmins.map((admin) => admin.email);
-
-    const adminEmails = Array.from(
-      new Set([...dbAdminEmails, ...envAdmins].filter(Boolean))
-    );
+    // Fetch Vertical Lead, teammates, and admins
+    const { recipients, founderEmails } = await getNotificationRecipients(user);
 
     let leave;
+    let pastLeaveDeducted = false;
     try {
-      // For past leaves, immediately deduct balance since it is auto-approved
+      // For past leaves, immediately and atomically deduct balance with conditional check to prevent race condition overdrafts
       if (isPastLeave) {
-        user.leaveBalance[type].taken += days;
-        await user.save({ validateBeforeSave: false });
+        const updatedUser = await User.findOneAndUpdate(
+          {
+            _id: user._id,
+            [`leaveBalance.${type}.taken`]: { $lte: totalQuota - days }
+          },
+          {
+            $inc: { [`leaveBalance.${type}.taken`]: days }
+          },
+          { new: true }
+        );
+
+        if (!updatedUser) {
+          const recheckedUser = await User.findById(user._id);
+          const currentTaken = recheckedUser?.leaveBalance?.[type]?.taken || 0;
+          const currentTotal = recheckedUser?.leaveBalance?.[type]?.total || 0;
+          const currentRemaining = Math.max(0, currentTotal - currentTaken);
+          return res.status(400).json({
+            message: `Cannot record past leave: Insufficient balance. Required: ${days}, Remaining: ${currentRemaining}`
+          });
+        }
+        pastLeaveDeducted = true;
       }
 
       // C. Create Leave record (auto-approved for past leave, pending for regular leave)
@@ -189,8 +194,8 @@ exports.applyLeave = async (req, res) => {
         emailResult = await sendLeaveEmail({
           leave,
           employee: user,
-          recipients: [...teamEmails, ...adminEmails],
-          founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+          recipients,
+          founderEmails
         });
       } catch (emailErr) {
         console.error("sendLeaveEmail threw an unhandled error:", emailErr);
@@ -219,11 +224,12 @@ exports.applyLeave = async (req, res) => {
     } catch (innerErr) {
       console.error("Error during leave creation or email processing:", innerErr);
 
-      // Roll back balance deduction if leave creation failed for past leave
-      if (isPastLeave && (!leave || !leave._id)) {
+      // Roll back atomic balance deduction if leave creation failed for past leave
+      if (isPastLeave && pastLeaveDeducted && (!leave || !leave._id)) {
         try {
-          user.leaveBalance[type].taken = Math.max(0, user.leaveBalance[type].taken - days);
-          await user.save({ validateBeforeSave: false });
+          await User.findByIdAndUpdate(user._id, {
+            $inc: { [`leaveBalance.${type}.taken`]: -days }
+          });
         } catch (rollbackErr) {
           console.error("Failed to roll back user balance after leave creation error:", rollbackErr);
         }
@@ -340,10 +346,6 @@ exports.updateLeaveStatus = async (req, res) => {
     const { status, rejectionReason } = req.body;
     const currentCaller = req.user;
 
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid leave ID format." });
-    }
-
     // Validate status parameter
     if (!status || !["approved", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status. Allowed values: 'approved' or 'rejected'." });
@@ -356,6 +358,13 @@ exports.updateLeaveStatus = async (req, res) => {
     const leave = await Leave.findById(req.params.id).populate("user");
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found" });
+    }
+
+    // Early guard: Check if leave is already in target status (prevents duplicate execution & emails)
+    if (leave.status === status) {
+      return res.status(400).json({
+        message: `This leave request is already ${status}.`
+      });
     }
 
     // Past leaves cannot be modified or revoked as they have already been taken
@@ -372,16 +381,19 @@ exports.updateLeaveStatus = async (req, res) => {
       });
     }
 
+    // Founders and Admins share top-level administrative authority
+    const isPrivilegedAdmin = currentCaller.role === "admin" || currentCaller.role === "founder";
+
     // Prevent Vertical Leads from self-approving their own leave applications
     const isOwner = leave.user && leave.user._id.toString() === currentCaller._id.toString();
-    if (isOwner && currentCaller.role !== "admin") {
+    if (isOwner && !isPrivilegedAdmin) {
       return res.status(403).json({
         message: "Vertical Leads cannot approve or reject their own leave requests. Admin approval is required."
       });
     }
 
-    // Verify Authorization: Caller must be Admin OR the Vertical Lead of that team
-    const isAuthorized = currentCaller.role === "admin" ||
+    // Verify Authorization: Caller must be Admin/Founder OR the Vertical Lead of that team
+    const isAuthorized = isPrivilegedAdmin ||
       (currentCaller.isVerticalLead && currentCaller.vertical === leave.vertical);
 
     if (!isAuthorized) {
@@ -490,18 +502,16 @@ exports.cancelLeave = async (req, res) => {
     const currentCaller = req.user;
     const leaveId = req.params.id;
 
-    if (!mongoose.Types.ObjectId.isValid(leaveId)) {
-      return res.status(400).json({ message: "Invalid leave ID format." });
-    }
-
     const leave = await Leave.findById(leaveId).populate("user");
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found." });
     }
 
-    // Verify ownership: only the owner or an admin can cancel
+    const isPrivilegedAdmin = currentCaller.role === "admin" || currentCaller.role === "founder";
+
+    // Verify ownership: only the owner or an admin/founder can cancel
     const isOwner = leave.user && leave.user._id.toString() === currentCaller._id.toString();
-    if (!isOwner && currentCaller.role !== "admin") {
+    if (!isOwner && !isPrivilegedAdmin) {
       return res.status(403).json({ message: "Access denied. You can only cancel your own leave requests." });
     }
 
@@ -521,14 +531,15 @@ exports.cancelLeave = async (req, res) => {
       return res.status(400).json({ message: "Cannot cancel a leave request that was already rejected." });
     }
 
-    // Approved leaves cannot be cancelled by employee
-    if (leave.status === "approved" && currentCaller.role !== "admin") {
+    // Approved leaves cannot be cancelled by employee (Admin/Founder override allowed)
+    if (leave.status === "approved" && !isPrivilegedAdmin) {
       return res.status(400).json({
         message: "Approved leaves cannot be cancelled by employees. Please contact your Admin to cancel an approved leave."
       });
     }
 
     const previousStatus = leave.status;
+    leave.cancelledFromStatus = previousStatus;
     leave.status = "cancelled";
     leave.cancelledAt = new Date();
     await leave.save();
@@ -551,27 +562,15 @@ exports.cancelLeave = async (req, res) => {
     // Dispatch cancellation email to Vertical Lead, teammates, and admins
     let emailResult = null;
     try {
-      const teamMembers = await User.find({
-        vertical: leave.vertical,
-        _id: { $ne: leave.user?._id },
-        isDeleted: { $ne: true }
-      }).select("email");
-      const teamEmails = teamMembers.map((m) => m.email);
-
-      const envAdmins = (process.env.ADMIN_EMAILS || "")
-        .split(",")
-        .map((e) => e.trim().toLowerCase());
-      const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
-      const dbAdminEmails = dbAdmins.map((a) => a.email);
-      const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+      const { recipients, founderEmails } = await getNotificationRecipients(leave.user);
 
       emailResult = await sendCancellationEmail({
         leave,
         employee: leave.user,
         cancelledBy: currentCaller,
         previousStatus,
-        recipients: [...teamEmails, ...adminEmails],
-        founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+        recipients,
+        founderEmails
       });
     } catch (emailErr) {
       console.error("Failed to send cancellation notification email:", emailErr);
@@ -608,10 +607,6 @@ exports.resendCancellationEmail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid leave ID format." });
-    }
-
     const leave = await Leave.findById(id).populate("user");
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found." });
@@ -629,49 +624,36 @@ exports.resendCancellationEmail = async (req, res) => {
       });
     }
 
-    // Authorization: User must be the owner, vertical lead of the same vertical, or admin
+    // Authorization: User must be the owner, vertical lead of the same vertical, or admin/founder
     const isOwner = leave.user && leave.user._id.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
+    const isPrivilegedAdmin = req.user.role === "admin" || req.user.role === "founder";
     const isLead = req.user.isVerticalLead && req.user.vertical === leave.vertical;
 
-    if (!isOwner && !isAdmin && !isLead) {
+    if (!isOwner && !isPrivilegedAdmin && !isLead) {
       return res.status(403).json({ message: "Not authorized to resend cancellation email for this leave." });
     }
 
     // 5 seconds rate-limit cooldown
-    const COOLDOWN_SECONDS = 5;
-    if (leave.lastCancellationEmailAttemptAt) {
-      const elapsedSeconds = Math.floor((Date.now() - new Date(leave.lastCancellationEmailAttemptAt).getTime()) / 1000);
-      if (elapsedSeconds < COOLDOWN_SECONDS) {
-        const remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
-        return res.status(429).json({
-          message: `Please wait ${remainingSeconds} second(s) before retrying email dispatch.`,
-          remainingSeconds
-        });
-      }
+    const cooldown = checkEmailCooldown(leave.lastCancellationEmailAttemptAt, 5);
+    if (cooldown.isRateLimited) {
+      return res.status(429).json({
+        message: cooldown.message,
+        remainingSeconds: cooldown.remainingSeconds
+      });
     }
 
-    const teamMembers = await User.find({
-      vertical: leave.vertical,
-      _id: { $ne: leave.user?._id },
-      isDeleted: { $ne: true }
-    }).select("email");
-    const teamEmails = teamMembers.map((m) => m.email);
+    const { recipients, founderEmails } = await getNotificationRecipients(leave.user);
 
-    const envAdmins = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase());
-    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
-    const dbAdminEmails = dbAdmins.map((a) => a.email);
-    const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+    // Accurately determine the status this leave had prior to cancellation
+    const previousStatus = leave.cancelledFromStatus || "pending";
 
     const emailResult = await sendCancellationEmail({
       leave,
       employee: leave.user,
       cancelledBy: req.user,
-      previousStatus: leave.cancelledAt ? "cancelled" : "pending",
-      recipients: [...teamEmails, ...adminEmails],
-      founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+      previousStatus,
+      recipients,
+      founderEmails
     });
 
     leave.cancellationEmailAttempts = (leave.cancellationEmailAttempts || 0) + 1;
@@ -705,14 +687,15 @@ exports.resendCancellationEmail = async (req, res) => {
 exports.getTeamLeavesForLead = async (req, res) => {
   try {
     const currentLead = req.user;
+    const isPrivilegedAdmin = currentLead.role === "admin" || currentLead.role === "founder";
 
-    // Verify permission: Must be Vertical Lead or Admin
-    if (!currentLead.isVerticalLead && currentLead.role !== "admin") {
-      return res.status(403).json({ message: "Access denied. Vertical Leads only." });
+    // Verify permission: Must be Vertical Lead, Admin, or Founder
+    if (!currentLead.isVerticalLead && !isPrivilegedAdmin) {
+      return res.status(403).json({ message: "Access denied. Vertical Leads and Admins only." });
     }
 
-    // Target vertical selection: Only Admin can query other verticals; Leads are strictly locked to their own vertical
-    const targetVertical = (currentLead.role === "admin" && req.query.vertical)
+    // Target vertical selection: Only Admin/Founder can query other verticals; Leads are strictly locked to their own vertical
+    const targetVertical = (isPrivilegedAdmin && req.query.vertical)
       ? req.query.vertical
       : currentLead.vertical;
 
@@ -777,13 +760,21 @@ exports.getTeamLeavesForLead = async (req, res) => {
     } else if (month && month !== "all") {
       const m = parseInt(month);
       if (!isNaN(m) && m >= 0 && m <= 11) {
+        const targetMonth = m + 1; // 1-indexed month (1..12)
         filter.$expr = {
           $and: [
             { $eq: [{ $type: "$fromDate" }, "date"] },
+            { $eq: [{ $type: "$toDate" }, "date"] },
             {
               $or: [
-                { $eq: [{ $month: "$fromDate" }, m + 1] },
-                { $eq: [{ $month: "$toDate" }, m + 1] }
+                { $eq: [{ $month: "$fromDate" }, targetMonth] },
+                { $eq: [{ $month: "$toDate" }, targetMonth] },
+                {
+                  $and: [
+                    { $lte: [{ $month: "$fromDate" }, targetMonth] },
+                    { $gte: [{ $month: "$toDate" }, targetMonth] }
+                  ]
+                }
               ]
             }
           ]
@@ -838,22 +829,18 @@ exports.resendLeaveEmail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid leave ID format." });
-    }
-
     const leave = await Leave.findById(id).populate("user");
 
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found" });
     }
 
-    // Authorization: User must be the owner, vertical lead of the same vertical, or admin
+    // Authorization: User must be the owner, vertical lead of the same vertical, or admin/founder
     const isOwner = leave.user && leave.user._id.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
+    const isPrivilegedAdmin = req.user.role === "admin" || req.user.role === "founder";
     const isLead = req.user.isVerticalLead && req.user.vertical === leave.vertical;
 
-    if (!isOwner && !isAdmin && !isLead) {
+    if (!isOwner && !isPrivilegedAdmin && !isLead) {
       return res.status(403).json({ message: "Not authorized to resend email for this leave" });
     }
 
@@ -869,16 +856,12 @@ exports.resendLeaveEmail = async (req, res) => {
     }
 
     // 5 seconds rate-limit cooldown
-    const COOLDOWN_SECONDS = 5;
-    if (leave.lastEmailAttemptAt) {
-      const elapsedSeconds = Math.floor((Date.now() - new Date(leave.lastEmailAttemptAt).getTime()) / 1000);
-      if (elapsedSeconds < COOLDOWN_SECONDS) {
-        const remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
-        return res.status(429).json({
-          message: `Please wait ${remainingSeconds} second(s) before retrying email dispatch.`,
-          remainingSeconds
-        });
-      }
+    const cooldown = checkEmailCooldown(leave.lastEmailAttemptAt, 5);
+    if (cooldown.isRateLimited) {
+      return res.status(429).json({
+        message: cooldown.message,
+        remainingSeconds: cooldown.remainingSeconds
+      });
     }
 
     // Fetch active team & admin emails (excluding soft-deleted/deactivated users)
@@ -887,26 +870,14 @@ exports.resendLeaveEmail = async (req, res) => {
       return res.status(400).json({ message: "Cannot resend email: Employee account is deactivated or deleted." });
     }
 
-    const teamMembers = await User.find({
-      vertical: employee.vertical,
-      _id: { $ne: employee._id },
-      isDeleted: { $ne: true }
-    }).select("email");
-    const teamEmails = teamMembers.map((m) => m.email);
-
-    const envAdmins = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase());
-    const dbAdmins = await User.find({ role: "admin", isDeleted: { $ne: true } }).select("email");
-    const dbAdminEmails = dbAdmins.map((a) => a.email);
-    const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
+    const { recipients, founderEmails } = await getNotificationRecipients(employee);
 
     // Re-dispatch email
     const emailResult = await sendLeaveEmail({
       leave,
       employee,
-      recipients: [...teamEmails, ...adminEmails],
-      founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+      recipients,
+      founderEmails
     });
 
     leave.emailAttempts = (leave.emailAttempts || 0) + 1;
@@ -943,22 +914,18 @@ exports.resendDecisionEmail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid leave ID format." });
-    }
-
     const leave = await Leave.findById(id).populate("user");
 
     if (!leave) {
       return res.status(404).json({ message: "Leave record not found" });
     }
 
-    // Authorization: User must be Admin OR the Vertical Lead of this vertical
-    const isAdmin = req.user.role === "admin";
+    // Authorization: User must be Admin, Founder, OR the Vertical Lead of this vertical
+    const isPrivilegedAdmin = req.user.role === "admin" || req.user.role === "founder";
     const isLead = req.user.isVerticalLead && req.user.vertical === leave.vertical;
 
-    if (!isAdmin && !isLead) {
-      return res.status(403).json({ message: "Access denied. Only Admins or the team's Vertical Lead can resend decision notifications." });
+    if (!isPrivilegedAdmin && !isLead) {
+      return res.status(403).json({ message: "Access denied. Only Admins, Founders, or the team's Vertical Lead can resend decision notifications." });
     }
 
     // Must be in approved or rejected state
@@ -978,16 +945,12 @@ exports.resendDecisionEmail = async (req, res) => {
     }
 
     // 5 seconds rate-limit cooldown
-    const COOLDOWN_SECONDS = 5;
-    if (leave.lastDecisionEmailAttemptAt) {
-      const elapsedSeconds = Math.floor((Date.now() - new Date(leave.lastDecisionEmailAttemptAt).getTime()) / 1000);
-      if (elapsedSeconds < COOLDOWN_SECONDS) {
-        const remainingSeconds = COOLDOWN_SECONDS - elapsedSeconds;
-        return res.status(429).json({
-          message: `Please wait ${remainingSeconds} second(s) before retrying email dispatch.`,
-          remainingSeconds
-        });
-      }
+    const cooldown = checkEmailCooldown(leave.lastDecisionEmailAttemptAt, 5);
+    if (cooldown.isRateLimited) {
+      return res.status(429).json({
+        message: cooldown.message,
+        remainingSeconds: cooldown.remainingSeconds
+      });
     }
 
     const employee = leave.user;
@@ -1032,3 +995,77 @@ exports.resendDecisionEmail = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// 9. GET EMPLOYEE LEAVE DETAILS & HISTORY (Used in Modals / Admin / Lead view)
+exports.getEmployeeLeaveDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch User to get leave balance and details
+    const user = await User.findById(id).select("name email leaveBalance vertical");
+    if (!user) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Authorization check: Must be Admin, Founder, the employee's Vertical Lead, or the employee themselves
+    const isSelf = req.user._id.toString() === id;
+    const isPrivilegedAdmin = req.user.role === "admin" || req.user.role === "founder";
+    const isTheirLead = req.user.isVerticalLead && req.user.vertical === user.vertical;
+
+    if (!isSelf && !isPrivilegedAdmin && !isTheirLead) {
+      return res.status(403).json({
+        message: "Access denied. You are not authorized to view this employee's records."
+      });
+    }
+
+    // 2. Fetch User's leaves
+    const leaves = await Leave.find({ user: id }).sort({ createdAt: -1 });
+
+    const formattedLeaves = leaves.map((leave) => {
+      const from = new Date(leave.fromDate);
+      const to = new Date(leave.toDate);
+
+      return {
+        _id: leave._id,
+        type: leave.type,
+        days: leave.days,
+        reason: leave.reason,
+        status: leave.status || "pending",
+        rejectionReason: leave.rejectionReason || "",
+        isPastLeave: Boolean(leave.isPastLeave),
+        month: from.toLocaleString("default", { month: "short" }),
+        from: from.toLocaleDateString("en-GB"),
+        to: to.toLocaleDateString("en-GB"),
+        createdAt: leave.createdAt,
+      };
+    });
+
+    // 3. Return structured object containing both leaves and balance
+    res.json({
+      employee: { name: user.name, email: user.email },
+      leaveBalance: user.leaveBalance,
+      leaves: formattedLeaves
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 10. GET LEAD REQUESTS (Admin Only: Fetch all leaves requested by Vertical Leads)
+exports.getLeadRequestsForAdmin = async (req, res) => {
+  try {
+    // Find all users who are Vertical Leads
+    const leads = await User.find({ isVerticalLead: true }).select("_id");
+    const leadIds = leads.map((l) => l._id);
+
+    // Fetch leaves requested by leads
+    const leadLeaves = await Leave.find({ user: { $in: leadIds } })
+      .populate("user", "name email vertical")
+      .sort({ createdAt: -1 });
+
+    res.json(leadLeaves);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+

@@ -32,7 +32,6 @@ app.use(cors({
     if (!origin) return callback(null, true);
     if (
       defaultAllowedOrigins.includes(origin) ||
-      origin.endsWith(".onrender.com") ||
       origin.endsWith(".barabaricollective.org")
     ) {
       return callback(null, true);

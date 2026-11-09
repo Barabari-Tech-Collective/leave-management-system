@@ -15,9 +15,14 @@ export default function ProtectedRoute({ children, role }) {
     return <Navigate to="/" replace />;
   }
 
-  // role mismatch
-  if (role && user.role !== role) {
-    return <Navigate to="/" replace />;
+  // role mismatch: Admins and Founders have full administrative access
+  if (role) {
+    if (role === "admin" && (user.role === "admin" || user.role === "founder")) {
+      return children;
+    }
+    if (user.role !== role) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;
