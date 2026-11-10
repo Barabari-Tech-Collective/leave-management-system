@@ -260,7 +260,7 @@ export default function LeaveSummaryConfirmModal({
               </p>
             ) : isPastLeave ? (
               <p>
-                ⚡ <strong>Past Leave Notice:</strong> Clicking Confirm will <strong>immediately record {days} {days === 1 ? "day" : "days"}</strong> for attendance. Your Vertical Lead, teammates, and Admins will be notified (no approval required).
+                ⚡ <strong>Past Leave Notice:</strong> Clicking Confirm will <strong>immediately record {days} {days === 1 ? "day" : "days"}</strong> for leave. Your Vertical Lead, teammates, and Admins will be notified (no approval required).
               </p>
             ) : (
               <p>
