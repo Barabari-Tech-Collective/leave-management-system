@@ -27,7 +27,7 @@ export default function AllEmployee() {
   }, []);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn">
+    <div className="space-y-5 sm:space-y-6 animate-fadeIn pb-2">
       <h1 className="text-2xl sm:text-3xl font-bold text-textDark">All Employees</h1>
 
       {loading ? (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
 import StatusBadge from "./StatusBadge";
+import YearSelect from "./YearSelect";
 import { 
   X, 
   Calendar, 
@@ -14,24 +15,36 @@ import {
   Ban
 } from "lucide-react";
 
-export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
+export default function EmployeeHistoryModal({ isOpen, onClose, employee, initialYear }) {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(
+    initialYear ? initialYear.toString() : currentYear.toString()
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [historyData, setHistoryData] = useState({
     employee: null,
     leaveBalance: null,
-    leaves: []
+    leaves: [],
+    availableYears: [currentYear + 1, currentYear],
+    selectedYear: currentYear
   });
 
-  const fetchEmployeeHistory = useCallback(async (employeeId) => {
+  const fetchEmployeeHistory = useCallback(async (employeeId, yearToFetch) => {
     try {
       setLoading(true);
       setError("");
-      const res = await API.get(`/leave/employee/${employeeId}`);
+      const params = new URLSearchParams();
+      if (yearToFetch) {
+        params.append("year", yearToFetch);
+      }
+      const res = await API.get(`/leave/employee/${employeeId}?${params.toString()}`);
       setHistoryData({
         employee: res.data.employee || employee,
         leaveBalance: res.data.leaveBalance || employee?.leaveBalance,
-        leaves: res.data.leaves || []
+        leaves: res.data.leaves || [],
+        availableYears: res.data.availableYears || [currentYear + 1, currentYear],
+        selectedYear: res.data.selectedYear || yearToFetch
       });
     } catch (err) {
       console.error("Failed to load employee leave history:", err);
@@ -39,11 +52,13 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
     } finally {
       setLoading(false);
     }
-  }, [employee]);
+  }, [employee, currentYear]);
 
   useEffect(() => {
     if (isOpen && employee?._id) {
-      fetchEmployeeHistory(employee._id);
+      const defaultYear = initialYear ? initialYear.toString() : currentYear.toString();
+      setSelectedYear(defaultYear);
+      fetchEmployeeHistory(employee._id, defaultYear);
     }
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -53,7 +68,14 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen, employee?._id, fetchEmployeeHistory]);
+  }, [isOpen, employee?._id, initialYear, fetchEmployeeHistory, currentYear]);
+
+  const handleYearChange = (newYear) => {
+    setSelectedYear(newYear);
+    if (employee?._id) {
+      fetchEmployeeHistory(employee._id, newYear);
+    }
+  };
 
   if (!isOpen || !employee) return null;
 
@@ -101,10 +123,39 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
 
         {/* Content */}
         <div className="p-4 sm:p-6 space-y-5 sm:space-y-6 overflow-y-auto">
+          {/* Year Filter Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3 sm:p-3.5 rounded-2xl border border-slate-100">
+            <div>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={14} className="text-indigo-600" />
+                <span>Filter Records by Year</span>
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Showing leave counts and applications for calendar year {selectedYear}
+              </p>
+            </div>
+
+            <YearSelect
+              id="employee-history-year-select"
+              value={selectedYear}
+              onChange={handleYearChange}
+              availableYears={historyData.availableYears}
+              disabled={loading}
+              label="Select Year:"
+            />
+          </div>
+
           {/* Balance Cards Summary */}
           <div>
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              Leave Balances Overview
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+              <span>
+                Leave Balances Overview ({selectedYear})
+              </span>
+              {parseInt(selectedYear, 10) === currentYear + 1 && (
+                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-200">
+                  Next Year Advance Balance
+                </span>
+              )}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Casual */}
@@ -169,14 +220,16 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Application History ({historyData.leaves.length})
+                Application History ({selectedYear}) ({historyData.leaves.length})
               </h4>
             </div>
 
             {loading ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <p className="text-xs font-medium">Loading history...</p>
+                <p className="text-xs font-medium">
+                  Loading {selectedYear} records...
+                </p>
               </div>
             ) : error ? (
               <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
@@ -184,7 +237,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
               </div>
             ) : historyData.leaves.length === 0 ? (
               <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 text-xs">
-                No leave requests found for this employee.
+                No leave requests found for this employee in ${selectedYear}.
               </div>
             ) : (
               <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">

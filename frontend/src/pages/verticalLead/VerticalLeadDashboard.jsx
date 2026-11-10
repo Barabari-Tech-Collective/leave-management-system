@@ -7,11 +7,13 @@ import EmployeeHistoryModal from "../../components/EmployeeHistoryModal";
 import LeaveFilterBar from "../../components/LeaveFilterBar";
 import TablePagination from "../../components/TablePagination";
 import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
+import YearSelect from "../../components/YearSelect";
 import { useAuth } from "../../context/AuthContext";
 import { 
   UserPlus, 
   RotateCcw, 
-  History 
+  History,
+  Calendar
 } from "lucide-react";
 
 export default function VerticalLeadDashboard() {
@@ -40,6 +42,8 @@ export default function VerticalLeadDashboard() {
   });
 
   // Filter states
+  const currentISTYear = new Date().getFullYear();
+  const [teamBalanceYear, setTeamBalanceYear] = useState(currentISTYear.toString());
   const [yearFilter, setYearFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -120,7 +124,8 @@ export default function VerticalLeadDashboard() {
     mo = monthFilter,
     st = statusFilter,
     isInitial = false,
-    silent = false
+    silent = false,
+    balYr = teamBalanceYear
   ) => {
     try {
       if (isInitial) {
@@ -137,12 +142,13 @@ export default function VerticalLeadDashboard() {
       if (yr !== "all") params.append("year", yr);
       if (mo !== "all") params.append("month", mo);
       if (st !== "all") params.append("status", st);
+      if (balYr) params.append("balanceYear", balYr);
 
       const res = await API.get(`/leave/team-dashboard?${params.toString()}`);
 
       // Gracefully fall back to previous page if current page became empty after approving/rejecting
       if (res.data?.teamLeaves?.length === 0 && targetPage > 1 && (res.data?.pagination?.total || 0) > 0) {
-        return fetchDashboardData(targetPage - 1, limit, yr, mo, st, false, silent);
+        return fetchDashboardData(targetPage - 1, limit, yr, mo, st, false, silent, balYr);
       }
 
       setDashboardData((prev) => ({
@@ -162,7 +168,7 @@ export default function VerticalLeadDashboard() {
       setLoading(false);
       setTableLoading(false);
     }
-  }, [currentPage, pageSize, yearFilter, monthFilter, statusFilter]);
+  }, [currentPage, pageSize, yearFilter, monthFilter, statusFilter, teamBalanceYear]);
 
   useEffect(() => {
     fetchDashboardData(1, 25, "all", "all", "all", true);
@@ -172,34 +178,39 @@ export default function VerticalLeadDashboard() {
   const handlePageSizeChange = (newSize) => {
     const size = parseInt(newSize);
     setPageSize(size);
-    fetchDashboardData(1, size, yearFilter, monthFilter, statusFilter);
+    fetchDashboardData(1, size, yearFilter, monthFilter, statusFilter, false, false, teamBalanceYear);
   };
 
   const handleYearChange = (newYear) => {
     setYearFilter(newYear);
-    fetchDashboardData(1, pageSize, newYear, monthFilter, statusFilter);
+    fetchDashboardData(1, pageSize, newYear, monthFilter, statusFilter, false, false, teamBalanceYear);
   };
 
   const handleMonthChange = (newMonth) => {
     setMonthFilter(newMonth);
-    fetchDashboardData(1, pageSize, yearFilter, newMonth, statusFilter);
+    fetchDashboardData(1, pageSize, yearFilter, newMonth, statusFilter, false, false, teamBalanceYear);
   };
 
   const handleStatusChange = (newStatus) => {
     setStatusFilter(newStatus);
-    fetchDashboardData(1, pageSize, yearFilter, monthFilter, newStatus);
+    fetchDashboardData(1, pageSize, yearFilter, monthFilter, newStatus, false, false, teamBalanceYear);
+  };
+
+  const handleTeamBalanceYearChange = (newYear) => {
+    setTeamBalanceYear(newYear);
+    fetchDashboardData(currentPage, pageSize, yearFilter, monthFilter, statusFilter, false, false, newYear);
   };
 
   const resetFilters = () => {
     setYearFilter("all");
     setMonthFilter("all");
     setStatusFilter("all");
-    fetchDashboardData(1, pageSize, "all", "all", "all");
+    fetchDashboardData(1, pageSize, "all", "all", "all", false, false, teamBalanceYear);
   };
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= (dashboardData.pagination?.totalPages || 1)) {
-      fetchDashboardData(newPage, pageSize, yearFilter, monthFilter, statusFilter);
+      fetchDashboardData(newPage, pageSize, yearFilter, monthFilter, statusFilter, false, false, teamBalanceYear);
     }
   };
 
@@ -320,12 +331,24 @@ export default function VerticalLeadDashboard() {
                 Team Members Leave Balances
               </h2>
               <p className="text-xs text-slate-400 font-medium mt-0.5">
-                Used vs Total Remaining Balance
+                Used vs Total Remaining Balance ({teamBalanceYear})
               </p>
             </div>
-            <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-semibold">
-              {dashboardData.teamMembers.filter((m) => !m.isVerticalLead).length} Members
-            </span>
+
+            <div className="flex items-center gap-2.5">
+              <YearSelect
+                id="team-balance-year-select"
+                value={teamBalanceYear}
+                onChange={handleTeamBalanceYearChange}
+                availableYears={dashboardData.availableYears}
+                variant="pill"
+                label="Year:"
+              />
+
+              <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-semibold">
+                {dashboardData.teamMembers.filter((m) => !m.isVerticalLead).length} Members
+              </span>
+            </div>
           </div>
 
           {dashboardData.teamMembers.filter((member) => !member.isVerticalLead).length === 0 ? (
@@ -470,6 +493,7 @@ export default function VerticalLeadDashboard() {
       <EmployeeHistoryModal
         isOpen={!!selectedEmployeeForHistory}
         employee={selectedEmployeeForHistory}
+        initialYear={teamBalanceYear}
         onClose={() => setSelectedEmployeeForHistory(null)}
       />
 

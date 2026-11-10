@@ -7,9 +7,9 @@ export default function Sidebar({ onClose }) {
   const { logout } = useAuth();
 
   const baseStyle =
-    "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 font-medium group text-sm";
+    "flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 font-medium group text-xs sm:text-sm";
 
-  const linkInner = "flex items-center gap-3";
+  const linkInner = "flex items-center gap-2.5";
 
   const activeStyle =
     "bg-primary/10 text-primary font-semibold shadow-[absolute_inset_0_0_10px_rgba(79,70,229,0.1)]";
@@ -20,15 +20,15 @@ export default function Sidebar({ onClose }) {
   };
 
   return (
-    <div className="w-full h-full bg-darkBg text-slate-300 flex flex-col justify-between p-5 sm:p-6 border-r border-slate-800 shadow-2xl relative z-10 overflow-y-auto">
+    <div className="w-full h-full bg-darkBg text-slate-300 flex flex-col justify-between p-3.5 sm:p-4 border-r border-slate-800 shadow-2xl relative z-10 overflow-y-auto">
       <div>
         {/* Header with Title and Mobile Close Button */}
-        <div className="flex justify-between items-center mb-8 px-2 mt-1">
+        <div className="flex justify-between items-center mb-6 px-1 mt-1">
           <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
+            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">
               Admin Panel
             </h2>
-            <p className="text-[11px] font-medium text-slate-500">The Barabari Collective</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-slate-500">The Barabari Collective</p>
           </div>
 
           {onClose && (
@@ -43,7 +43,7 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex flex-col gap-2.5">
+        <nav className="flex flex-col gap-2">
           <NavLink
             to="/admin"
             end
@@ -55,7 +55,7 @@ export default function Sidebar({ onClose }) {
             }
           >
             <div className={linkInner}>
-              <LayoutDashboard size={18} />
+              <LayoutDashboard size={17} />
               <span>Dashboard</span>
             </div>
           </NavLink>
@@ -70,7 +70,7 @@ export default function Sidebar({ onClose }) {
             }
           >
             <div className={linkInner}>
-              <Users size={18} />
+              <Users size={17} />
               <span>All Employees</span>
             </div>
           </NavLink>
@@ -85,8 +85,8 @@ export default function Sidebar({ onClose }) {
             }
           >
             <div className={linkInner}>
-              <Users size={18} />
-              <span>Manage Vertical Leads</span>
+              <Users size={17} />
+              <span className="truncate">Vertical Leads</span>
             </div>
           </NavLink>
 
@@ -100,29 +100,29 @@ export default function Sidebar({ onClose }) {
             }
           >
             <div className={linkInner}>
-              <Layers size={18} />
-              <span>Manage Verticals</span>
+              <Layers size={17} />
+              <span className="truncate">Manage Verticals</span>
             </div>
           </NavLink>
         </nav>
       </div>
 
       {/* Footer / Logout */}
-      <div className="space-y-4 pt-6">
+      <div className="space-y-3 pt-4">
         <div className="border-t border-slate-800"></div>
 
         <button
           onClick={handleLogout}
-          className="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-slate-300 hover:bg-accent hover:text-white hover:shadow-md hover:shadow-accent/20 py-3 rounded-xl transition-all duration-300 border border-slate-700/50 hover:border-accent group cursor-pointer text-sm"
+          className="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-slate-300 hover:bg-accent hover:text-white hover:shadow-md hover:shadow-accent/20 py-2.5 rounded-xl transition-all duration-300 border border-slate-700/50 hover:border-accent group cursor-pointer text-xs sm:text-sm"
         >
           <LogOut
-            size={18}
+            size={16}
             className="transition-transform group-hover:-translate-x-1"
           />
           <span className="font-semibold">Logout</span>
         </button>
 
-        <p className="text-[11px] text-slate-500 text-center font-medium">
+        <p className="text-[10px] text-slate-500 text-center font-medium">
           LeaveSys v1.0
         </p>
       </div>

@@ -44,7 +44,7 @@ export default function AdminVerticalLead() {
   };
 
   return (
-    <div className="p-2 sm:p-6 space-y-5 sm:space-y-6 max-w-6xl mx-auto animate-fadeIn">
+    <div className="space-y-5 sm:space-y-6 animate-fadeIn pb-2">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">

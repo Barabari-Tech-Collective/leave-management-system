@@ -103,8 +103,12 @@ const getAvailableLeaveYears = async (baseFilter = {}) => {
   } catch (e) {
     currentYear = new Date().getFullYear();
   }
-  yearsSet.add(currentYear);
-  yearsSet.add(currentYear + 1); // Extra upcoming advance year option
+  const MIN_SYSTEM_YEAR = 2026;
+  const targetMaxYear = currentYear + 1; // Extra upcoming advance year option
+  for (let y = MIN_SYSTEM_YEAR; y <= targetMaxYear; y++) {
+    yearsSet.add(y);
+  }
+
   yearAgg.forEach((item) => {
     if (item._id && !isNaN(item._id)) yearsSet.add(item._id);
   });

@@ -17,7 +17,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-softBg font-sans text-textDark overflow-hidden select-none">
+    <div className="fixed inset-0 flex h-full w-full bg-softBg font-sans text-textDark overflow-hidden select-none">
       {/* Mobile Backdrop Overlay */}
       {sidebarOpen && (
         <div
@@ -27,9 +27,9 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* Sidebar Container - Drawer on mobile, static on desktop */}
+      {/* Sidebar Container - Reduced width on desktop to maximize table space */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 md:w-64 md:static md:translate-x-0 transition-transform duration-300 ease-in-out shrink-0 border-r border-slate-800 bg-darkBg ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 md:w-56 md:static md:translate-x-0 transition-transform duration-300 ease-in-out shrink-0 border-r border-slate-800 bg-darkBg ${
           sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >
@@ -37,7 +37,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
         {/* Mobile Top Navigation Bar */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 z-30 shrink-0 shadow-xs">
           <div className="flex items-center gap-3">
@@ -65,9 +65,9 @@ export default function AdminLayout() {
           </div>
         </header>
 
-        {/* Scrollable Main Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 lg:p-8 z-10">
-          <div className="max-w-7xl mx-auto">
+        {/* Scrollable Main Content - Fits viewport with no unwanted vertical scroll */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 min-h-0">
+          <div className="w-full max-w-[1600px] mx-auto">
             <Outlet />
           </div>
         </main>
