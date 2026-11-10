@@ -2,9 +2,17 @@ const Leave = require("../models/Leave");
 const User = require("../models/User");
 const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("../services/emailService");
 const { parseDateUTC, calculateWorkingDays } = require("../utils/dateUtils");
-const { getNotificationRecipients } = require("../utils/recipientUtils");
+const { getNotificationRecipients, getFinanceEmails } = require("../utils/recipientUtils");
 const { checkEmailCooldown } = require("../utils/cooldownUtils");
 const { buildLeaveDateFilter, getAvailableLeaveYears } = require("../utils/leaveFilterUtils");
+const {
+  getCurrentISTYear,
+  getLeaveBalanceForYear,
+  ensureUserYearBalanceExists,
+  checkAndResetAnnualLeave,
+  sanitizeBalanceObject,
+  buildAtomicBalanceDelta
+} = require("../utils/leaveResetUtils");
 
 // 1. APPLY LEAVE (Notifies Vertical Lead, Teammates & Admins)
 exports.applyLeave = async (req, res) => {
@@ -16,18 +24,15 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: "Leave type, from date, and to date are required." });
     }
 
-    const validTypes = ["casual", "sick", "flexible", "national"];
+    const validTypes = ["casual", "sick", "flexible", "national", "extra"];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         message: `Invalid leave type '${type}'. Allowed types: ${validTypes.join(", ")}`
       });
     }
 
-    if (!user.leaveBalance || !user.leaveBalance[type]) {
-      return res.status(400).json({
-        message: "Employee leave balance record not found. Please contact your Admin."
-      });
-    }
+    // Ensure active user annual balance is up to date
+    await checkAndResetAnnualLeave(user);
 
     if (!user.vertical) {
       return res.status(400).json({
@@ -46,6 +51,25 @@ exports.applyLeave = async (req, res) => {
       return res.status(400).json({ message: "'To Date' cannot be earlier than 'From Date'." });
     }
 
+    const fromYear = queryFromDate.getUTCFullYear();
+    const toYear = queryToDate.getUTCFullYear();
+
+    // Cross-year separation constraint: requests cannot span across calendar years
+    if (fromYear !== toYear) {
+      return res.status(400).json({
+        message: `Leaves cannot span across two different calendar years (${fromYear} and ${toYear}). Please submit two separate requests: one for ${fromYear} and one for ${toYear}.`
+      });
+    }
+
+    const targetYear = fromYear;
+    const currentISTYear = getCurrentISTYear();
+
+    if (targetYear > currentISTYear + 1) {
+      return res.status(400).json({
+        message: `Leaves can only be booked for the current year (${currentISTYear}) or up to one year in advance (${currentISTYear + 1}).`
+      });
+    }
+
     // Determine today's date in YYYY-MM-DD according to Indian Standard Time (Asia/Kolkata)
     const todayStr = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Kolkata",
@@ -61,14 +85,10 @@ exports.applyLeave = async (req, res) => {
           message: "Past leave dates must be strictly before today. To apply for today or upcoming dates, please use 'Future Leave Request'."
         });
       }
-      const currentYear = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata",
-        year: "numeric"
-      }).format(new Date());
-      const minPastDate = `${currentYear}-01-01`;
+      const minPastDate = `${currentISTYear}-01-01`;
       if (fromDate < minPastDate) {
         return res.status(400).json({
-          message: `Past leaves can only be reported for the current calendar year (${currentYear}).`
+          message: `Past leaves can only be reported for the current calendar year (${currentISTYear}).`
         });
       }
     } else {
@@ -104,71 +124,118 @@ exports.applyLeave = async (req, res) => {
       });
     }
 
-    // Fetch fresh user balance to prevent stale snapshot race conditions
+    // Ensure target year balance record is initialized for the employee
+    await ensureUserYearBalanceExists(user._id, targetYear);
     const freshUser = await User.findById(user._id);
-    if (!freshUser || !freshUser.leaveBalance || !freshUser.leaveBalance[type]) {
-      return res.status(400).json({
-        message: "Employee leave balance record not found. Please contact your Admin."
-      });
-    }
+    const yearBalances = getLeaveBalanceForYear(freshUser, targetYear);
+    const isExtraType = type === "extra" || Boolean(req.body.isExtraLeave);
 
-    const balance = freshUser.leaveBalance[type];
-    const totalQuota = balance.total || 0;
-    const takenCount = balance.taken || 0;
+    const typeBalance = yearBalances[type] || { total: 0, taken: 0 };
+    const totalQuota = typeBalance.total || 0;
+    const takenCount = typeBalance.taken || 0;
     const rawRemaining = Math.max(0, totalQuota - takenCount);
 
-    // 1. First check: Does the employee have enough quota left in this category?
-    if (days > rawRemaining) {
-      return res.status(400).json({
-        message: `You don't have enough leaves left to take. Required: ${days}, Remaining: ${rawRemaining}`
+    if (isExtraType) {
+      // 1. Extra Leave validation: employee must have exhausted all 26 paid leaves (including pending paid leaves)
+      const totalPaidTaken =
+        (yearBalances.casual?.taken || 0) +
+        (yearBalances.sick?.taken || 0) +
+        (yearBalances.flexible?.taken || 0);
+
+      const yearStart = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0));
+      const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999));
+      const pendingPaidLeaves = await Leave.find({
+        user: user._id,
+        type: { $in: ["casual", "sick", "flexible"] },
+        status: "pending",
+        fromDate: { $gte: yearStart, $lte: yearEnd }
       });
+      const totalPendingPaid = pendingPaidLeaves.reduce((sum, l) => sum + (l.days || 0), 0);
+      const totalCommittedPaid = totalPaidTaken + totalPendingPaid;
+
+      if (totalCommittedPaid < 26) {
+        const remainingPaid = Math.max(0, 26 - totalCommittedPaid);
+        return res.status(400).json({
+          message: `Extra Leave can only be applied after exhausting all 26 annual paid leaves. You still have ${remainingPaid} paid leave(s) available for ${targetYear}.`
+        });
+      }
+    } else {
+      // 1. First check: Does the employee have enough quota left in this category for targetYear?
+      if (days > rawRemaining) {
+        return res.status(400).json({
+          message: `You don't have enough leaves left to take for year ${targetYear}. Required: ${days}, Remaining: ${rawRemaining}`
+        });
+      }
+
+      // 2. Second check: Account for active pending leave requests for targetYear
+      const yearStart = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0));
+      const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999));
+      const pendingLeaves = await Leave.find({
+        user: user._id,
+        type,
+        status: "pending",
+        fromDate: { $gte: yearStart, $lte: yearEnd }
+      });
+      const pendingDays = pendingLeaves.reduce((sum, l) => sum + (l.days || 0), 0);
+      const effectiveAvailable = rawRemaining - pendingDays;
+
+      if (days > effectiveAvailable) {
+        return res.status(400).json({
+          message: `You have ${rawRemaining} remaining ${type} leave(s) for ${targetYear}, but ${pendingDays} day(s) are currently pending approval. Please cancel your pending leave request(s) to apply for this leave.`,
+          hasPendingConflict: true,
+          pendingDays,
+          rawRemaining,
+          effectiveAvailable,
+          targetYear
+        });
+      }
     }
 
-    // 2. Second check: Account for any active pending leave requests for this category
-    const pendingLeaves = await Leave.find({
-      user: user._id,
-      type,
-      status: "pending"
+    // Fetch Vertical Lead, teammates, admins, and finance (if extra leave)
+    const { recipients, founderEmails } = await getNotificationRecipients(user, {
+      isExtraLeave: isExtraType
     });
-    const pendingDays = pendingLeaves.reduce((sum, l) => sum + (l.days || 0), 0);
-    const effectiveAvailable = rawRemaining - pendingDays;
-
-    if (days > effectiveAvailable) {
-      return res.status(400).json({
-        message: `You have ${rawRemaining} remaining ${type} leave(s), but ${pendingDays} day(s) are currently pending approval. Please cancel your pending leave request(s) to apply for this leave.`,
-        hasPendingConflict: true,
-        pendingDays,
-        rawRemaining,
-        effectiveAvailable
-      });
-    }
-
-    // Fetch Vertical Lead, teammates, and admins
-    const { recipients, founderEmails } = await getNotificationRecipients(user);
 
     let leave;
     let pastLeaveDeducted = false;
     try {
       // For past leaves, immediately and atomically deduct balance with conditional check to prevent race condition overdrafts
       if (isPastLeave) {
-        const updatedUser = await User.findOneAndUpdate(
-          {
-            _id: user._id,
-            [`leaveBalance.${type}.taken`]: { $lte: totalQuota - days }
-          },
-          {
-            $inc: { [`leaveBalance.${type}.taken`]: days }
-          },
-          { new: true }
-        );
+        const { update: incUpdate } = buildAtomicBalanceDelta({
+          targetYear,
+          activeUserYear: freshUser.leaveYear,
+          type,
+          isExtra: isExtraType,
+          daysDelta: days
+        });
+
+        let updatedUser;
+        if (isExtraType) {
+          // Extra leaves have no quota limit
+          updatedUser = await User.findByIdAndUpdate(
+            user._id,
+            { $inc: incUpdate },
+            { new: true }
+          );
+        } else {
+          updatedUser = await User.findOneAndUpdate(
+            {
+              _id: user._id,
+              [`yearlyLeaveBalances.${String(targetYear)}.${type}.taken`]: { $lte: totalQuota - days }
+            },
+            { $inc: incUpdate },
+            { new: true }
+          );
+        }
 
         if (!updatedUser) {
           const recheckedUser = await User.findById(user._id);
-          const currentTaken = recheckedUser?.leaveBalance?.[type]?.taken || 0;
-          const currentTotal = recheckedUser?.leaveBalance?.[type]?.total || 0;
+          const recheckBal = getLeaveBalanceForYear(recheckedUser, targetYear);
+          const currentTaken = recheckBal[type]?.taken || 0;
+          const currentTotal = recheckBal[type]?.total || 0;
           const currentRemaining = Math.max(0, currentTotal - currentTaken);
           return res.status(400).json({
-            message: `Cannot record past leave: Insufficient balance. Required: ${days}, Remaining: ${currentRemaining}`
+            message: `Cannot record past leave: Insufficient balance for ${targetYear}. Required: ${days}, Remaining: ${currentRemaining}`
           });
         }
         pastLeaveDeducted = true;
@@ -178,12 +245,13 @@ exports.applyLeave = async (req, res) => {
       leave = await Leave.create({
         user: user._id,
         vertical: user.vertical,
-        type,
+        type: isExtraType ? "extra" : type,
         fromDate: queryFromDate,
         toDate: new Date(`${toDate}T00:00:00.000Z`),
         days,
         reason,
         isPastLeave: Boolean(isPastLeave),
+        isExtraLeave: isExtraType,
         status: isPastLeave ? "approved" : "pending",
         emailStatus: "pending",
         emailAttempts: 0
@@ -228,9 +296,14 @@ exports.applyLeave = async (req, res) => {
       // Roll back atomic balance deduction if leave creation failed for past leave
       if (isPastLeave && pastLeaveDeducted && (!leave || !leave._id)) {
         try {
-          await User.findByIdAndUpdate(user._id, {
-            $inc: { [`leaveBalance.${type}.taken`]: -days }
+          const { update: decUpdate } = buildAtomicBalanceDelta({
+            targetYear,
+            activeUserYear: freshUser.leaveYear,
+            type,
+            isExtra: isExtraType,
+            daysDelta: -days
           });
+          await User.findByIdAndUpdate(user._id, { $inc: decUpdate });
         } catch (rollbackErr) {
           console.error("Failed to roll back user balance after leave creation error:", rollbackErr);
         }
@@ -412,45 +485,78 @@ exports.updateLeaveStatus = async (req, res) => {
 
     // Balance adjustment atomically based on status transition to prevent race condition overdrafts
     if (leave.user && leave.user._id) {
+      const targetYear = new Date(leave.fromDate).getUTCFullYear();
+      const yearKey = String(targetYear);
+      await ensureUserYearBalanceExists(leave.user._id, targetYear);
+
+      const freshUser = await User.findById(leave.user._id);
+      const isActiveYear = !freshUser.leaveYear || freshUser.leaveYear === targetYear;
+      const yearBalance = getLeaveBalanceForYear(freshUser, targetYear);
+      const typeBalance = yearBalance[leave.type] || { total: 0, taken: 0 };
+      const totalQuota = typeBalance.total || 0;
+
+      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+      const targetKey = isExtraLeave ? "extra" : leave.type;
+
       // 1. Transitioning to approved from pending/rejected -> deduct balance atomically with condition
       if (previousStatus !== "approved" && status === "approved") {
-        const typeBalance = leave.user.leaveBalance?.[leave.type] || { total: 0, taken: 0 };
-        const totalQuota = typeBalance.total || 0;
+        const { update: incUpdate, targetKey } = buildAtomicBalanceDelta({
+          targetYear,
+          activeUserYear: freshUser.leaveYear,
+          type: leave.type,
+          isExtra: isExtraLeave,
+          daysDelta: leave.days
+        });
 
-        const updatedUser = await User.findOneAndUpdate(
-          {
-            _id: leave.user._id,
-            [`leaveBalance.${leave.type}.taken`]: { $lte: totalQuota - leave.days }
-          },
-          {
-            $inc: { [`leaveBalance.${leave.type}.taken`]: leave.days }
-          },
-          { new: true }
-        );
+        let updatedUser;
+        if (isExtraLeave) {
+          updatedUser = await User.findByIdAndUpdate(
+            leave.user._id,
+            { $inc: incUpdate },
+            { new: true }
+          );
+        } else {
+          updatedUser = await User.findOneAndUpdate(
+            {
+              _id: leave.user._id,
+              [`yearlyLeaveBalances.${yearKey}.${leave.type}.taken`]: { $lte: totalQuota - leave.days }
+            },
+            { $inc: incUpdate },
+            { new: true }
+          );
+        }
 
         if (!updatedUser) {
-          const freshUser = await User.findById(leave.user._id);
-          const freshTaken = freshUser?.leaveBalance?.[leave.type]?.taken || 0;
-          const freshTotal = freshUser?.leaveBalance?.[leave.type]?.total || 0;
+          const recheckedUser = await User.findById(leave.user._id);
+          const currentBal = getLeaveBalanceForYear(recheckedUser, targetYear);
+          const freshTaken = currentBal[leave.type]?.taken || 0;
+          const freshTotal = currentBal[leave.type]?.total || 0;
           const freshRemaining = Math.max(0, freshTotal - freshTaken);
           return res.status(400).json({
-            message: `Cannot approve: Employee only has ${freshRemaining} remaining in ${leave.type} leave, but this request requires ${leave.days} day(s).`
+            message: `Cannot approve: Employee only has ${freshRemaining} remaining in ${leave.type} leave for ${targetYear}, but this request requires ${leave.days} day(s).`
           });
         }
         leave.user = updatedUser;
       }
       // 2. Transitioning from approved to rejected -> refund previously deducted balance atomically
       else if (previousStatus === "approved" && status !== "approved") {
+        const { update: decUpdate, targetKey } = buildAtomicBalanceDelta({
+          targetYear,
+          activeUserYear: freshUser.leaveYear,
+          type: leave.type,
+          isExtra: isExtraLeave,
+          daysDelta: -leave.days
+        });
+
         const updatedUser = await User.findByIdAndUpdate(
           leave.user._id,
-          {
-            $inc: { [`leaveBalance.${leave.type}.taken`]: -leave.days }
-          },
+          { $inc: decUpdate },
           { new: true }
         );
+
         if (updatedUser) {
-          if (updatedUser.leaveBalance?.[leave.type]?.taken < 0) {
-            updatedUser.leaveBalance[leave.type].taken = 0;
+          if (updatedUser.leaveBalance?.[targetKey]?.taken < 0) {
+            updatedUser.leaveBalance[targetKey].taken = 0;
             await updatedUser.save({ validateBeforeSave: false });
           }
           leave.user = updatedUser;
@@ -469,12 +575,16 @@ exports.updateLeaveStatus = async (req, res) => {
     // Dispatch status notification email (Approved or Rejected)
     let emailResult = null;
     if (leave.user && leave.user.email) {
+      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+      const financeRecipients = isExtraLeave ? getFinanceEmails() : [];
+
       emailResult = await sendApprovalEmail({
         employeeEmail: leave.user.email,
         employeeName: leave.user.name || "Team Member",
         status,
         leave,
-        rejectionReason: status === "rejected" ? rejectionReason : ""
+        rejectionReason: status === "rejected" ? rejectionReason : "",
+        additionalRecipients: financeRecipients
       });
     }
 
@@ -554,23 +664,38 @@ exports.cancelLeave = async (req, res) => {
 
     // If an Admin cancelled an already approved leave, refund the balance atomically
     if (previousStatus === "approved" && leave.user?._id) {
+      const targetYear = new Date(leave.fromDate).getUTCFullYear();
+      await ensureUserYearBalanceExists(leave.user._id, targetYear);
+
+      const freshUser = await User.findById(leave.user._id);
+      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+
+      const { update: decUpdate, targetKey } = buildAtomicBalanceDelta({
+        targetYear,
+        activeUserYear: freshUser.leaveYear,
+        type: leave.type,
+        isExtra: isExtraLeave,
+        daysDelta: -leave.days
+      });
+
       const updatedUser = await User.findByIdAndUpdate(
         leave.user._id,
-        {
-          $inc: { [`leaveBalance.${leave.type}.taken`]: -leave.days }
-        },
+        { $inc: decUpdate },
         { new: true }
       );
-      if (updatedUser && updatedUser.leaveBalance?.[leave.type]?.taken < 0) {
-        updatedUser.leaveBalance[leave.type].taken = 0;
+      if (updatedUser && updatedUser.leaveBalance?.[targetKey]?.taken < 0) {
+        updatedUser.leaveBalance[targetKey].taken = 0;
         await updatedUser.save({ validateBeforeSave: false });
       }
     }
 
-    // Dispatch cancellation email to Vertical Lead, teammates, and admins
+    // Dispatch cancellation email to Vertical Lead, teammates, admins, and finance (if extra leave)
     let emailResult = null;
     try {
-      const { recipients, founderEmails } = await getNotificationRecipients(leave.user);
+      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+      const { recipients, founderEmails } = await getNotificationRecipients(leave.user, {
+        isExtraLeave
+      });
 
       emailResult = await sendCancellationEmail({
         leave,
@@ -650,7 +775,10 @@ exports.resendCancellationEmail = async (req, res) => {
       });
     }
 
-    const { recipients, founderEmails } = await getNotificationRecipients(leave.user);
+    const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+    const { recipients, founderEmails } = await getNotificationRecipients(leave.user, {
+      isExtraLeave
+    });
 
     // Accurately determine the status this leave had prior to cancellation
     const previousStatus = leave.cancelledFromStatus || "pending";
@@ -813,7 +941,10 @@ exports.resendLeaveEmail = async (req, res) => {
       return res.status(400).json({ message: "Cannot resend email: Employee account is deactivated or deleted." });
     }
 
-    const { recipients, founderEmails } = await getNotificationRecipients(employee);
+    const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+    const { recipients, founderEmails } = await getNotificationRecipients(employee, {
+      isExtraLeave
+    });
 
     // Re-dispatch email
     const emailResult = await sendLeaveEmail({
@@ -901,13 +1032,17 @@ exports.resendDecisionEmail = async (req, res) => {
       return res.status(400).json({ message: "Cannot send notification: Employee email not found." });
     }
 
+    const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+    const financeRecipients = isExtraLeave ? getFinanceEmails() : [];
+
     // Dispatch decision email
     const emailResult = await sendApprovalEmail({
       employeeEmail: employee.email,
       employeeName: employee.name || "Team Member",
       status: leave.status,
       leave,
-      rejectionReason: leave.status === "rejected" ? (leave.rejectionReason || "") : ""
+      rejectionReason: leave.status === "rejected" ? (leave.rejectionReason || "") : "",
+      additionalRecipients: financeRecipients
     });
 
     leave.decisionEmailAttempts = (leave.decisionEmailAttempts || 0) + 1;
@@ -945,7 +1080,7 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
     const { id } = req.params;
 
     // 1. Fetch User to get leave balance and details
-    const user = await User.findById(id).select("name email leaveBalance vertical");
+    const user = await User.findById(id).select("name email leaveBalance yearlyLeaveBalances leaveYear vertical");
     if (!user) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -960,6 +1095,11 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
         message: "Access denied. You are not authorized to view this employee's records."
       });
     }
+
+    const currentISTYear = getCurrentISTYear();
+    const queryYear = req.query.year ? parseInt(req.query.year, 10) : currentISTYear;
+    const selectedYear = !isNaN(queryYear) ? queryYear : currentISTYear;
+    const targetBalance = getLeaveBalanceForYear(user, selectedYear);
 
     // 2. Fetch User's leaves
     const leaves = await Leave.find({ user: id }).sort({ createdAt: -1 });
@@ -986,7 +1126,8 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
     // 3. Return structured object containing both leaves and balance
     res.json({
       employee: { name: user.name, email: user.email },
-      leaveBalance: user.leaveBalance,
+      leaveBalance: targetBalance,
+      selectedYear,
       leaves: formattedLeaves
     });
   } catch (err) {

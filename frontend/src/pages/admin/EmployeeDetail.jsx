@@ -30,6 +30,7 @@ export default function EmployeeDetail() {
             { title: "Casual Leave", total: balances.casual?.total ?? 11, taken: balances.casual?.taken ?? 0 },
             { title: "Sick Leave", total: balances.sick?.total ?? 10, taken: balances.sick?.taken ?? 0 },
             { title: "Flexible Leave", total: balances.flexible?.total ?? 5, taken: balances.flexible?.taken ?? 0 },
+            { title: "Extra Leaves", total: null, taken: balances.extra?.taken ?? 0, isCounterOnly: true, badgeText: "Extra Leave" }
           ]);
         }
       } catch (err) {
@@ -46,7 +47,7 @@ export default function EmployeeDetail() {
         {employeeName ? `${employeeName}'s Details` : "Employee Details"}
       </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {totalLeaves.map((leave, index) => (
           <LeaveCard key={index} {...leave} />
         ))}
@@ -77,7 +78,7 @@ export default function EmployeeDetail() {
                 history.map((item) => (
                   <tr key={item._id} className="border-t hover:bg-gray-50 transition">
                     <td className="p-3 sm:p-4 whitespace-nowrap">{item.month}</td>
-                    <td className="p-3 sm:p-4 capitalize whitespace-nowrap">{item.type}</td>
+                    <td className="p-3 sm:p-4 capitalize whitespace-nowrap">{item.type === "extra" ? "Extra Leave" : item.type}</td>
                     <td className="p-3 sm:p-4 font-semibold whitespace-nowrap">{item.days}</td>
                     <td className="p-3 sm:p-4 whitespace-nowrap">{item.from}</td>
                     <td className="p-3 sm:p-4 whitespace-nowrap">{item.to}</td>

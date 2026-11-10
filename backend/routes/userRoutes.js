@@ -29,4 +29,7 @@ router.get("/deleted", ensureAuth, requireAdmin, userController.getDeletedUsers)
 // 8. Restore Soft-Deleted User (Admins Only)
 router.put("/restore/:id", ensureAuth, requireAdmin, validateObjectId, userController.restoreUser);
 
+// 9. Manual Annual Leave Reset (Admins Only)
+router.post("/reset-annual-leaves", ensureAuth, requireAdmin, userController.resetAnnualLeaves);
+
 module.exports = router;

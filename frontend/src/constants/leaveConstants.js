@@ -26,9 +26,14 @@ export const LEAVE_STATUS_OPTIONS = [
 
 export const VERTICALS = ["Program", "Placement", "EdTech", "Operations"];
 
-export const NATIONAL_HOLIDAYS_2026 = [
-  { name: "Republic Day", date: new Date("2026-01-26") },
-  { name: "Labour Day", date: new Date("2026-05-01") },
-  { name: "Independence Day", date: new Date("2026-08-15") },
-  { name: "Gandhi Jayanti", date: new Date("2026-10-02") },
-];
+export const getNationalHolidays = (year = new Date().getFullYear()) => {
+  const y = parseInt(year, 10) || new Date().getFullYear();
+  return [
+    { name: "Republic Day", date: new Date(`${y}-01-26T00:00:00`) },
+    { name: "Labour Day", date: new Date(`${y}-05-01T00:00:00`) },
+    { name: "Independence Day", date: new Date(`${y}-08-15T00:00:00`) },
+    { name: "Gandhi Jayanti", date: new Date(`${y}-10-02T00:00:00`) },
+  ];
+};
+
+export const NATIONAL_HOLIDAYS_2026 = getNationalHolidays(2026);

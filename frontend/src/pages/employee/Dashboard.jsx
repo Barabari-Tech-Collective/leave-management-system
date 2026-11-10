@@ -11,9 +11,10 @@ import {
   CheckCircle2, 
   ArrowRight, 
   PlusCircle,
-  FileText
+  FileText,
+  Calendar
 } from "lucide-react";
-import { NATIONAL_HOLIDAYS_2026 } from "../../constants/leaveConstants";
+import { getNationalHolidays } from "../../constants/leaveConstants";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,6 +24,12 @@ export default function Dashboard() {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Year Selection & Navigation State
+  const currentSysYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(currentSysYear);
+  const [selectedYear, setSelectedYear] = useState(currentSysYear);
+  const [availableYears, setAvailableYears] = useState([currentSysYear, currentSysYear + 1]);
 
   // Modal inspection state
   const [selectedLeaveForView, setSelectedLeaveForView] = useState(null);
@@ -69,97 +76,144 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
+  const fetchDashboardData = async (targetYear = null) => {
+    try {
+      setLoading(true);
 
-        // Fetch user profile (balance) and latest 5 leaves (with pending count) in parallel with allSettled
-        const [userResult, leavesResult] = await Promise.allSettled([
-          API.get("/users/me"),
-          API.get("/leave/myleaves?page=1&limit=5")
-        ]);
+      const activeTargetYear = targetYear !== null ? targetYear : selectedYear;
+      const yearQuery = targetYear !== null ? `?year=${targetYear}` : "";
+      const leavesYearParam = targetYear !== null ? `&year=${targetYear}` : "";
 
-        // 1. Process User Profile & Leave Balances
-        if (userResult.status === "fulfilled") {
-          const userData = userResult.value.data;
-          setCurrentUser(userData);
-          const balance = userData?.leaveBalance;
-          const today = new Date();
-          const completedNationalHolidays = NATIONAL_HOLIDAYS_2026.filter(
-            (h) => h.date <= today
-          ).length;
+      // Fetch user profile (balance for targetYear) and latest 5 leaves for targetYear
+      const [userResult, leavesResult] = await Promise.allSettled([
+        API.get(`/users/me${yearQuery}`),
+        API.get(`/leave/myleaves?page=1&limit=5${leavesYearParam}`)
+      ]);
 
-          setLeaveData([
-            {
-              title: "Casual Leave",
-              total: balance?.casual?.total ?? 11,
-              taken: balance?.casual?.taken ?? 0,
-            },
-            {
-              title: "Sick Leave",
-              total: balance?.sick?.total ?? 10,
-              taken: balance?.sick?.taken ?? 0,
-            },
-            {
-              title: "Flexible Cultural",
-              total: balance?.flexible?.total ?? 5,
-              taken: balance?.flexible?.taken ?? 0,
-            },
-            {
-              title: "National Holidays",
-              total: 4,
-              taken: completedNationalHolidays,
-            },
-          ]);
+      let resolvedYear = activeTargetYear;
+
+      // 1. Process User Profile & Leave Balances
+      if (userResult.status === "fulfilled") {
+        const userData = userResult.value.data;
+        setCurrentUser(userData);
+
+        const sysYear = userData?.currentYear || new Date().getFullYear();
+        setCurrentYear(sysYear);
+
+        if (userData?.availableYears && Array.isArray(userData.availableYears)) {
+          const yearsSet = new Set(userData.availableYears);
+          yearsSet.add(sysYear);
+          yearsSet.add(sysYear + 1);
+          setAvailableYears(Array.from(yearsSet).sort((a, b) => b - a));
         }
 
-        // 2. Process Recent Leaves & Pending Count
-        if (leavesResult.status === "fulfilled") {
-          const leavesRes = leavesResult.value;
-          const leavesData = leavesRes.data?.leaves || (Array.isArray(leavesRes.data) ? leavesRes.data : []);
-          setRecentLeaves(leavesData.slice(0, 5));
-          
-          // pendingCount from backend response, or calculate as fallback
-          const computedPending = leavesRes.data?.pendingCount !== undefined
-            ? leavesRes.data.pendingCount
-            : leavesData.filter((l) => l.status === "pending").length;
-          setPendingCount(computedPending);
-
-          // Initialize any active 5s cooldowns based on lastEmailAttemptAt and lastCancellationEmailAttemptAt
-          const now = Date.now();
-          const updatedCooldowns = {};
-          const updatedCancellationCooldowns = {};
-          leavesData.forEach((item) => {
-            if (item.emailStatus === "failed" && item.lastEmailAttemptAt) {
-              const elapsed = Math.floor((now - new Date(item.lastEmailAttemptAt).getTime()) / 1000);
-              if (elapsed < 5) {
-                updatedCooldowns[item._id] = 5 - elapsed;
-              }
-            }
-            if (item.cancellationEmailStatus === "failed" && item.lastCancellationEmailAttemptAt) {
-              const elapsed = Math.floor((now - new Date(item.lastCancellationEmailAttemptAt).getTime()) / 1000);
-              if (elapsed < 5) {
-                updatedCancellationCooldowns[item._id] = 5 - elapsed;
-              }
-            }
-          });
-          if (Object.keys(updatedCooldowns).length > 0) {
-            setCooldowns((prev) => ({ ...prev, ...updatedCooldowns }));
-          }
-          if (Object.keys(updatedCancellationCooldowns).length > 0) {
-            setCancellationCooldowns((prev) => ({ ...prev, ...updatedCancellationCooldowns }));
-          }
+        if (userData?.selectedYear) {
+          resolvedYear = userData.selectedYear;
+          setSelectedYear(userData.selectedYear);
+        } else if (targetYear === null) {
+          resolvedYear = sysYear;
+          setSelectedYear(sysYear);
         }
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-      } finally {
-        setLoading(false);
+
+        const balance = userData?.leaveBalance;
+        const today = new Date();
+        const holidaysForYear = getNationalHolidays(resolvedYear);
+
+        let completedNationalHolidays = 0;
+        const activeSysYear = userData?.currentYear || new Date().getFullYear();
+        if (resolvedYear < activeSysYear) {
+          completedNationalHolidays = 4;
+        } else if (resolvedYear > activeSysYear) {
+          completedNationalHolidays = 0;
+        } else {
+          completedNationalHolidays = holidaysForYear.filter((h) => h.date <= today).length;
+        }
+
+        const cards = [
+          {
+            title: "Casual Leave",
+            total: balance?.casual?.total ?? 11,
+            taken: balance?.casual?.taken ?? 0,
+          },
+          {
+            title: "Sick Leave",
+            total: balance?.sick?.total ?? 10,
+            taken: balance?.sick?.taken ?? 0,
+          },
+          {
+            title: "Flexible Cultural Leave",
+            total: balance?.flexible?.total ?? 5,
+            taken: balance?.flexible?.taken ?? 0,
+          },
+          {
+            title: "National Holidays",
+            total: 4,
+            taken: completedNationalHolidays,
+          },
+          {
+            title: "Extra Leaves",
+            total: null,
+            taken: balance?.extra?.taken ?? 0,
+            isCounterOnly: true,
+            badgeText: "Extra Leave"
+          }
+        ];
+
+        setLeaveData(cards);
       }
-    };
 
-    fetchDashboardData();
+      // 2. Process Recent Leaves & Pending Count
+      if (leavesResult.status === "fulfilled") {
+        const leavesRes = leavesResult.value;
+        const leavesData = leavesRes.data?.leaves || (Array.isArray(leavesRes.data) ? leavesRes.data : []);
+        setRecentLeaves(leavesData.slice(0, 5));
+        
+        // pendingCount from backend response, or calculate as fallback
+        const computedPending = leavesRes.data?.pendingCount !== undefined
+          ? leavesRes.data.pendingCount
+          : leavesData.filter((l) => l.status === "pending").length;
+        setPendingCount(computedPending);
+
+        // Initialize any active 5s cooldowns based on lastEmailAttemptAt and lastCancellationEmailAttemptAt
+        const now = Date.now();
+        const updatedCooldowns = {};
+        const updatedCancellationCooldowns = {};
+        leavesData.forEach((item) => {
+          if (item.emailStatus === "failed" && item.lastEmailAttemptAt) {
+            const elapsed = Math.floor((now - new Date(item.lastEmailAttemptAt).getTime()) / 1000);
+            if (elapsed < 5) {
+              updatedCooldowns[item._id] = 5 - elapsed;
+            }
+          }
+          if (item.cancellationEmailStatus === "failed" && item.lastCancellationEmailAttemptAt) {
+            const elapsed = Math.floor((now - new Date(item.lastCancellationEmailAttemptAt).getTime()) / 1000);
+            if (elapsed < 5) {
+              updatedCancellationCooldowns[item._id] = 5 - elapsed;
+            }
+          }
+        });
+        if (Object.keys(updatedCooldowns).length > 0) {
+          setCooldowns((prev) => ({ ...prev, ...updatedCooldowns }));
+        }
+        if (Object.keys(updatedCancellationCooldowns).length > 0) {
+          setCancellationCooldowns((prev) => ({ ...prev, ...updatedCancellationCooldowns }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData(null);
   }, []);
+
+  const handleYearChange = (newYear) => {
+    setSelectedYear(newYear);
+    fetchDashboardData(newYear);
+  };
 
   // Handle email retry if modal or table is used to retry a failed leave email
   const handleResend = async (leaveId) => {
@@ -372,12 +426,51 @@ export default function Dashboard() {
 
       {/* Leave Balances Grid */}
       <div>
-        <div className="mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Leave Quota & Balances</h2>
-          <p className="text-xs text-slate-500">Overview of remaining days across each category for 2026</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Leave Quota & Balances</h2>
+              {selectedYear < currentYear && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  Past Year Archive ({selectedYear})
+                </span>
+              )}
+              {selectedYear > currentYear && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                  Upcoming Year Advance ({selectedYear})
+                </span>
+              )}
+              {selectedYear === currentYear && (
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Current Year ({selectedYear})
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Overview of remaining days across each category for {selectedYear}
+            </p>
+          </div>
+
+          {/* Year Selector Dropdown */}
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+            <Calendar size={15} className="text-indigo-600" />
+            <label htmlFor="dashboard-year-select" className="text-xs font-bold text-slate-500">Year:</label>
+            <select
+              id="dashboard-year-select"
+              value={selectedYear}
+              onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
+              className="text-xs sm:text-sm font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+            >
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr}>
+                  {yr} {yr === currentYear ? "(Current)" : yr > currentYear ? "(Advance)" : "(Archive)"}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${leaveData.length > 4 ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-4 sm:gap-6`}>
           {leaveData.map((leave, index) => (
             <LeaveCard key={index} {...leave} />
           ))}

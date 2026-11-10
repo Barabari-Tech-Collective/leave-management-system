@@ -19,6 +19,14 @@ const connectDB = async () => {
     } catch (migErr) {
       console.warn("Legacy leaves migration note:", migErr.message);
     }
+
+    // Auto-migrate legacy users to initialize 2026 leaveYear and yearlyLeaveBalances
+    try {
+      const { performAnnualResetAllUsers } = require("../utils/leaveResetUtils");
+      await performAnnualResetAllUsers();
+    } catch (userMigErr) {
+      console.warn("Legacy user leave initialization note:", userMigErr.message);
+    }
   } catch (error) {
     console.error("MongoDB connection failed:", error);
     process.exit(1);

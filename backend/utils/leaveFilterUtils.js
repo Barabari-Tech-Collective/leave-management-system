@@ -94,7 +94,17 @@ const getAvailableLeaveYears = async (baseFilter = {}) => {
   ]);
 
   const yearsSet = new Set();
-  yearsSet.add(new Date().getFullYear());
+  let currentYear;
+  try {
+    currentYear = parseInt(
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date()),
+      10
+    );
+  } catch (e) {
+    currentYear = new Date().getFullYear();
+  }
+  yearsSet.add(currentYear);
+  yearsSet.add(currentYear + 1); // Extra upcoming advance year option
   yearAgg.forEach((item) => {
     if (item._id && !isNaN(item._id)) yearsSet.add(item._id);
   });

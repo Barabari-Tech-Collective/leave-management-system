@@ -63,32 +63,45 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 </html>
 `;
 
-// 1. Leave Application Notification (Standard & Past Emergency Leaves)
+// 1. Leave Application Notification (Standard & Past Emergency Leaves & Extra Leaves)
 const buildLeaveRequestEmail = ({ leave, employee }) => {
   const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const isPastLeave = Boolean(leave.isPastLeave);
+  const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
   const safeEmpName = escapeHtml(employee?.name || "Team Member");
   const safeVertical = escapeHtml(employee?.vertical || "General");
   const safeReason = escapeHtml(leave.reason || "N/A");
 
-  const emailTitle = isPastLeave ? "Past Leave Record" : "Leave Request";
+  const extraPrefix = isExtraLeave ? "[EXTRA LEAVE] " : "";
+  const emailTitle = isExtraLeave
+    ? (isPastLeave ? "Extra Leave Recorded" : "Extra Leave Request")
+    : (isPastLeave ? "Past Leave Record" : "Leave Request");
   const emailSubtitle = isPastLeave
     ? `${safeVertical} Vertical • Past Leave Record`
     : `${safeVertical} Vertical`;
-  const emailSubject = isPastLeave
-    ? `Past Leave Record (${safeVertical} Vertical) - ${safeEmpName}`
-    : `Leave Request (${safeVertical} Vertical) - ${safeEmpName}`;
+  const emailSubject = `${extraPrefix}${isPastLeave ? "Past Leave Record" : "Leave Request"} (${safeVertical} Vertical) - ${safeEmpName}`;
+
+  const extraNoticeBox = isExtraLeave
+    ? `
+      <div style="background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 14px 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0; font-weight: 800; color: #92400E; font-size: 14px;">⚠️ EXTRA LEAVE NOTICE</p>
+        <p style="margin: 4px 0 0 0; color: #78350F; font-size: 13px;">
+          This employee has exhausted their 26 annual paid leaves. This request is treated as an <strong>Extra Leave</strong> and forwarded to the <strong>Finance Team</strong> for payroll processing.
+        </p>
+      </div>
+    `
+    : "";
 
   const contentHtml = isPastLeave
     ? `
       <p style="font-size: 16px;">Hi Team,</p>
       <p><strong>${safeEmpName}</strong> has recorded a past leave taken.</p>
-      
+      ${extraNoticeBox}
       <div class="info-box">
         <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Leave Details:</p>
         <ul style="margin: 0; padding-left: 20px; color: #334155;">
-          <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
+          <li><strong>Leave Type:</strong> ${isExtraLeave ? "EXTRA LEAVE" : escapeHtml(leave.type.toUpperCase())}</li>
           <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
           <li><strong>Reason:</strong> ${safeReason}</li>
           <li><strong>Status:</strong> <span style="color: #16A34A; font-weight: 700;">RECORDED</span></li>
@@ -100,11 +113,11 @@ const buildLeaveRequestEmail = ({ leave, employee }) => {
     : `
       <p style="font-size: 16px;">Hi Team,</p>
       <p><strong>${safeEmpName}</strong> has submitted a new leave application.</p>
-      
+      ${extraNoticeBox}
       <div class="info-box">
         <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Application Details:</p>
         <ul style="margin: 0; padding-left: 20px; color: #334155;">
-          <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
+          <li><strong>Leave Type:</strong> ${isExtraLeave ? "EXTRA LEAVE" : escapeHtml(leave.type.toUpperCase())}</li>
           <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
           <li><strong>Reason:</strong> ${safeReason}</li>
         </ul>
@@ -133,19 +146,34 @@ const buildLeaveDecisionEmail = ({
   const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const isApproved = status === "approved";
+  const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
   const safeEmpName = escapeHtml(employeeName);
   const safeReason = escapeHtml(leave.reason || "N/A");
   const safeRejectionReason = escapeHtml(rejectionReason);
 
-  const subject = `Leave Request ${status.toUpperCase()} - ${safeEmpName}`;
+  const extraPrefix = isExtraLeave ? "[EXTRA LEAVE] " : "";
+  const subject = `${extraPrefix}Leave Request ${status.toUpperCase()} - ${safeEmpName}`;
+
+  const extraNoticeBox = isExtraLeave
+    ? `
+      <div style="background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 14px 16px; border-radius: 8px; margin: 16px 0;">
+        <p style="margin: 0; font-weight: 800; color: #92400E; font-size: 14px;">⚠️ EXTRA LEAVE RECORD</p>
+        <p style="margin: 4px 0 0 0; color: #78350F; font-size: 13px;">
+          This decision applies to an <strong>Extra Leave</strong> (granted beyond the 26 annual paid leaves). Forwarded to the <strong>Finance Team</strong> for payroll processing.
+        </p>
+      </div>
+    `
+    : "";
 
   const html = wrapBarabariTemplate({
-    title: isApproved ? "Leave Request Approved ✅" : "Leave Request Declined ❌",
+    title: isApproved
+      ? (isExtraLeave ? "Extra Leave Approved ✅" : "Leave Request Approved ✅")
+      : (isExtraLeave ? "Extra Leave Declined ❌" : "Leave Request Declined ❌"),
     subtitle: "Status Update Notification",
     content: `
       <p style="font-size: 16px;">Hi <strong>${safeEmpName}</strong>,</p>
-      <p>Your leave application for <strong>${leave.days} day(s)</strong> (${fromStr} to ${toStr}) has been <strong style="color: ${isApproved ? '#16A34A' : '#DC2626'};">${status.toUpperCase()}</strong>.</p>
-      
+      <p>Your ${isExtraLeave ? "<strong>Extra Leave</strong>" : "leave"} application for <strong>${leave.days} day(s)</strong> (${fromStr} to ${toStr}) has been <strong style="color: ${isApproved ? '#16A34A' : '#DC2626'};">${status.toUpperCase()}</strong>.</p>
+      ${extraNoticeBox}
       <div class="info-box" style="border-left-color: ${isApproved ? '#16A34A' : '#DC2626'}; background-color: ${isApproved ? '#F0FDF4' : '#FEF2F2'};">
         <p style="margin: 0; color: #334155;"><strong>Your Applied Reason:</strong> ${safeReason}</p>
         ${
@@ -217,7 +245,7 @@ const buildLeaveCancellationEmail = ({
       <div class="info-box">
         <p style="margin: 0 0 8px 0; font-weight: 700; color: #1E3A8A;">Cancelled Request Details:</p>
         <ul style="margin: 0; padding-left: 20px; color: #334155;">
-          <li><strong>Leave Type:</strong> ${escapeHtml(leave.type.toUpperCase())}</li>
+          <li><strong>Leave Type:</strong> ${leave.type === "extra" || leave.isExtraLeave ? "EXTRA LEAVE" : escapeHtml(leave.type.toUpperCase())}</li>
           <li><strong>Duration:</strong> ${leave.days} Day(s) (${fromStr} to ${toStr})</li>
           <li><strong>Reason:</strong> ${safeReason}</li>
           <li><strong>Status:</strong> <span style="color: #64748B; font-weight: 700;">CANCELLED</span></li>

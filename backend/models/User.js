@@ -5,7 +5,8 @@ const leaveBalanceSchema = {
   casual: { total: { type: Number, default: 11 }, taken: { type: Number, default: 0 } },
   sick: { total: { type: Number, default: 10 }, taken: { type: Number, default: 0 } },
   flexible: { total: { type: Number, default: 5 }, taken: { type: Number, default: 0 } },
-  national: { total: { type: Number, default: 4 }, taken: { type: Number, default: 0 } }
+  national: { total: { type: Number, default: 4 }, taken: { type: Number, default: 0 } },
+  extra: { taken: { type: Number, default: 0 } }
 };
 
 const userSchema = new mongoose.Schema(
@@ -33,7 +34,22 @@ const userSchema = new mongoose.Schema(
       default: "employee"
     },
     isDeleted: { type: Boolean, default: false },
-    leaveBalance: leaveBalanceSchema
+    leaveYear: {
+      type: Number,
+      default: () => {
+        try {
+          return parseInt(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date()), 10);
+        } catch (e) {
+          return new Date().getFullYear();
+        }
+      }
+    },
+    leaveBalance: leaveBalanceSchema,
+    yearlyLeaveBalances: {
+      type: Map,
+      of: new mongoose.Schema(leaveBalanceSchema, { _id: false }),
+      default: () => new Map()
+    }
   },
   { timestamps: true }
 );

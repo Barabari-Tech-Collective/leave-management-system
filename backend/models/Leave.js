@@ -12,7 +12,7 @@ const leaveSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["casual", "sick", "flexible", "national"],
+      enum: ["casual", "sick", "flexible", "national", "extra"],
       required: true
     },
     fromDate: Date,
@@ -27,6 +27,10 @@ const leaveSchema = new mongoose.Schema(
     rejectionReason: {
       type: String,
       default: ""
+    },
+    isExtraLeave: {
+      type: Boolean,
+      default: false
     },
     cancelledAt: {
       type: Date

@@ -162,6 +162,15 @@ export default function LeaveDetailsModal({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
+          {(leave.isExtraLeave || leave.type === "extra") && (
+            <div className="p-3 sm:p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900 font-medium">
+              <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                <strong>Extra Leave:</strong> The employee has exhausted their standard 26 paid leaves. Approving this leave impacts payroll; automated notifications are shared with the <strong>Finance Team</strong>.
+              </span>
+            </div>
+          )}
+
           {leave.isPastLeave && (
             <div className="p-3 sm:p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center gap-2.5 text-xs text-indigo-800 font-medium">
               <Clock size={16} className="text-indigo-600 shrink-0" />
@@ -203,7 +212,9 @@ export default function LeaveDetailsModal({
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 text-center sm:text-left">
               <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Leave Type</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-800 capitalize mt-0.5 truncate">{leave.type || "-"}</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-800 capitalize mt-0.5 truncate">
+                {leave.type === "extra" ? "Extra Leave" : (leave.type || "-")}
+              </p>
             </div>
             <div className="p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100 text-center sm:text-left">
               <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Duration</p>

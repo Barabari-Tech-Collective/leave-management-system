@@ -80,7 +80,9 @@ export default function ApprovalLeaveTable({
                 )}
                 <td className="py-3.5 px-3 sm:py-4 sm:px-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <span className="capitalize font-semibold text-slate-700">{leave.type}</span>
+                    <span className="capitalize font-semibold text-slate-700">
+                      {leave.type === "extra" ? "Extra Leave" : leave.type}
+                    </span>
                     {leave.isPastLeave && (
                       <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
                         Past Leave

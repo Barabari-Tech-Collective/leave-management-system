@@ -133,7 +133,8 @@ const sendApprovalEmail = async ({
   employeeName,
   status,
   leave,
-  rejectionReason = ""
+  rejectionReason = "",
+  additionalRecipients = []
 }) => {
   try {
     const cleanedEmail = (employeeEmail || "").trim().toLowerCase();
@@ -157,10 +158,11 @@ const sendApprovalEmail = async ({
       rejectionReason
     });
 
+    const allRecipients = sanitizeEmails([cleanedEmail, ...additionalRecipients]);
     const sender = getSenderEmail();
     const { data, error } = await getResendClient().emails.send({
       from: sender,
-      to: [cleanedEmail],
+      to: allRecipients,
       subject,
       html
     });
