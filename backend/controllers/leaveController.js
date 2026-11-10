@@ -1203,9 +1203,6 @@ exports.getLeadRequestsForAdmin = async (req, res) => {
     }
 
     const baseFilter = { user: { $in: filteredLeadIds } };
-    if (vertical && vertical !== "all") {
-      baseFilter.vertical = vertical;
-    }
 
     const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
 

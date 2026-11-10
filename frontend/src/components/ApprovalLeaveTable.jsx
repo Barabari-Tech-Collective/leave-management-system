@@ -17,6 +17,11 @@ export default function ApprovalLeaveTable({
   onResetFilters = null,
   className = ""
 }) {
+  const formatDate = (dateInput) => {
+    if (!dateInput) return "—";
+    const d = new Date(dateInput);
+    return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+  };
   if (loading) {
     return (
       <div className={`p-16 flex flex-col items-center justify-center gap-3 text-slate-400 ${className}`}>
@@ -97,8 +102,7 @@ export default function ApprovalLeaveTable({
                   </div>
                 </td>
                 <td className="py-2.5 px-2 sm:py-3 sm:px-2.5 text-slate-600 text-xs whitespace-nowrap">
-                  {new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })} -{" "}
-                  {new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" })}
+                  {formatDate(leave.fromDate)} - {formatDate(leave.toDate)}
                 </td>
                 <td className="py-2.5 px-2 sm:py-3 sm:px-2 font-bold text-slate-800 text-xs whitespace-nowrap text-center sm:text-left">
                   {leave.days}d

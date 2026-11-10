@@ -74,17 +74,22 @@ exports.updateLead = async (req, res) => {
     const { isVerticalLead, vertical } = req.body;
     const userId = req.params.id;
 
+    const existingUser = await User.findById(userId);
+    if (!existingUser) return res.status(404).json({ message: "User not found." });
+
+    const targetVertical = vertical || existingUser.vertical;
+
     // Single Lead Enforcement: Demote any existing lead in this vertical
     if (isVerticalLead) {
       await User.updateMany(
-        { vertical, _id: { $ne: userId } },
+        { vertical: targetVertical, _id: { $ne: userId } },
         { $set: { isVerticalLead: false } }
       );
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { isVerticalLead, vertical },
+      { isVerticalLead, vertical: targetVertical },
       { new: true }
     ).select("-password");
 

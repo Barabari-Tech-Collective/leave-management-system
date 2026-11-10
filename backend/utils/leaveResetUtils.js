@@ -137,7 +137,8 @@ const checkAndResetAnnualLeave = async (user) => {
   if (!user || !user._id) return user;
 
   const currentISTYear = getCurrentISTYear();
-  const userYear = user.leaveYear || currentISTYear;
+  // Legacy production accounts default to year 2026 if leaveYear is uninitialized
+  const userYear = user.leaveYear || 2026;
 
   // Initialize yearlyLeaveBalances map if missing
   if (!user.yearlyLeaveBalances) {

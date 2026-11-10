@@ -209,6 +209,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleYearChange = (newYear) => {

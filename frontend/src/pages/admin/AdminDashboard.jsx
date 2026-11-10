@@ -149,6 +149,7 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     fetchAllDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Combined fetch function using Promise.all to prevent loading state flicker
@@ -373,54 +374,10 @@ export default function AdminDashboard() {
   const handleLeaveStatusUpdated = async () => {
     await Promise.all([
       fetchLeadLeaves(leadPage, leadPageSize, leadVerticalFilter, leadYearFilter, leadMonthFilter, leadStatusFilter, true),
-      fetchOpsLeaves(opsPage, opsPageSize, opsYearFilter, opsMonthFilter, opsStatusFilter, true)
+      fetchOpsLeaves(opsPage, opsPageSize, opsYearFilter, opsMonthFilter, opsStatusFilter, true),
+      API.get("/users/all").then((res) => setEmployees(res.data)).catch(() => {})
     ]);
   };
-  //   useEffect(() => {
-  //     fetchEmployees();
-  //     fetchOpsAndLeadLeaves();
-  //   }, []);
-  // const fetchEmployees = async () => {
-  //   try {
-  //     setLoading(true);
-  //     const res = await API.get("/users/all");
-  //     setEmployees(res.data);
-  //   } catch (err) {
-  //     console.error("Failed to fetch employees:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // const fetchOpsAndLeadLeaves = async () => {
-  //   try {
-  //     // Fetch Operations Vertical leaves
-  //     setLoading(true);
-  //     const opsRes = await API.get("/leave/team-dashboard?vertical=Operations");
-  //     setOpsData(opsRes.data);
-
-  //     // Fetch leaves applied by Vertical Leads
-  //     const leadRes = await API.get("/leave/lead-requests");
-  //     setLeadLeaves(leadRes.data);
-  //   } catch (err) {
-  //     console.error("Failed to fetch approval requests:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // const handleStatusUpdate = async (leaveId, status) => {
-  //   try {
-  //     setActionLoading(leaveId);
-  //     await API.put(`/leave/update-status/${leaveId}`, { status });
-  //     toast.success(`Leave ${status} successfully!`);
-  //     await fetchOpsAndLeadLeaves();
-  //   } catch (err) {
-  //     toast.error(err.response?.data?.message || "Failed to update leave status.");
-  //   } finally {
-  //     setActionLoading(null);
-  //   }
-  // };
   
   if (loading) {
     return (
@@ -635,6 +592,7 @@ export default function AdminDashboard() {
           <ApprovalLeaveTable
             leaves={opsData.teamLeaves || []}
             loading={opsTableLoading}
+            memberColumnLabel="Employee"
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
             onResendEmail={handleResendDecisionEmail}
             retryingId={retryingDecisionId}
@@ -697,6 +655,7 @@ export default function AdminDashboard() {
           <ApprovalLeaveTable
             leaves={leadLeaves}
             loading={leadTableLoading}
+            memberColumnLabel="Vertical Lead"
             onViewLeave={(leave) => setSelectedLeaveForDetails(leave)}
             onResendEmail={handleResendDecisionEmail}
             retryingId={retryingDecisionId}
