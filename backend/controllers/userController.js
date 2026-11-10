@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Leave = require("../models/Leave");
+const {
+  getCurrentISTYear,
+  getLeaveBalanceForYear,
+  checkAndResetAnnualLeave,
+  performAnnualResetAllUsers
+} = require("../utils/leaveResetUtils");
+const { getAvailableLeaveYears } = require("../utils/leaveFilterUtils");
 
 // 1. GET all vertical leads
 exports.getLeads = async (req, res) => {
@@ -13,9 +20,32 @@ exports.getLeads = async (req, res) => {
   }
 };
 
-// 2. GET current logged-in user profile
+// 2. GET current logged-in user profile (Supports ?year= query to view historical/advance year balances)
 exports.getMe = async (req, res) => {
-  res.json(req.user);
+  try {
+    const user = await checkAndResetAnnualLeave(req.user);
+    const currentISTYear = getCurrentISTYear();
+    const queryYear = req.query.year ? parseInt(req.query.year, 10) : currentISTYear;
+    const selectedYear = !isNaN(queryYear) ? queryYear : currentISTYear;
+
+    const [availableYears, targetBalance] = await Promise.all([
+      getAvailableLeaveYears({ user: user._id }),
+      Promise.resolve(getLeaveBalanceForYear(user, selectedYear))
+    ]);
+
+    const userObj = user.toObject ? user.toObject({ flattenMaps: true }) : { ...user };
+    userObj.leaveBalance = targetBalance;
+    userObj.activeLeaveYear = user.leaveYear || currentISTYear;
+    userObj.currentYear = currentISTYear;
+    userObj.selectedYear = selectedYear;
+    userObj.availableYears = availableYears;
+    userObj.isHistoricalYear = selectedYear < currentISTYear;
+    userObj.isAdvanceYear = selectedYear > currentISTYear;
+
+    res.json(userObj);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 // 3. GET all active users (Excludes soft-deleted members & current logged-in user)
@@ -146,6 +176,20 @@ exports.restoreUser = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     res.json({ message: `Account for ${user.name} restored successfully!`, user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 9. Manual Annual Leave Reset (Admins Only)
+exports.resetAnnualLeaves = async (req, res) => {
+  try {
+    const targetYear = req.body.targetYear ? parseInt(req.body.targetYear, 10) : null;
+    const result = await performAnnualResetAllUsers(targetYear);
+    res.json({
+      message: `Annual leave reset successfully executed for year ${result.targetYear}`,
+      result
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

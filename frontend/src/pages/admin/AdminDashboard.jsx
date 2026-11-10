@@ -541,13 +541,14 @@ export default function AdminDashboard() {
                   <th className="p-3 sm:p-4 text-left whitespace-nowrap">Casual Used</th>
                   <th className="p-3 sm:p-4 text-left whitespace-nowrap">Sick Used</th>
                   <th className="p-3 sm:p-4 text-left whitespace-nowrap">Flexible Used</th>
+                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Extra Leave</th>
                   <th className="p-3 sm:p-4 text-left whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center p-6 text-gray-400">
+                    <td colSpan="8" className="text-center p-6 text-gray-400">
                       No employees found matching filter criteria.
                     </td>
                   </tr>
@@ -560,6 +561,9 @@ export default function AdminDashboard() {
                       <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.casual?.taken ?? 0}</td>
                       <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.sick?.taken ?? 0}</td>
                       <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.flexible?.taken ?? 0}</td>
+                      <td className="p-3 sm:p-4 whitespace-nowrap font-bold text-amber-700">
+                        {emp.leaveBalance?.extra?.taken ?? 0}
+                      </td>
                       <td className="p-3 sm:p-4 whitespace-nowrap">
                         <button
                           onClick={() => navigate(`/admin/employee/${emp._id}`)}

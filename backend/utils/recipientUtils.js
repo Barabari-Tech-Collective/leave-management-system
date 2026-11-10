@@ -1,12 +1,23 @@
 const User = require("../models/User");
 
-// Fetch active team members and admins for leave notifications (excluding soft-deleted users and the applicant themselves)
-const getNotificationRecipients = async (employee) => {
+// Helper to retrieve finance team notification emails from environment variables
+const getFinanceEmails = () => {
+  const envFinance = process.env.FINANCE_EMAILS || process.env.FINANCE_EMAIL || "";
+  return envFinance
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+};
+
+// Fetch active team members, admins, and optionally finance team for leave notifications
+const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}) => {
   if (!employee) {
+    const finance = isExtraLeave ? getFinanceEmails() : [];
     return {
       teamEmails: [],
       adminEmails: [],
-      recipients: [],
+      financeEmails: finance,
+      recipients: finance,
       founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
     };
   }
@@ -51,15 +62,19 @@ const getNotificationRecipients = async (employee) => {
 
   const founderEmails = process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org";
 
+  // 3. Finance team emails (included if this is an Extra Leave)
+  const financeEmails = isExtraLeave ? getFinanceEmails() : [];
+
   // Deduplicate all recipient emails so no member receives duplicate notifications
-  const recipients = Array.from(new Set([...teamEmails, ...adminEmails]));
+  const recipients = Array.from(new Set([...teamEmails, ...adminEmails, ...financeEmails]));
 
   return {
     teamEmails,
     adminEmails,
+    financeEmails,
     recipients,
     founderEmails
   };
 };
 
-module.exports = { getNotificationRecipients };
+module.exports = { getNotificationRecipients, getFinanceEmails };

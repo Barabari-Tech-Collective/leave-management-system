@@ -87,7 +87,9 @@ export default function EmployeeLeaveTable({
 
                   <td className="py-3.5 px-3 sm:py-4 sm:px-5 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-700 capitalize font-semibold">{item.type}</span>
+                      <span className="text-slate-700 capitalize font-semibold">
+                        {item.type === "extra" ? "Extra Leave" : item.type}
+                      </span>
                       {item.isPastLeave && (
                         <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
                           Past Leave

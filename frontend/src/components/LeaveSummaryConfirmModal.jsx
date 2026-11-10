@@ -12,7 +12,8 @@ import {
   X,
   Loader2,
   RotateCcw,
-  Ban
+  Ban,
+  Info
 } from "lucide-react";
 
 export default function LeaveSummaryConfirmModal({
@@ -28,7 +29,7 @@ export default function LeaveSummaryConfirmModal({
 
   const isCancel = mode === "cancel";
   const { type, from, to, days, reason, isPastLeave } = leaveData;
-  const { pending = 0, effectiveAvailable = 0 } = balanceData || {};
+  const { pending = 0, effectiveAvailable = 0, totalPendingPaid = 0 } = balanceData || {};
   const balanceAfter = Math.max(0, effectiveAvailable - days);
 
   // Normalize date display to DD/MM/YYYY regardless of incoming format
@@ -109,11 +110,16 @@ export default function LeaveSummaryConfirmModal({
             <div>
               <p className="text-[10px] sm:text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Leave Category</p>
               <h4 className="text-base sm:text-lg font-extrabold text-indigo-950 capitalize mt-0.5">
-                {type} Leave
+                {type && type.includes("Extra") ? "Extra Leave" : `${type} Leave`}
               </h4>
             </div>
             <div>
-              {isCancel ? (
+              {type && type.includes("Extra") ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                  <AlertTriangle size={13} className="text-amber-700" />
+                  Extra Leave
+                </span>
+              ) : isCancel ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
                   <Clock size={13} />
                   Pending
@@ -156,7 +162,28 @@ export default function LeaveSummaryConfirmModal({
           </div>
 
           {/* Balance Impact / Release Card */}
-          {isCancel ? (
+          {type && type.includes("Extra") ? (
+            <div className="p-3.5 sm:p-4 bg-amber-50 rounded-2xl border border-amber-300 space-y-2 text-xs text-amber-900">
+              <p className="font-bold flex items-center gap-1.5 text-sm text-amber-950">
+                <AlertTriangle size={16} className="text-amber-600" />
+                <span>Extra Leave Notice</span>
+              </p>
+              <p className="leading-relaxed">
+                This leave is taken beyond your 26 paid leaves. An automated notification email will be dispatched to your <strong>Vertical Lead</strong>, <strong>Vertical Teammates</strong>, <strong>Admins</strong>, and the <strong>Finance Team</strong> for payroll adjustments.
+              </p>
+              {totalPendingPaid > 0 && (
+                <div className="p-2.5 bg-blue-50/90 rounded-xl border border-blue-200 text-blue-900 space-y-1">
+                  <p className="font-bold text-xs text-blue-950 flex items-center gap-1">
+                    <Info size={13} className="text-blue-600" />
+                    <span>Pending Paid Leaves Available</span>
+                  </p>
+                  <p className="text-[11px] leading-relaxed">
+                    You currently have <strong>{totalPendingPaid} paid {totalPendingPaid === 1 ? "leave" : "leaves"} pending approval</strong>. You can cancel them from your History to reuse your paid quota instead of applying for Extra Leave.
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : isCancel ? (
             <div className="p-3.5 sm:p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-2">
               <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
                 <RotateCcw size={15} className="text-emerald-600" />
@@ -233,11 +260,11 @@ export default function LeaveSummaryConfirmModal({
               </p>
             ) : isPastLeave ? (
               <p>
-                ⚡ <strong>Past Leave Notice:</strong> Clicking Confirm will <strong>immediately deduct {days} {days === 1 ? "day" : "days"}</strong> from your balance and record it for attendance. Your Vertical Lead, teammates, and Admins will be notified (no approval required).
+                ⚡ <strong>Past Leave Notice:</strong> Clicking Confirm will <strong>immediately record {days} {days === 1 ? "day" : "days"}</strong> for attendance. Your Vertical Lead, teammates, and Admins will be notified (no approval required).
               </p>
             ) : (
               <p>
-                📢 <strong>Workflow Notice:</strong> An approval request will be dispatched to your <strong>Vertical Lead</strong> and teammates. Your balance will be held in pending status until your lead reviews and approves it.
+                📢 <strong>Workflow Notice:</strong> An approval request will be dispatched to your <strong>Vertical Lead</strong> and teammates. Your request will be reviewed by your lead and admin.
               </p>
             )}
           </div>
@@ -279,7 +306,9 @@ export default function LeaveSummaryConfirmModal({
               disabled={isSubmitting}
               onClick={onConfirm}
               className={`w-full sm:w-auto px-6 py-2.5 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2 ${
-                isPastLeave
+                type && type.includes("Extra")
+                  ? "bg-linear-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 shadow-amber-200"
+                  : isPastLeave
                   ? "bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-purple-200"
                   : "bg-linear-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-700 shadow-primary/20"
               }`}
@@ -291,7 +320,13 @@ export default function LeaveSummaryConfirmModal({
                 </>
               ) : (
                 <>
-                  <span>{isPastLeave ? "Confirm & Record Past Leave" : "Confirm & Submit Request"}</span>
+                  <span>
+                    {type && type.includes("Extra")
+                      ? "Confirm & Submit Extra Leave"
+                      : isPastLeave
+                      ? "Confirm & Record Past Leave"
+                      : "Confirm & Submit Request"}
+                  </span>
                   <ArrowRight size={14} />
                 </>
               )}

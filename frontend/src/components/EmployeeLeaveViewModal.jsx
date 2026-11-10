@@ -102,9 +102,9 @@ export default function EmployeeLeaveViewModal({
           <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
             <div>
               <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Leave Category</p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
                 <h4 className="text-base font-extrabold text-indigo-950 capitalize">
-                  {leave.type} Leave
+                  {leave.type === "extra" ? "Extra Leave" : `${leave.type} Leave`}
                 </h4>
                 {leave.isPastLeave && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-800 border border-indigo-200">

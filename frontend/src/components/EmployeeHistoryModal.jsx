@@ -106,7 +106,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
               Leave Balances Overview
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Casual */}
               <div className="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl space-y-1">
                 <div className="flex justify-between items-center">
@@ -146,6 +146,20 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee }) {
                 <div className="flex items-baseline gap-1.5 pt-1">
                   <span className="text-2xl font-black text-emerald-950">{flexibleTaken}</span>
                   <span className="text-xs text-slate-500 font-medium">/ {flexibleTotal} used</span>
+                </div>
+              </div>
+
+              {/* Extra Leaves */}
+              <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-amber-800">Extra Leaves</span>
+                  <span className="text-[11px] font-semibold text-amber-700 bg-white px-2 py-0.5 rounded-md border border-amber-300">
+                    Extra Leave
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5 pt-1">
+                  <span className="text-2xl font-black text-amber-950">{balances?.extra?.taken ?? 0}</span>
+                  <span className="text-xs text-slate-500 font-medium">days taken</span>
                 </div>
               </div>
             </div>

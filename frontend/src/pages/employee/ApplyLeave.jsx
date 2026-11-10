@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import API from "../../api/axiosConfig";
-import { Calendar, Clock, CheckCircle, AlertTriangle, ArrowRight, Wallet } from "lucide-react";
+import { Calendar, Clock, CheckCircle, AlertTriangle, ArrowRight, Wallet, Info } from "lucide-react";
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
 
 export default function ApplyLeave() {
@@ -25,7 +25,8 @@ export default function ApplyLeave() {
   const [pendingDaysByType, setPendingDaysByType] = useState({
     casual: 0,
     sick: 0,
-    flexible: 0
+    flexible: 0,
+    extra: 0
   });
 
   // Today's date formatted as YYYY-MM-DD in Indian Standard Time (Asia/Kolkata)
@@ -36,15 +37,12 @@ export default function ApplyLeave() {
     day: "2-digit"
   }).format(new Date());
 
-  // Yesterday's date (maximum selectable date for past leaves)
-  const yesterdayDate = new Date();
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayStr = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(yesterdayDate);
+  // Yesterday's date (maximum selectable date for past leaves calculated deterministically via UTC)
+  const yesterdayStr = (() => {
+    const d = new Date(`${todayStr}T00:00:00.000Z`);
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().split("T")[0];
+  })();
 
   const currentYear = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -52,13 +50,17 @@ export default function ApplyLeave() {
   }).format(new Date());
   const startOfYearStr = `${currentYear}-01-01`;
 
-  // Fetch balances and active pending leaves on mount
+  // Determine target year dynamically from the From Date (or default to current calendar year)
+  const targetYear = form.from ? parseInt(form.from.split("-")[0], 10) : parseInt(currentYear, 10);
+
+  // Fetch balances and active pending leaves on mount or whenever targetYear changes
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        const yearParam = targetYear ? `?year=${targetYear}` : "";
         const [userRes, leavesRes] = await Promise.allSettled([
-          API.get("/users/me"),
-          API.get("/leave/myleaves?page=1&limit=100")
+          API.get(`/users/me${yearParam}`),
+          API.get(`/leave/myleaves?status=pending&limit=100${targetYear ? `&year=${targetYear}` : ""}`)
         ]);
 
         if (userRes.status === "fulfilled" && userRes.value?.data?.leaveBalance) {
@@ -67,7 +69,7 @@ export default function ApplyLeave() {
 
         if (leavesRes.status === "fulfilled") {
           const rawLeaves = leavesRes.value?.data?.leaves || leavesRes.value?.data || [];
-          const pendingMap = { casual: 0, sick: 0, flexible: 0 };
+          const pendingMap = { casual: 0, sick: 0, flexible: 0, extra: 0 };
           rawLeaves.forEach((item) => {
             if (item.status === "pending" && item.type && pendingMap[item.type] !== undefined) {
               pendingMap[item.type] += (item.days || 0);
@@ -81,21 +83,41 @@ export default function ApplyLeave() {
     };
 
     fetchUserData();
-  }, []);
+  }, [targetYear]);
 
   const typeMap = {
     Casual: "casual",
     Sick: "sick",
     "Flexible Cultural": "flexible",
+    "Extra Leave": "extra",
+    "Extra Leave (Loss of Pay)": "extra",
   };
 
   const selectedTypeKey = form.type ? typeMap[form.type] : null;
-  const currentCategoryBalance = (userBalances && selectedTypeKey) ? userBalances[selectedTypeKey] : null;
+  const isExtraType = selectedTypeKey === "extra";
+
+  // Calculate if the 26 annual paid leaves are fully exhausted (including pending requests)
+  const totalPaidTaken = userBalances
+    ? (userBalances.casual?.taken || 0) + (userBalances.sick?.taken || 0) + (userBalances.flexible?.taken || 0)
+    : 0;
+  const totalPendingPaid = (pendingDaysByType.casual || 0) + (pendingDaysByType.sick || 0) + (pendingDaysByType.flexible || 0);
+  const isPaidQuotaExhausted = (totalPaidTaken + totalPendingPaid) >= 26;
+
+  // Auto-reset Extra Leave selection if user switches to a year or state where quota is unexhausted
+  useEffect(() => {
+    if (form.type === "Extra Leave" && !isPaidQuotaExhausted) {
+      setForm((prev) => ({ ...prev, type: "" }));
+    }
+  }, [isPaidQuotaExhausted, form.type]);
+
+  const currentCategoryBalance = (userBalances && selectedTypeKey && !isExtraType)
+    ? userBalances[selectedTypeKey]
+    : null;
   const totalQuota = currentCategoryBalance?.total || 0;
   const takenCount = currentCategoryBalance?.taken || 0;
-  const rawRemaining = Math.max(0, totalQuota - takenCount);
+  const rawRemaining = isExtraType ? 999 : Math.max(0, totalQuota - takenCount);
   const pendingCount = selectedTypeKey ? (pendingDaysByType[selectedTypeKey] || 0) : 0;
-  const effectiveAvailable = Math.max(0, rawRemaining - pendingCount);
+  const effectiveAvailable = isExtraType ? 999 : Math.max(0, rawRemaining - pendingCount);
 
   // Helper function: Calculate total days excluding Sundays (deterministic UTC arithmetic)
   const calculateDaysExcludingSundays = (fromStr, toStr) => {
@@ -145,6 +167,18 @@ export default function ApplyLeave() {
       return;
     }
 
+    const fromYear = form.from.split("-")[0];
+    const toYear = form.to.split("-")[0];
+    if (fromYear !== toYear) {
+      setError(`Leaves cannot span across two different calendar years (${fromYear} and ${toYear}). Please submit two separate requests: one for ${fromYear} and one for ${toYear}.`);
+      return;
+    }
+
+    if (parseInt(fromYear, 10) > parseInt(currentYear, 10) + 1) {
+      setError(`Leaves can only be booked for the current year (${currentYear}) or up to one year in advance (${parseInt(currentYear, 10) + 1}).`);
+      return;
+    }
+
     if (isPastLeave) {
       if (form.to >= todayStr) {
         setError("Past leave dates must be strictly before today. To apply for today or upcoming dates, switch to 'Future Leave Request'.");
@@ -162,16 +196,16 @@ export default function ApplyLeave() {
       return;
     }
 
-    // 1. Raw remaining quota check
-    if (userBalances && selectedTypeKey) {
+    // 1. Raw remaining quota check (Bypassed for Extra Leaves)
+    if (userBalances && selectedTypeKey && !isExtraType) {
       if (calculatedDays > rawRemaining) {
-        setError(`You don't have enough leaves left to take. (Required: ${calculatedDays}, Remaining: ${rawRemaining})`);
+        setError(`You don't have enough leaves left to take for ${targetYear}. (Required: ${calculatedDays}, Remaining: ${rawRemaining})`);
         return;
       }
 
       // 2. Pending leaves conflict check
       if (calculatedDays > effectiveAvailable) {
-        const errorMsg = `You have ${rawRemaining} remaining ${form.type} leave(s), but ${pendingCount} day(s) are currently pending for  approval. Please cancel your pending leave request(s) to apply for this leave.`;
+        const errorMsg = `You have ${rawRemaining} remaining ${form.type} leave(s) for ${targetYear}, but ${pendingCount} day(s) are currently pending for approval. Please cancel your pending leave request(s) to apply for this leave.`;
         setError(errorMsg);
         setPendingConflict({
           hasConflict: true,
@@ -198,6 +232,7 @@ export default function ApplyLeave() {
         toDate: form.to,
         reason: form.reason.trim(),
         isPastLeave,
+        isExtraLeave: isExtraType,
       });
 
       setShowConfirmModal(false);
@@ -314,11 +349,44 @@ export default function ApplyLeave() {
           </p>
         </div>
 
+        {/* Exhaustion Banner if all 26 paid leaves are exhausted */}
+        {isPaidQuotaExhausted && (
+          <div className="space-y-3">
+            <div className="p-3.5 sm:p-4 border rounded-2xl flex items-start gap-2.5 sm:gap-3 text-xs font-medium bg-amber-50 border-amber-300 text-amber-900 shadow-2xs">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-sm">26 Annual Paid Leaves Exhausted ({targetYear})</p>
+                <p className="mt-0.5 leading-relaxed">
+                  You have utilized all 26 annual paid leaves for {targetYear}. You can apply for an <strong>Extra Leave</strong> below. Extra leaves are tracked separately and forwarded to the <strong>Finance Team</strong> for payroll adjustments.
+                </p>
+              </div>
+            </div>
+
+            {totalPendingPaid > 0 && (
+              <div className="p-3.5 sm:p-4 border rounded-2xl flex items-start gap-2.5 sm:gap-3 text-xs font-medium bg-blue-50 border-blue-300 text-blue-950 shadow-2xs">
+                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <p className="font-bold text-sm text-blue-950 flex items-center gap-1.5">
+                    <span>Pending Paid Leaves Available for Reuse</span>
+                  </p>
+                  <p className="mt-1 text-blue-900">
+                    You already have <strong>{totalPendingPaid} {totalPendingPaid === 1 ? "leave" : "leaves"} pending approval</strong> ({totalPaidTaken} used + {totalPendingPaid} pending = 26 total). You can cancel your pending leave request(s) from your Leave History to reuse them instead of applying for extra leave.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Leave Type Selector with Live Balance Pill */}
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-1.5">
             <label className="font-bold text-slate-700 text-sm">Leave Type</label>
-            {selectedTypeKey && currentCategoryBalance && (
+            {isExtraType ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-[11px] sm:text-xs font-bold shadow-2xs">
+                ⚠️ Extra Leave • Notified to Finance
+              </span>
+            ) : selectedTypeKey && currentCategoryBalance && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-[11px] sm:text-xs font-bold shadow-2xs">
                 <Wallet size={12} className="text-emerald-600" />
                 Available: {effectiveAvailable} day(s)
@@ -342,6 +410,11 @@ export default function ApplyLeave() {
             <option value="Casual">Casual (11)</option>
             <option value="Sick">Sick (10)</option>
             <option value="Flexible Cultural">Flexible Cultural (5)</option>
+            {isPaidQuotaExhausted && (
+              <option value="Extra Leave">
+                Extra Leave {userBalances?.extra?.taken ? `[${userBalances.extra.taken} taken]` : ""}
+              </option>
+            )}
           </select>
         </div>
 
@@ -467,7 +540,8 @@ export default function ApplyLeave() {
           totalQuota,
           taken: takenCount,
           pending: pendingCount,
-          effectiveAvailable
+          effectiveAvailable,
+          totalPendingPaid
         }}
       />
     </div>
