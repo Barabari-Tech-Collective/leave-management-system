@@ -839,7 +839,7 @@ exports.getTeamLeavesForLead = async (req, res) => {
     const teamMembers = await User.find({
       vertical: targetVertical,
       isDeleted: { $ne: true }
-    }).select("name email leaveBalance isVerticalLead jobRole");
+    }).select("name email leaveBalance yearlyLeaveBalances leaveYear isVerticalLead jobRole");
 
     // 2. Base filter for leaves in this vertical (Excluding Lead's own requests)
     const baseFilter = {
@@ -847,7 +847,7 @@ exports.getTeamLeavesForLead = async (req, res) => {
       user: { $ne: currentLead._id }
     };
 
-    const { status, year, month } = req.query;
+    const { status, year, month, balanceYear } = req.query;
     const filter = buildLeaveDateFilter({ year, month, status, baseFilter });
 
     const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
@@ -863,6 +863,25 @@ exports.getTeamLeavesForLead = async (req, res) => {
       query.skip(skip).limit(limit);
     }
 
+    const currentISTYear = getCurrentISTYear();
+    const targetBalanceYear = balanceYear && balanceYear !== "all"
+      ? parseInt(balanceYear, 10)
+      : currentISTYear;
+    const validBalanceYear = !isNaN(targetBalanceYear) ? targetBalanceYear : currentISTYear;
+
+    const formattedTeamMembers = teamMembers.map((member) => {
+      const yearBal = getLeaveBalanceForYear(member, validBalanceYear);
+      return {
+        _id: member._id,
+        name: member.name,
+        email: member.email,
+        isVerticalLead: member.isVerticalLead,
+        jobRole: member.jobRole,
+        leaveBalance: yearBal,
+        selectedBalanceYear: validBalanceYear
+      };
+    });
+
     const [totalPending, totalApproved, availableYears, totalFiltered, teamLeaves] = await Promise.all([
       Leave.countDocuments({ ...baseFilter, status: "pending" }),
       Leave.countDocuments({ ...baseFilter, status: "approved" }),
@@ -871,11 +890,17 @@ exports.getTeamLeavesForLead = async (req, res) => {
       query.exec()
     ]);
 
+    const yearsSet = new Set(availableYears);
+    yearsSet.add(currentISTYear);
+    yearsSet.add(currentISTYear + 1);
+    const sortedAvailableYears = Array.from(yearsSet).sort((a, b) => b - a);
+
     res.json({
       vertical: targetVertical,
       totalTeamMembers: teamMembers.length,
-      teamMembers,
+      teamMembers: formattedTeamMembers,
       teamLeaves,
+      selectedBalanceYear: validBalanceYear,
       pagination: {
         page,
         limit,
@@ -888,7 +913,7 @@ exports.getTeamLeavesForLead = async (req, res) => {
         pending: totalPending,
         approved: totalApproved
       },
-      availableYears
+      availableYears: sortedAvailableYears
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1097,12 +1122,38 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
     }
 
     const currentISTYear = getCurrentISTYear();
-    const queryYear = req.query.year ? parseInt(req.query.year, 10) : currentISTYear;
-    const selectedYear = !isNaN(queryYear) ? queryYear : currentISTYear;
+    const queryYear = req.query.year;
+    const isAllYears = queryYear === "all";
+    const parsedYear = parseInt(queryYear, 10);
+    const selectedYear = !isAllYears && !isNaN(parsedYear) ? parsedYear : currentISTYear;
     const targetBalance = getLeaveBalanceForYear(user, selectedYear);
 
-    // 2. Fetch User's leaves
-    const leaves = await Leave.find({ user: id }).sort({ createdAt: -1 });
+    // 2. Fetch User's leaves filtered by selected year (or all years if year=all)
+    let leaveFilter = { user: id };
+    if (!isAllYears) {
+      leaveFilter = buildLeaveDateFilter({ year: selectedYear, baseFilter: { user: id } });
+    }
+
+    const [leaves, availableYears] = await Promise.all([
+      Leave.find(leaveFilter).sort({ fromDate: -1, createdAt: -1 }),
+      getAvailableLeaveYears({ user: id })
+    ]);
+
+    // Ensure current year, next year, and any yearlyLeaveBalances keys are included
+    const yearsSet = new Set(availableYears);
+    yearsSet.add(currentISTYear);
+    yearsSet.add(currentISTYear + 1);
+
+    if (user.yearlyLeaveBalances) {
+      const balanceKeys = typeof user.yearlyLeaveBalances.keys === "function"
+        ? Array.from(user.yearlyLeaveBalances.keys())
+        : Object.keys(user.yearlyLeaveBalances);
+      balanceKeys.forEach((k) => {
+        const num = parseInt(k, 10);
+        if (!isNaN(num)) yearsSet.add(num);
+      });
+    }
+    const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
 
     const formattedLeaves = leaves.map((leave) => {
       const from = new Date(leave.fromDate);
@@ -1123,11 +1174,13 @@ exports.getEmployeeLeaveDetails = async (req, res) => {
       };
     });
 
-    // 3. Return structured object containing both leaves and balance
+    // 3. Return structured object containing leaves, balance, and available years
     res.json({
       employee: { name: user.name, email: user.email },
       leaveBalance: targetBalance,
-      selectedYear,
+      selectedYear: isAllYears ? "all" : selectedYear,
+      currentYear: currentISTYear,
+      availableYears: sortedYears,
       leaves: formattedLeaves
     });
   } catch (err) {

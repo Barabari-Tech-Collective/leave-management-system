@@ -4,6 +4,7 @@ import LeaveCard from "../../components/LeaveCard";
 import EmployeeLeaveTable from "../../components/EmployeeLeaveTable";
 import EmployeeLeaveViewModal from "../../components/EmployeeLeaveViewModal";
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
+import YearSelect from "../../components/YearSelect";
 import API from "../../api/axiosConfig";
 import toast from "react-hot-toast";
 import { 
@@ -452,22 +453,14 @@ export default function Dashboard() {
           </div>
 
           {/* Year Selector Dropdown */}
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-            <Calendar size={15} className="text-indigo-600" />
-            <label htmlFor="dashboard-year-select" className="text-xs font-bold text-slate-500">Year:</label>
-            <select
-              id="dashboard-year-select"
-              value={selectedYear}
-              onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-              className="text-xs sm:text-sm font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
-            >
-              {availableYears.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr} {yr === currentYear ? "(Current)" : yr > currentYear ? "(Advance)" : "(Archive)"}
-                </option>
-              ))}
-            </select>
-          </div>
+          <YearSelect
+            id="dashboard-year-select"
+            value={selectedYear}
+            onChange={(val) => handleYearChange(parseInt(val, 10))}
+            availableYears={availableYears}
+            label="Year:"
+            className="self-start sm:self-auto shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs"
+          />
         </div>
 
         <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${leaveData.length > 4 ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-4 sm:gap-6`}>

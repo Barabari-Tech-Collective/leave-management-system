@@ -441,7 +441,7 @@ export default function AdminDashboard() {
   const displayPendingOpsCount = opsPendingCount || (opsData.teamLeaves || []).filter((l) => l.status === "pending").length;
 
   return (
-    <div className="space-y-6 sm:space-y-8 p-1 sm:p-2">
+    <div className="space-y-5 sm:space-y-6 pb-2">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
@@ -531,52 +531,69 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
-            <table className="w-full text-xs sm:text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] sm:text-xs">
-                <tr>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Name</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Email</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Vertical</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Casual Used</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Sick Used</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Flexible Used</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Extra Leave</th>
-                  <th className="p-3 sm:p-4 text-left whitespace-nowrap">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm text-left border-collapse table-auto">
+                <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-[11px] font-bold border-b border-slate-100 tracking-wider">
                   <tr>
-                    <td colSpan="8" className="text-center p-6 text-gray-400">
-                      No employees found matching filter criteria.
-                    </td>
+                    <th className="py-3 px-3 sm:px-4">Employee</th>
+                    <th className="py-3 px-2 sm:px-3">Vertical</th>
+                    <th className="py-3 px-2 text-center">Casual</th>
+                    <th className="py-3 px-2 text-center">Sick</th>
+                    <th className="py-3 px-2 text-center">Flexible</th>
+                    <th className="py-3 px-2 text-center">Extra</th>
+                    <th className="py-3 px-3 sm:px-4 text-right">Action</th>
                   </tr>
-                ) : (
-                  filteredEmployees.map((emp) => (
-                    <tr key={emp._id} className="border-t hover:bg-gray-50 transition">
-                      <td className="p-3 sm:p-4 font-medium whitespace-nowrap">{emp.name}</td>
-                      <td className="p-3 sm:p-4 text-gray-500 whitespace-nowrap">{emp.email}</td>
-                      <td className="p-3 sm:p-4 font-semibold text-indigo-600 whitespace-nowrap">{emp.vertical}</td>
-                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.casual?.taken ?? 0}</td>
-                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.sick?.taken ?? 0}</td>
-                      <td className="p-3 sm:p-4 whitespace-nowrap">{emp.leaveBalance?.flexible?.taken ?? 0}</td>
-                      <td className="p-3 sm:p-4 whitespace-nowrap font-bold text-amber-700">
-                        {emp.leaveBalance?.extra?.taken ?? 0}
-                      </td>
-                      <td className="p-3 sm:p-4 whitespace-nowrap">
-                        <button
-                          onClick={() => navigate(`/admin/employee/${emp._id}`)}
-                          className="bg-primary text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl hover:scale-105 transition text-xs font-medium cursor-pointer"
-                        >
-                          View Details
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-slate-400 text-xs">
+                        No employees found matching filter criteria.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredEmployees.map((emp) => (
+                      <tr key={emp._id} className="hover:bg-slate-50/70 transition">
+                        <td className="py-2.5 px-3 sm:py-3 sm:px-4">
+                          <div className="font-bold text-slate-900 truncate max-w-[160px] sm:max-w-xs" title={emp.name}>
+                            {emp.name}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-normal truncate max-w-[160px] sm:max-w-xs" title={emp.email}>
+                            {emp.email}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[11px] font-semibold text-indigo-700">
+                            {emp.vertical || "None"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-2 sm:py-3 text-center text-slate-700 font-semibold">
+                          {emp.leaveBalance?.casual?.taken ?? 0}
+                        </td>
+                        <td className="py-2.5 px-2 sm:py-3 text-center text-slate-700 font-semibold">
+                          {emp.leaveBalance?.sick?.taken ?? 0}
+                        </td>
+                        <td className="py-2.5 px-2 sm:py-3 text-center text-slate-700 font-semibold">
+                          {emp.leaveBalance?.flexible?.taken ?? 0}
+                        </td>
+                        <td className="py-2.5 px-2 sm:py-3 text-center font-bold text-amber-700">
+                          {emp.leaveBalance?.extra?.taken ?? 0}
+                        </td>
+                        <td className="py-2.5 px-3 sm:py-3 sm:px-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => navigate(`/admin/employee/${emp._id}`)}
+                            className="bg-primary hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl transition text-xs font-semibold cursor-pointer shadow-2xs"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

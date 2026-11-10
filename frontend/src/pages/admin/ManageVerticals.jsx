@@ -56,7 +56,7 @@ export default function ManageVerticals() {
   };
 
   return (
-    <div className="p-2 sm:p-6 space-y-5 sm:space-y-6 max-w-6xl mx-auto animate-fadeIn">
+    <div className="space-y-5 sm:space-y-6 animate-fadeIn pb-2">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">
@@ -84,51 +84,68 @@ export default function ManageVerticals() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-x-auto border border-slate-100">
-        <table className="w-full text-xs sm:text-sm text-left">
-          <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] sm:text-xs font-semibold border-b border-slate-100">
-            <tr>
-              <th className="p-3 sm:p-4 whitespace-nowrap">Member</th>
-              <th className="p-3 sm:p-4 whitespace-nowrap">Email</th>
-              <th className="p-3 sm:p-4 whitespace-nowrap">Designation</th>
-              <th className="p-3 sm:p-4 whitespace-nowrap">Assigned Vertical</th>
-              <th className="p-3 sm:p-4 text-right whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.map((user) => (
-              <tr key={user._id} className="hover:bg-slate-50 transition">
-                <td className="p-3 sm:p-4 font-bold text-slate-900 whitespace-nowrap">{user.name}</td>
-                <td className="p-3 sm:p-4 text-slate-500 text-xs whitespace-nowrap">{user.email}</td>
-                <td className="p-3 sm:p-4 text-slate-600 text-xs font-medium whitespace-nowrap">{user.jobRole || "—"}</td>
-                <td className="p-3 sm:p-4 whitespace-nowrap">
-                  <select
-                    disabled={loadingId === user._id}
-                    value={user.vertical}
-                    onChange={(e) => handleVerticalChange(user._id, e.target.value)}
-                    className="p-1.5 sm:p-2 border border-slate-200 rounded-xl text-xs font-bold bg-slate-50 text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
-                  >
-                    {VERTICALS.map((v) => (
-                      <option key={v} value={v}>
-                        {v} Vertical
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="p-3 sm:p-4 text-right whitespace-nowrap">
-                  <button
-                    disabled={loadingId === user._id}
-                    onClick={() => setDeleteModalUser(user)}
-                    className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl transition cursor-pointer disabled:opacity-50"
-                    title="Soft Delete Member"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm text-left table-auto border-collapse">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-[11px] font-bold border-b border-slate-100 tracking-wider">
+              <tr>
+                <th className="py-2.5 px-3 sm:py-3 sm:px-4">Member</th>
+                <th className="py-2.5 px-2 sm:py-3 sm:px-3">Email</th>
+                <th className="py-2.5 px-2 sm:py-3 sm:px-3">Designation</th>
+                <th className="py-2.5 px-2 sm:py-3 sm:px-3">Assigned Vertical</th>
+                <th className="py-2.5 px-3 sm:py-3 sm:px-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {users.map((user) => (
+                <tr key={user._id} className="hover:bg-slate-50/70 transition">
+                  <td className="py-2.5 px-3 sm:py-3 sm:px-4 font-bold text-slate-900 whitespace-nowrap">
+                    {user.name}
+                    {user.isVerticalLead && (
+                      <span className="ml-2 bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                        Lead
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-2 sm:py-3 sm:px-3 text-slate-500 text-xs">
+                    <div className="truncate max-w-[180px] sm:max-w-xs" title={user.email}>
+                      {user.email}
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 sm:py-3 sm:px-3 text-slate-600 text-xs font-medium">
+                    <div className="truncate max-w-[140px] sm:max-w-xs" title={user.jobRole || "—"}>
+                      {user.jobRole || "—"}
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
+                    <select
+                      disabled={loadingId === user._id}
+                      value={user.vertical}
+                      onChange={(e) => handleVerticalChange(user._id, e.target.value)}
+                      className="p-1.5 sm:p-2 border border-slate-200 rounded-xl text-xs font-bold bg-slate-50 text-indigo-600 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-50"
+                    >
+                      {VERTICALS.map((v) => (
+                        <option key={v} value={v}>
+                          {v} Vertical
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="py-2.5 px-3 sm:py-3 sm:px-4 text-right whitespace-nowrap">
+                    <button
+                      disabled={loadingId === user._id}
+                      onClick={() => setDeleteModalUser(user)}
+                      className="p-1.5 sm:p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl transition cursor-pointer disabled:opacity-50 ml-auto"
+                      title="Soft Delete Member"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
