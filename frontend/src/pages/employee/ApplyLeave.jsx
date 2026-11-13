@@ -4,6 +4,45 @@ import toast from "react-hot-toast";
 import API from "../../api/axiosConfig";
 import { Calendar, Clock, CheckCircle, AlertTriangle, ArrowRight, Wallet, Info } from "lucide-react";
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { getNationalHolidays } from "../../constants/leaveConstants";
+
+// Helper: string "YYYY-MM-DD" -> local Date object
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null;
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+};
+
+// Helper: local Date object -> "YYYY-MM-DD" string
+const formatLocalDate = (dateObj) => {
+  if (!dateObj || !(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "";
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Helper: determine if a date is selectable (exclude all Sundays and National Holidays)
+const isSelectableDate = (date) => {
+  if (!date) return false;
+  // 1. Disable Sundays (0 in getDay())
+  if (date.getDay() === 0) return false;
+
+  // 2. Disable National Holidays
+  const holidays = getNationalHolidays(date.getFullYear());
+  const isNationalHoliday = holidays.some((h) => {
+    return (
+      h.date.getFullYear() === date.getFullYear() &&
+      h.date.getMonth() === date.getMonth() &&
+      h.date.getDate() === date.getDate()
+    );
+  });
+
+  return !isNationalHoliday;
+};
 
 export default function ApplyLeave() {
   const navigate = useNavigate();
@@ -159,6 +198,17 @@ export default function ApplyLeave() {
 
     if (!form.type || !form.from || !form.to || !form.reason.trim()) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    const fromDateObj = parseLocalDate(form.from);
+    const toDateObj = parseLocalDate(form.to);
+    if (!isSelectableDate(fromDateObj)) {
+      setError("'From Date' cannot be a Sunday or a National Holiday.");
+      return;
+    }
+    if (!isSelectableDate(toDateObj)) {
+      setError("'To Date' cannot be a Sunday or a National Holiday.");
       return;
     }
 
@@ -422,33 +472,45 @@ export default function ApplyLeave() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="block mb-1.5 font-bold text-slate-700 text-sm">From Date</label>
-            <input
-              type="date"
-              min={isPastLeave ? startOfYearStr : todayStr}
-              max={isPastLeave ? yesterdayStr : undefined}
-              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm"
-              value={form.from}
-              onChange={(e) => {
-                setForm({ ...form, from: e.target.value });
+            <DatePicker
+              selected={parseLocalDate(form.from)}
+              onChange={(date) => {
+                const newFrom = formatLocalDate(date);
+                setForm((prev) => ({
+                  ...prev,
+                  from: newFrom,
+                  // If existing 'to' is earlier than the new 'from', reset 'to'
+                  to: prev.to && prev.to < newFrom ? "" : prev.to,
+                }));
                 setError("");
                 setPendingConflict(null);
               }}
+              filterDate={isSelectableDate}
+              minDate={parseLocalDate(isPastLeave ? startOfYearStr : todayStr)}
+              maxDate={isPastLeave ? parseLocalDate(yesterdayStr) : undefined}
+              dateFormat="dd-MM-yyyy"
+              placeholderText="DD-MM-YYYY"
+              wrapperClassName="w-full"
+              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm cursor-pointer"
             />
           </div>
 
           <div>
             <label className="block mb-1.5 font-bold text-slate-700 text-sm">To Date</label>
-            <input
-              type="date"
-              min={form.from || (isPastLeave ? startOfYearStr : todayStr)}
-              max={isPastLeave ? yesterdayStr : undefined}
-              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm"
-              value={form.to}
-              onChange={(e) => {
-                setForm({ ...form, to: e.target.value });
+            <DatePicker
+              selected={parseLocalDate(form.to)}
+              onChange={(date) => {
+                setForm((prev) => ({ ...prev, to: formatLocalDate(date) }));
                 setError("");
                 setPendingConflict(null);
               }}
+              filterDate={isSelectableDate}
+              minDate={parseLocalDate(form.from) || parseLocalDate(isPastLeave ? startOfYearStr : todayStr)}
+              maxDate={isPastLeave ? parseLocalDate(yesterdayStr) : undefined}
+              dateFormat="dd-MM-yyyy"
+              placeholderText="DD-MM-YYYY"
+              wrapperClassName="w-full"
+              className="w-full p-3 sm:p-4 border border-slate-200 rounded-xl sm:rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-inner bg-slate-50/50 text-slate-700 font-medium text-sm cursor-pointer"
             />
           </div>
         </div>
