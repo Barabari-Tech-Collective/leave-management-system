@@ -219,7 +219,7 @@ export default function VerticalLeadDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -231,7 +231,7 @@ export default function VerticalLeadDashboard() {
         <p className="text-sm">{error}</p>
         <button
           onClick={() => fetchDashboardData(1, pageSize, "all", "all", "all", true)}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+          className="px-4 py-2 bg-primary hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
         >
           Retry
         </button>
@@ -268,7 +268,7 @@ export default function VerticalLeadDashboard() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 bg-indigo-600 text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 bg-primary text-white px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-blue-800 transition shadow-sm cursor-pointer"
             >
               <UserPlus size={16} />
               <span>Add Team Member</span>
@@ -375,9 +375,9 @@ export default function VerticalLeadDashboard() {
 
                     {/* Color-Coded Leave Stats */}
                     <div className="grid grid-cols-3 gap-1.5 sm:gap-2 text-center text-xs">
-                      <div className="bg-indigo-50/80 border border-indigo-100 p-2 sm:p-2.5 rounded-xl space-y-0.5">
-                        <p className="text-indigo-600 font-bold text-[10px] sm:text-[11px]">Casual</p>
-                        <p className="font-black text-indigo-950 text-xs sm:text-sm">
+                      <div className="bg-blue-50/80 border border-blue-100 p-2 sm:p-2.5 rounded-xl space-y-0.5">
+                        <p className="text-primary font-bold text-[10px] sm:text-[11px]">Casual</p>
+                        <p className="font-black text-blue-950 text-xs sm:text-sm">
                           {member.leaveBalance?.casual?.taken ?? 0}{" "}
                           <span className="text-slate-400 text-[10px] sm:text-xs font-normal">
                             / {member.leaveBalance?.casual?.total ?? 11}
@@ -409,7 +409,7 @@ export default function VerticalLeadDashboard() {
                     {/* View History Button */}
                     <button
                       onClick={() => setSelectedEmployeeForHistory(member)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 font-semibold rounded-xl text-xs transition border border-slate-200 hover:border-indigo-200 cursor-pointer"
+                      className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-primary font-semibold rounded-xl text-xs transition border border-slate-200 hover:border-blue-200 cursor-pointer"
                     >
                       <History size={14} />
                       <span>View History</span>

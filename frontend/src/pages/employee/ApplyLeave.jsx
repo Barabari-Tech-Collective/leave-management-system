@@ -515,7 +515,7 @@ export default function ApplyLeave() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-linear-to-r from-primary to-indigo-500 text-white font-bold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer text-base sm:text-lg tracking-wide disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-logoBlue text-white font-bold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer text-base sm:text-lg tracking-wide disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <span>{isPastLeave ? "Review Past Leave Record" : "Review & Submit Leave"}</span>
           <ArrowRight size={18} />

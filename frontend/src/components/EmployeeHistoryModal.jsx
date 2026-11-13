@@ -105,7 +105,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
         {/* Header */}
         <div className="px-4 py-3.5 sm:px-6 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm sm:text-base shadow-sm shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-primary text-white flex items-center justify-center font-bold text-sm sm:text-base shadow-sm shrink-0">
               {employee.name ? employee.name.charAt(0).toUpperCase() : <User size={18} />}
             </div>
             <div className="truncate">
@@ -127,7 +127,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/80 p-3 sm:p-3.5 rounded-2xl border border-slate-100">
             <div>
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar size={14} className="text-indigo-600" />
+                <Calendar size={14} className="text-primary" />
                 <span>Filter Records by Year</span>
               </h4>
               <p className="text-[11px] text-slate-400 mt-0.5">
@@ -152,22 +152,22 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
                 Leave Balances Overview ({selectedYear})
               </span>
               {parseInt(selectedYear, 10) === currentYear + 1 && (
-                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-md border border-indigo-200">
+                <span className="text-[10px] bg-blue-50 text-primary font-bold px-2 py-0.5 rounded-md border border-blue-200">
                   Next Year Advance Balance
                 </span>
               )}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Casual */}
-              <div className="bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl space-y-1">
+              <div className="bg-blue-50/70 border border-blue-100 p-4 rounded-2xl space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-indigo-700">Casual Leave</span>
-                  <span className="text-[11px] font-semibold text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
+                  <span className="text-xs font-bold text-primary">Casual Leave</span>
+                  <span className="text-[11px] font-semibold text-primary bg-white px-2 py-0.5 rounded-md border border-blue-200">
                     {casualRemaining} left
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 pt-1">
-                  <span className="text-2xl font-black text-indigo-950">{casualTaken}</span>
+                  <span className="text-2xl font-black text-blue-950">{casualTaken}</span>
                   <span className="text-xs text-slate-500 font-medium">/ {casualTotal} used</span>
                 </div>
               </div>
@@ -201,15 +201,15 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
               </div>
 
               {/* Extra Leaves */}
-              <div className="bg-amber-50/70 border border-amber-200 p-4 rounded-2xl space-y-1">
+              <div className="bg-yellow-50/70 border border-yellow-200 p-4 rounded-2xl space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-amber-800">Extra Leaves</span>
-                  <span className="text-[11px] font-semibold text-amber-700 bg-white px-2 py-0.5 rounded-md border border-amber-300">
+                  <span className="text-xs font-bold text-yellow-800">Extra Leaves</span>
+                  <span className="text-[11px] font-semibold text-yellow-700 bg-white px-2 py-0.5 rounded-md border border-yellow-300">
                     Extra Leave
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5 pt-1">
-                  <span className="text-2xl font-black text-amber-950">{balances?.extra?.taken ?? 0}</span>
+                  <span className="text-2xl font-black text-yellow-600">{balances?.extra?.taken ?? 0}</span>
                   <span className="text-xs text-slate-500 font-medium">days taken</span>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
 
             {loading ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <p className="text-xs font-medium">
                   Loading {selectedYear} records...
                 </p>

@@ -37,7 +37,7 @@ export default function ProfileDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-linear-to-br from-primary to-indigo-600 text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-sm sm:text-lg focus:outline-none shrink-0"
+        className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-logoBlue text-white flex items-center justify-center cursor-pointer hover:shadow-lg hover:shadow-primary/30 hover:ring-4 hover:ring-primary/20 transition-all duration-300 font-bold text-sm sm:text-lg focus:outline-none shrink-0"
       >
         {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "E"}
       </button>

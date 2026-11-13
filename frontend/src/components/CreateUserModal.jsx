@@ -101,7 +101,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
       <div className="bg-white w-full max-w-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative flex flex-col max-h-[92vh]">
         
         {/* Top Header Bar */}
-        <div className="bg-gradient-to-r from-primary via-indigo-600 to-indigo-700 p-4 sm:p-6 text-white relative">
+        <div className="bg-gradient-to-r from-primary via-blue-700 to-blue-800 p-4 sm:p-6 text-white relative">
           <button
             onClick={onClose}
             className="absolute top-4 sm:top-5 right-4 sm:right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer"
@@ -115,7 +115,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold tracking-tight">Onboard New Member</h2>
-              <p className="text-xs text-indigo-100 mt-0.5 font-medium">
+              <p className="text-xs text-blue-100 mt-0.5 font-medium">
                 {isAdmin
                   ? "Provision credentials and assign roles across organization verticals."
                   : `Add new team member directly to ${currentUser?.vertical} vertical.`}
@@ -226,7 +226,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
               <Layers size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
               <select
                 disabled={!isAdmin}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary font-semibold text-indigo-600 disabled:opacity-75 disabled:bg-slate-100 cursor-pointer appearance-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary font-semibold text-primary disabled:opacity-75 disabled:bg-slate-100 cursor-pointer appearance-none"
                 value={form.vertical}
                 onChange={(e) => setForm({ ...form, vertical: e.target.value })}
               >
@@ -251,7 +251,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
                   onClick={() => setForm({ ...form, isVerticalLead: !form.isVerticalLead })}
                   className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition select-none ${
                     form.isVerticalLead
-                      ? "bg-indigo-50 border-indigo-300 text-indigo-700 shadow-xs"
+                      ? "bg-blue-50 border-blue-300 text-primary shadow-xs"
                       : "bg-white border-slate-200 text-slate-600 hover:bg-slate-100"
                   }`}
                 >
@@ -259,7 +259,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
                   <span
                     className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] font-black ${
                       form.isVerticalLead
-                        ? "bg-indigo-600 border-indigo-600 text-white"
+                        ? "bg-primary border-primary text-white"
                         : "border-slate-300"
                     }`}
                   >
@@ -293,7 +293,7 @@ export default function CreateUserModal({ isOpen, onClose, currentUser, onUserCr
             <button
               type="submit"
               disabled={loading || Boolean(emailError)}
-              className="w-full sm:flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/30 transition cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
+              className="w-full sm:flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-blue-700 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-primary/30 transition cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
             >
               {loading ? "Onboarding..." : "Confirm & Save Member"}
             </button>

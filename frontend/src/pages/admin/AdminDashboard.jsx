@@ -382,7 +382,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -410,7 +410,7 @@ export default function AdminDashboard() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto justify-center flex items-center gap-2 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition cursor-pointer text-xs sm:text-sm"
+          className="w-full sm:w-auto justify-center flex items-center gap-2 bg-gradient-to-r from-primary to-blue-600 text-white font-bold px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-xl hover:scale-[1.02] transition cursor-pointer text-xs sm:text-sm"
         >
           <UserPlus size={18} />
           <span>Create New Member</span>
@@ -521,7 +521,7 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="py-2.5 px-2 sm:py-3 sm:px-3 whitespace-nowrap">
-                          <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[11px] font-semibold text-indigo-700">
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-primary">
                             {emp.vertical || "None"}
                           </span>
                         </td>
@@ -534,13 +534,13 @@ export default function AdminDashboard() {
                         <td className="py-2.5 px-2 sm:py-3 text-center text-slate-700 font-semibold">
                           {emp.leaveBalance?.flexible?.taken ?? 0}
                         </td>
-                        <td className="py-2.5 px-2 sm:py-3 text-center font-bold text-amber-700">
+                        <td className="py-2.5 px-2 sm:py-3 text-center font-bold text-yellow-500">
                           {emp.leaveBalance?.extra?.taken ?? 0}
                         </td>
                         <td className="py-2.5 px-3 sm:py-3 sm:px-4 text-right whitespace-nowrap">
                           <button
                             onClick={() => navigate(`/admin/employee/${emp._id}`)}
-                            className="bg-primary hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl transition text-xs font-semibold cursor-pointer shadow-2xs"
+                            className="bg-primary hover:bg-blue-800 text-white px-3 py-1.5 rounded-xl transition text-xs font-semibold cursor-pointer shadow-2xs"
                           >
                             View Details
                           </button>

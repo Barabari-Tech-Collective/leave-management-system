@@ -438,7 +438,7 @@ export default function Dashboard() {
                 </span>
               )}
               {selectedYear > currentYear && (
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
                   Upcoming Year Advance ({selectedYear})
                 </span>
               )}
@@ -476,7 +476,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
+              <FileText className="w-5 h-5 text-primary" />
               <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 tracking-tight">
                 Recent Leave Applications
               </h2>
@@ -489,7 +489,7 @@ export default function Dashboard() {
           {/* View More Button Redirecting to History */}
           <button
             onClick={() => navigate("/employee/history")}
-            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-2xs group border border-indigo-100 self-start sm:self-auto shrink-0"
+            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 text-[#334499] font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-2xs group border border-blue-100 self-start sm:self-auto shrink-0"
           >
             <span>View More</span>
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -534,7 +534,7 @@ export default function Dashboard() {
                 </span>
                 <button
                   onClick={() => navigate("/employee/history")}
-                  className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold transition cursor-pointer self-start sm:self-auto"
+                  className="inline-flex items-center gap-1 text-[#334499] hover:text-blue-800 font-bold transition cursor-pointer self-start sm:self-auto"
                 >
                   <span>Go to full leave history page</span>
                   <ArrowRight size={13} />

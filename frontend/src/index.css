@@ -5,12 +5,14 @@ html, body, #root {
   padding: 0;
 }
 @theme {
-  --color-primary: #4F46E5; /* Indigo 600 */
+  --color-primary: #334499; /* Barabari Brand Blue (Logo branch color) */
   --color-darkBg: #0F172A; /* Slate 900 */
   --color-softBg: #F8FAFC; /* Slate 50 */
   --color-cardBg: #ffffff; /* Pure white */
   --color-accent: #E11D48; /* Rose 600 - modern red */
   --color-textDark: #0F172A; /* Deep slate */
+  --color-logoBlue: #334499; /* Logo branch blue */
+  --color-logoYellow: #ffcc33; /* Logo leaf yellow */
 }
 @custom-variant dark (&:where(.dark, .dark *));
 
