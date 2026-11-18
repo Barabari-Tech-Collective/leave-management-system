@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
 import toast from "react-hot-toast";
-import { Trash2, RotateCcw, X, UserX, Sparkles } from "lucide-react";
+import { Trash2, RotateCcw, X, UserX } from "lucide-react";
 
 export default function RecycleBinModal({ isOpen, onClose, onUserRestored }) {
   const [deletedUsers, setDeletedUsers] = useState([]);
@@ -21,7 +21,7 @@ export default function RecycleBinModal({ isOpen, onClose, onUserRestored }) {
       const res = await API.get("/users/deleted");
       setDeletedUsers(res.data);
     } catch (err) {
-        console.error("Error fetching deleted users:", err);
+      console.error("Error fetching deleted users:", err);
       toast.error("Failed to load deleted users list.");
     } finally {
       setLoading(false);

@@ -3,17 +3,7 @@ import { createPortal } from "react-dom";
 import API from "../api/axiosConfig";
 import StatusBadge from "./StatusBadge";
 import YearSelect from "./YearSelect";
-import { 
-  X, 
-  Calendar, 
-  Clock, 
-  User, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle,
-  FileText,
-  Ban
-} from "lucide-react";
+import { X, Calendar, User } from "lucide-react";
 
 export default function EmployeeHistoryModal({ isOpen, onClose, employee, initialYear }) {
   const currentYear = new Date().getFullYear();

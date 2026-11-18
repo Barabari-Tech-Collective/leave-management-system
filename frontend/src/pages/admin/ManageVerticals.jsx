@@ -21,7 +21,7 @@ export default function ManageVerticals() {
       const res = await API.get("/users/all");
       setUsers(res.data);
     } catch (err) {
-        console.error("Error fetching users:", err);
+      console.error("Error fetching users:", err);
       toast.error("Failed to load user list");
     }
   };
@@ -67,20 +67,20 @@ export default function ManageVerticals() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        {/* Recycle Bin Trigger Button */}
+          {/* Recycle Bin Trigger Button */}
           <button
             onClick={() => setIsTrashOpen(true)}
             className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
-            >
+          >
             <Trash2 size={15} className="text-rose-500" />
             <span>Recycle Bin</span>
           </button>
-        <button
-          onClick={fetchUsers}
-          className="p-2 sm:p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
+          <button
+            onClick={fetchUsers}
+            className="p-2 sm:p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-xl transition flex items-center gap-2 text-xs font-bold cursor-pointer"
           >
-          <RefreshCw size={14} /> <span>Refresh</span>
-        </button>
+            <RefreshCw size={14} /> <span>Refresh</span>
+          </button>
         </div>
       </div>
 

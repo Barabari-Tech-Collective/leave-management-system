@@ -12,12 +12,10 @@ const initHolidayCron = () => {
         console.log("⏰ Running Daily National Holiday Check (IST)...");
 
         // Determine tomorrow strictly in Indian Standard Time (Asia/Kolkata)
-        const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const tomorrowIST = new Date(nowIST);
-        tomorrowIST.setDate(tomorrowIST.getDate() + 1);
-
-        const tMonth = tomorrowIST.getMonth();
-        const tDate = tomorrowIST.getDate();
+        const now = new Date();
+        const tomorrowIST = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const tMonth = parseInt(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", month: "numeric" }).format(tomorrowIST), 10) - 1;
+        const tDate = parseInt(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", day: "numeric" }).format(tomorrowIST), 10);
 
         // Check if tomorrow matches any fixed holiday
         const matchedHoliday = FIXED_NATIONAL_HOLIDAYS.find(

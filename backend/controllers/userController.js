@@ -1,4 +1,3 @@
-const mongoose = require("mongoose");
 const User = require("../models/User");
 const Leave = require("../models/Leave");
 const {
@@ -64,13 +63,9 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// 4. Update Vertical Lead Status (Admins Only - Protected by requireAdmin middleware)
+// 4. Update Vertical Lead Status (Admins Only - Protected by requireAdmin & validateObjectId middleware)
 exports.updateLead = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid user ID format." });
-    }
-
     const { isVerticalLead, vertical } = req.body;
     const userId = req.params.id;
 
@@ -99,13 +94,9 @@ exports.updateLead = async (req, res) => {
   }
 };
 
-// 5. Update Employee Vertical & Migrate Leave Records (Admins Only - Protected by requireAdmin middleware)
+// 5. Update Employee Vertical & Migrate Leave Records (Admins Only - Protected by requireAdmin & validateObjectId middleware)
 exports.updateVertical = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid user ID format." });
-    }
-
     const { vertical } = req.body;
     const validVerticals = ["Program", "Placement", "EdTech", "Operations"];
 
@@ -130,13 +121,9 @@ exports.updateVertical = async (req, res) => {
   }
 };
 
-// 6. Soft Delete User (Admins Only - Protected by requireAdmin middleware)
+// 6. Soft Delete User (Admins Only - Protected by requireAdmin & validateObjectId middleware)
 exports.softDeleteUser = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid user ID format." });
-    }
-
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ message: "You cannot deactivate your own admin account." });
     }
@@ -167,13 +154,9 @@ exports.getDeletedUsers = async (req, res) => {
   }
 };
 
-// 8. Restore Soft-Deleted User (Admins Only - Protected by requireAdmin middleware)
+// 8. Restore Soft-Deleted User (Admins Only - Protected by requireAdmin & validateObjectId middleware)
 exports.restoreUser = async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid user ID format." });
-    }
-
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 

@@ -1,7 +1,7 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
 const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("../services/emailService");
-const { parseDateUTC, calculateWorkingDays, isNationalHolidayUTC } = require("../utils/dateUtils");
+const { parseDateUTC, calculateWorkingDays, isNationalHolidayUTC, formatDateIST } = require("../utils/dateUtils");
 const { getNotificationRecipients, getFinanceEmails } = require("../utils/recipientUtils");
 const { checkEmailCooldown } = require("../utils/cooldownUtils");
 const { buildLeaveDateFilter, getAvailableLeaveYears } = require("../utils/leaveFilterUtils");
@@ -10,7 +10,8 @@ const {
   getLeaveBalanceForYear,
   ensureUserYearBalanceExists,
   checkAndResetAnnualLeave,
-  sanitizeBalanceObject,
+  getYearMapRecord,
+  setYearMapRecord,
   buildAtomicBalanceDelta
 } = require("../utils/leaveResetUtils");
 
@@ -130,8 +131,8 @@ exports.applyLeave = async (req, res) => {
     });
 
     if (overlappingLeave) {
-      const existingFrom = new Date(overlappingLeave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
-      const existingTo = new Date(overlappingLeave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+      const existingFrom = formatDateIST(overlappingLeave.fromDate);
+      const existingTo = formatDateIST(overlappingLeave.toDate);
       const statusLabel = overlappingLeave.status.toUpperCase();
 
       return res.status(400).json({
@@ -511,11 +512,10 @@ exports.updateLeaveStatus = async (req, res) => {
       const totalQuota = typeBalance.total || 0;
 
       const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
-      const targetKey = isExtraLeave ? "extra" : leave.type;
 
       // 1. Transitioning to approved from pending/rejected -> deduct balance atomically with condition
       if (previousStatus !== "approved" && status === "approved") {
-        const { update: incUpdate, targetKey } = buildAtomicBalanceDelta({
+        const { update: incUpdate } = buildAtomicBalanceDelta({
           targetYear,
           activeUserYear: freshUser.leaveYear,
           type: leave.type,
@@ -570,8 +570,21 @@ exports.updateLeaveStatus = async (req, res) => {
         );
 
         if (updatedUser) {
+          let needsClampingSave = false;
           if (updatedUser.leaveBalance?.[targetKey]?.taken < 0) {
             updatedUser.leaveBalance[targetKey].taken = 0;
+            needsClampingSave = true;
+          }
+          const yearBal = getYearMapRecord(updatedUser, targetYear);
+          if (yearBal && yearBal[targetKey]?.taken < 0) {
+            yearBal[targetKey].taken = 0;
+            setYearMapRecord(updatedUser, targetYear, yearBal);
+            if (typeof updatedUser.markModified === "function") {
+              updatedUser.markModified("yearlyLeaveBalances");
+            }
+            needsClampingSave = true;
+          }
+          if (needsClampingSave) {
             await updatedUser.save({ validateBeforeSave: false });
           }
           leave.user = updatedUser;
@@ -698,9 +711,24 @@ exports.cancelLeave = async (req, res) => {
         { $inc: decUpdate },
         { new: true }
       );
-      if (updatedUser && updatedUser.leaveBalance?.[targetKey]?.taken < 0) {
-        updatedUser.leaveBalance[targetKey].taken = 0;
-        await updatedUser.save({ validateBeforeSave: false });
+      if (updatedUser) {
+        let needsClampingSave = false;
+        if (updatedUser.leaveBalance?.[targetKey]?.taken < 0) {
+          updatedUser.leaveBalance[targetKey].taken = 0;
+          needsClampingSave = true;
+        }
+        const yearBal = getYearMapRecord(updatedUser, targetYear);
+        if (yearBal && yearBal[targetKey]?.taken < 0) {
+          yearBal[targetKey].taken = 0;
+          setYearMapRecord(updatedUser, targetYear, yearBal);
+          if (typeof updatedUser.markModified === "function") {
+            updatedUser.markModified("yearlyLeaveBalances");
+          }
+          needsClampingSave = true;
+        }
+        if (needsClampingSave) {
+          await updatedUser.save({ validateBeforeSave: false });
+        }
       }
     }
 
@@ -834,7 +862,7 @@ exports.resendCancellationEmail = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// 4. VERTICAL LEAD DASHBOARD: Get Team Leaves & Statistics (Supports server-side filters & pagination)
+// 6. VERTICAL LEAD DASHBOARD: Get Team Leaves & Statistics (Supports server-side filters & pagination)
 exports.getTeamLeavesForLead = async (req, res) => {
   try {
     const currentLead = req.user;
@@ -935,7 +963,7 @@ exports.getTeamLeavesForLead = async (req, res) => {
   }
 };
 
-// 5. RESEND LEAVE NOTIFICATION EMAIL
+// 7. RESEND LEAVE NOTIFICATION EMAIL
 exports.resendLeaveEmail = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1023,7 +1051,7 @@ exports.resendLeaveEmail = async (req, res) => {
   }
 };
 
-// 6. RESEND DECISION NOTIFICATION EMAIL (For Vertical Leads & Admins)
+// 8. RESEND DECISION NOTIFICATION EMAIL (For Vertical Leads & Admins)
 exports.resendDecisionEmail = async (req, res) => {
   try {
     const { id } = req.params;
