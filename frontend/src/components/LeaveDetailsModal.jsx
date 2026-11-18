@@ -14,7 +14,6 @@ import {
   User, 
   FileText, 
   CheckCircle2, 
-  XCircle,
   RotateCcw,
   Ban
 } from "lucide-react";

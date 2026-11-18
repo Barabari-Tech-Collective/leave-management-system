@@ -13,7 +13,6 @@ import {
   ArrowRight, 
   PlusCircle,
   FileText,
-  Calendar
 } from "lucide-react";
 import { getNationalHolidays } from "../../constants/leaveConstants";
 

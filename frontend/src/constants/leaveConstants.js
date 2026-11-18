@@ -63,4 +63,9 @@ export const isNationalHolidayUTC = (date) => {
   return FIXED_NATIONAL_HOLIDAYS.some((h) => h.month === month && h.date === day);
 };
 
-export const NATIONAL_HOLIDAYS_2026 = getNationalHolidays(2026);
+// Format date in Indian Standard Time (DD/MM/YYYY)
+export const formatDateIST = (dateInput) => {
+  if (!dateInput) return "—";
+  const d = new Date(dateInput);
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
+};

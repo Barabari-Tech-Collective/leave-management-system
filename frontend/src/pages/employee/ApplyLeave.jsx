@@ -6,7 +6,7 @@ import { Calendar, Clock, CheckCircle, AlertTriangle, ArrowRight, Wallet, Info }
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import {isNationalHoliday, isNationalHolidayUTC } from "../../constants/leaveConstants";
+import { isNationalHoliday, isNationalHolidayUTC } from "../../constants/leaveConstants";
 
 // Helper: string "YYYY-MM-DD" -> local Date object
 const parseLocalDate = (dateStr) => {

@@ -13,7 +13,6 @@ import {
   UserPlus, 
   RotateCcw, 
   History,
-  Calendar
 } from "lucide-react";
 
 export default function VerticalLeadDashboard() {

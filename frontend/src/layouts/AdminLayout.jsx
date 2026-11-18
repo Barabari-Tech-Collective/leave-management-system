@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { Menu, Shield } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function AdminLayout() {
