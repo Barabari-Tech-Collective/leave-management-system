@@ -156,7 +156,7 @@ export default function LeaveSummaryConfirmModal({
               <div className="sm:text-right pl-9 sm:pl-0">
                 <span className={`text-xl sm:text-2xl font-extrabold ${isCancel ? "text-rose-600" : "text-primary"}`}>{days}</span>
                 <span className="text-xs font-bold text-slate-600 ml-1">{days === 1 ? "Working Day" : "Working Days"}</span>
-                <p className="text-[10px] text-slate-400 font-medium">(Sundays excluded)</p>
+                <p className="text-[10px] text-slate-400 font-medium">(Sundays & National Holidays excluded)</p>
               </div>
             </div>
           </div>

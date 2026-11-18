@@ -1,14 +1,7 @@
 const cron = require("node-cron");
 const User = require("../models/User");
 const { sendNationalHolidayEmail } = require("../services/emailService");
-
-// 4 Fixed National Holidays (0-indexed months in JavaScript: Jan=0, May=4, Aug=7, Oct=9)
-const FIXED_NATIONAL_HOLIDAYS = [
-  { name: "Republic Day", month: 0, date: 26 },
-  { name: "Labour Day", month: 4, date: 1 },
-  { name: "Independence Day", month: 7, date: 15 },
-  { name: "Gandhi Jayanti", month: 9, date: 2 }
-];
+const { FIXED_NATIONAL_HOLIDAYS } = require("../utils/dateUtils");
 
 // Runs daily at 09:00 AM IST (Asia/Kolkata)
 const initHolidayCron = () => {

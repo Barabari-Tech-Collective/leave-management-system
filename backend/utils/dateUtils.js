@@ -11,8 +11,26 @@ const parseDateUTC = (dateInput) => {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
 };
 
-// Calculate working days between fromDate and toDate (optionally skipping Sundays)
-const calculateWorkingDays = (fromDate, toDate, excludeSundays = true) => {
+// Fixed National Holidays (0-indexed months: Jan=0, May=4, Aug=7, Oct=9)
+const FIXED_NATIONAL_HOLIDAYS = [
+  { name: "Republic Day", month: 0, date: 26 },
+  { name: "Labour Day", month: 4, date: 1 },
+  { name: "Independence Day", month: 7, date: 15 },
+  { name: "Gandhi Jayanti", month: 9, date: 2 }
+];
+
+// Check if a given Date object (in UTC) falls on a fixed National Holiday
+const isNationalHolidayUTC = (dateInput) => {
+  if (!dateInput) return false;
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (isNaN(d.getTime())) return false;
+  const month = d.getUTCMonth();
+  const date = d.getUTCDate();
+  return FIXED_NATIONAL_HOLIDAYS.some((h) => h.month === month && h.date === date);
+};
+
+// Calculate working days between fromDate and toDate (excluding Sundays and National Holidays as per policy)
+const calculateWorkingDays = (fromDate, toDate, excludeSundays = true, excludeHolidays = true) => {
   const start = parseDateUTC(fromDate);
   const end = parseDateUTC(toDate);
   if (!start || !end || end < start) return 0;
@@ -20,7 +38,9 @@ const calculateWorkingDays = (fromDate, toDate, excludeSundays = true) => {
   let days = 0;
   let current = new Date(start);
   while (current <= end) {
-    if (!excludeSundays || current.getUTCDay() !== 0) {
+    const isSunday = current.getUTCDay() === 0;
+    const isHoliday = isNationalHolidayUTC(current);
+    if ((!excludeSundays || !isSunday) && (!excludeHolidays || !isHoliday)) {
       days++;
     }
     current.setUTCDate(current.getUTCDate() + 1);
@@ -64,6 +84,8 @@ const formatDateIST = (dateInput) => {
 };
 
 module.exports = {
+  FIXED_NATIONAL_HOLIDAYS,
+  isNationalHolidayUTC,
   parseDateUTC,
   calculateWorkingDays,
   isPastDate,

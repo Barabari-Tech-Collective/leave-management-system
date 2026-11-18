@@ -1,7 +1,7 @@
 const Leave = require("../models/Leave");
 const User = require("../models/User");
 const { sendLeaveEmail, sendApprovalEmail, sendCancellationEmail } = require("../services/emailService");
-const { parseDateUTC, calculateWorkingDays } = require("../utils/dateUtils");
+const { parseDateUTC, calculateWorkingDays, isNationalHolidayUTC } = require("../utils/dateUtils");
 const { getNotificationRecipients, getFinanceEmails } = require("../utils/recipientUtils");
 const { checkEmailCooldown } = require("../utils/cooldownUtils");
 const { buildLeaveDateFilter, getAvailableLeaveYears } = require("../utils/leaveFilterUtils");
@@ -100,10 +100,25 @@ exports.applyLeave = async (req, res) => {
       }
     }
 
-    // Calculate total days excluding Sundays (deterministic UTC date operations)
-    const days = calculateWorkingDays(fromDate, toDate, true);
+    const startUTC = parseDateUTC(fromDate);
+    const endUTC = parseDateUTC(toDate);
+
+    if (startUTC.getUTCDay() === 0 || isNationalHolidayUTC(startUTC)) {
+      return res.status(400).json({
+        message: "'From Date' cannot be a Sunday or a National Holiday."
+      });
+    }
+
+    if (endUTC.getUTCDay() === 0 || isNationalHolidayUTC(endUTC)) {
+      return res.status(400).json({
+        message: "'To Date' cannot be a Sunday or a National Holiday."
+      });
+    }
+
+    // Calculate total days excluding Sundays and National Holidays (deterministic UTC date operations)
+    const days = calculateWorkingDays(fromDate, toDate, true, true);
     if (days <= 0) {
-      return res.status(400).json({ message: "No working days selected (Sundays excluded)." });
+      return res.status(400).json({ message: "No working days selected (Sundays and National Holidays excluded)." });
     }
 
     // Check for duplicate / overlapping leave requests (pending or approved)
