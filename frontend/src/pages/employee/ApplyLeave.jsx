@@ -6,7 +6,7 @@ import { Calendar, Clock, CheckCircle, AlertTriangle, ArrowRight, Wallet, Info }
 import LeaveSummaryConfirmModal from "../../components/LeaveSummaryConfirmModal";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { getNationalHolidays } from "../../constants/leaveConstants";
+import {isNationalHoliday, isNationalHolidayUTC } from "../../constants/leaveConstants";
 
 // Helper: string "YYYY-MM-DD" -> local Date object
 const parseLocalDate = (dateStr) => {
@@ -32,16 +32,7 @@ const isSelectableDate = (date) => {
   if (date.getDay() === 0) return false;
 
   // 2. Disable National Holidays
-  const holidays = getNationalHolidays(date.getFullYear());
-  const isNationalHoliday = holidays.some((h) => {
-    return (
-      h.date.getFullYear() === date.getFullYear() &&
-      h.date.getMonth() === date.getMonth() &&
-      h.date.getDate() === date.getDate()
-    );
-  });
-
-  return !isNationalHoliday;
+  return !isNationalHoliday(date);
 };
 
 export default function ApplyLeave() {
@@ -158,8 +149,8 @@ export default function ApplyLeave() {
   const pendingCount = selectedTypeKey ? (pendingDaysByType[selectedTypeKey] || 0) : 0;
   const effectiveAvailable = isExtraType ? 999 : Math.max(0, rawRemaining - pendingCount);
 
-  // Helper function: Calculate total days excluding Sundays (deterministic UTC arithmetic)
-  const calculateDaysExcludingSundays = (fromStr, toStr) => {
+  // Helper function: Calculate total working days excluding Sundays and National Holidays (deterministic UTC arithmetic)
+  const calculateWorkingDays = (fromStr, toStr) => {
     if (!fromStr || !toStr) return 0;
 
     const [y1, m1, d1] = fromStr.split("-").map(Number);
@@ -172,7 +163,9 @@ export default function ApplyLeave() {
 
     let count = 0;
     while (current <= end) {
-      if (current.getUTCDay() !== 0) {
+      const isSunday = current.getUTCDay() === 0;
+      const isHoliday = isNationalHolidayUTC(current);
+      if (!isSunday && !isHoliday) {
         count++;
       }
       current.setUTCDate(current.getUTCDate() + 1);
@@ -181,7 +174,7 @@ export default function ApplyLeave() {
     return count;
   };
 
-  const calculatedDays = calculateDaysExcludingSundays(form.from, form.to);
+  const calculatedDays = calculateWorkingDays(form.from, form.to);
 
   const handleModeChange = (modeIsPast) => {
     if (isPastLeave === modeIsPast) return;
@@ -242,7 +235,7 @@ export default function ApplyLeave() {
     }
 
     if (calculatedDays <= 0) {
-      setError("Selected duration contains no working days (e.g. only Sunday).");
+      setError("Selected duration contains no working days (Sundays and National Holidays excluded).");
       return;
     }
 
@@ -515,7 +508,7 @@ export default function ApplyLeave() {
           </div>
         </div>
 
-        {/* Live Days Counter (Excluding Sundays) */}
+        {/* Live Days Counter (Excluding Sundays & National Holidays) */}
         {calculatedDays > 0 && (
           <div className="bg-primary/5 border border-primary/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-center space-y-1">
             <span className="text-[11px] sm:text-xs text-primary font-bold tracking-wide uppercase">
@@ -525,7 +518,7 @@ export default function ApplyLeave() {
               {calculatedDays} {calculatedDays === 1 ? "Day" : "Days"}
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium">
-              (Intervening Sundays are excluded as per Rule)
+              (Intervening Sundays and National Holidays are excluded as per Rule)
             </p>
           </div>
         )}

@@ -36,4 +36,31 @@ export const getNationalHolidays = (year = new Date().getFullYear()) => {
   ];
 };
 
+export const FIXED_NATIONAL_HOLIDAYS = [
+  { name: "Republic Day", month: 0, date: 26 },
+  { name: "Labour Day", month: 4, date: 1 },
+  { name: "Independence Day", month: 7, date: 15 },
+  { name: "Gandhi Jayanti", month: 9, date: 2 },
+];
+
+// Check if a local Date object falls on a fixed National Holiday
+export const isNationalHoliday = (date) => {
+  if (!date) return false;
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return false;
+  const month = d.getMonth();
+  const day = d.getDate();
+  return FIXED_NATIONAL_HOLIDAYS.some((h) => h.month === month && h.date === day);
+};
+
+// Check if a UTC Date object falls on a fixed National Holiday
+export const isNationalHolidayUTC = (date) => {
+  if (!date) return false;
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return false;
+  const month = d.getUTCMonth();
+  const day = d.getUTCDate();
+  return FIXED_NATIONAL_HOLIDAYS.some((h) => h.month === month && h.date === day);
+};
+
 export const NATIONAL_HOLIDAYS_2026 = getNationalHolidays(2026);

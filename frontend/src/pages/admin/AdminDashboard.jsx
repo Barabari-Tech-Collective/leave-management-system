@@ -5,23 +5,14 @@ import toast from "react-hot-toast";
 import CreateUserModal from "../../components/CreateUserModal";
 import { useAuth } from "../../context/AuthContext";
 import LeaveDetailsModal from "../../components/LeaveDetailsModal";
-import StatusBadge from "../../components/StatusBadge";
-import EmailRetryButton from "../../components/EmailRetryButton";
 import LeaveFilterBar from "../../components/LeaveFilterBar";
 import TablePagination from "../../components/TablePagination";
 import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
 import { 
   UserPlus, 
-  CheckCircle, 
-  CheckCircle2, 
-  XCircle, 
   Users, 
   ShieldCheck, 
-  Layers, 
   Briefcase, 
-  Eye, 
-  AlertCircle, 
-  Loader2 
 } from "lucide-react";
 
 const VERTICALS = ["All", "Program", "Placement", "EdTech", "Operations", "None"];
