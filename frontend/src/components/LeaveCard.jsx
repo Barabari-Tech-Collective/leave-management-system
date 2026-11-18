@@ -36,12 +36,12 @@ export default function LeaveCard({ title, total, taken, isCounterOnly = false, 
   return (
     <div
       className={`bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-sm border ${
-        isExtra ? "border-amber-200/80 hover:shadow-amber-500/10" : "border-slate-100 hover:shadow-primary/5"
+        isExtra ? "border-yellow-200/80 hover:shadow-yellow-500/10" : "border-slate-100 hover:shadow-primary/5"
       } hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 space-y-4 sm:space-y-5 relative group overflow-hidden`}
     >
       <div
         className={`absolute inset-0 bg-gradient-to-br ${
-          isExtra ? "from-amber-500/10 via-amber-400/5 to-transparent" : "from-primary/5 to-transparent"
+          isExtra ? "from-yellow-400/10 via-yellow-300/5 to-transparent" : "from-primary/5 to-transparent"
         } opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
       ></div>
 
@@ -53,7 +53,7 @@ export default function LeaveCard({ title, total, taken, isCounterOnly = false, 
           <span
             className={`text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${
               isExtra
-                ? "text-amber-800 bg-amber-50 border-amber-200"
+                ? "text-yellow-800 bg-yellow-50 border-yellow-200"
                 : "text-slate-600 bg-slate-50 border-slate-200"
             }`}
           >
@@ -66,10 +66,10 @@ export default function LeaveCard({ title, total, taken, isCounterOnly = false, 
       </div>
 
       <div
-        className={`text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text tracking-tight relative z-10 drop-shadow-sm ${
+        className={`text-4xl sm:text-5xl font-extrabold tracking-tight relative z-10 drop-shadow-sm ${
           isExtra
-            ? "bg-gradient-to-r from-amber-600 to-orange-500"
-            : "bg-gradient-to-r from-primary to-indigo-500"
+            ? "text-yellow-500"
+            : "text-primary"
         }`}
       >
         {displayValue}
@@ -81,8 +81,8 @@ export default function LeaveCard({ title, total, taken, isCounterOnly = false, 
           <div
             className={`h-2.5 rounded-full transition-all duration-1000 ease-out relative ${
               isExtra
-                ? "bg-gradient-to-r from-amber-500 to-orange-400"
-                : "bg-gradient-to-r from-primary to-indigo-400"
+                ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                : "bg-primary"
             }`}
             style={{ width: `${percentage}%` }}
           >

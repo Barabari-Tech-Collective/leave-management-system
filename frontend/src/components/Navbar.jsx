@@ -53,7 +53,7 @@ export default function Navbar() {
               className="w-9 h-9 sm:w-10 sm:h-10 object-cover rounded-xl shadow-xs border border-gray-100 group-hover:scale-105 transition-transform"
             />
             <div className="flex flex-col">
-              <span className="bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent font-extrabold text-base sm:text-xl tracking-tight leading-tight">
+              <span className="text-[#334499] font-extrabold text-base sm:text-xl tracking-tight leading-tight">
                 Leave Management
               </span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest hidden sm:block">
@@ -85,7 +85,7 @@ export default function Navbar() {
 
             <Link
               to="/employee/apply"
-              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-primary to-indigo-600 text-white px-5 py-2 rounded-full shadow-sm shadow-primary/25 hover:shadow-md hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold"
+              className="inline-flex items-center gap-1.5 bg-logoBlue text-white px-5 py-2 rounded-full shadow-sm shadow-primary/25 hover:shadow-md hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold"
             >
               <PlusCircle size={15} />
               <span>Apply Leave</span>
@@ -120,7 +120,7 @@ export default function Navbar() {
               <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
             </div>
             <div className="flex gap-1 shrink-0">
-              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md capitalize">
+              <span className="text-[10px] font-bold text-primary bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md capitalize">
                 {user?.vertical || "General"}
               </span>
               {user?.isVerticalLead && (
@@ -178,7 +178,7 @@ export default function Navbar() {
             <Link
               to="/employee/apply"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-primary to-indigo-600 text-white py-3 rounded-xl font-bold shadow-md shadow-primary/20 text-sm"
+              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-primary to-blue-600 text-white py-3 rounded-xl font-bold shadow-md shadow-primary/20 text-sm"
             >
               <PlusCircle size={18} />
               <span>Apply for Leave</span>

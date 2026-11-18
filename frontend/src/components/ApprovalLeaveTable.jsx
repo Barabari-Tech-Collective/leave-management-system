@@ -84,7 +84,7 @@ export default function ApprovalLeaveTable({
                 </td>
                 {showVertical && (
                   <td className="py-2.5 px-2 sm:py-3 sm:px-2.5 whitespace-nowrap">
-                    <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100 text-[11px] font-semibold text-indigo-700">
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-[11px] font-semibold text-primary">
                       {leave.user?.vertical || leave.vertical}
                     </span>
                   </td>
@@ -95,7 +95,7 @@ export default function ApprovalLeaveTable({
                       {leave.type === "extra" ? "Extra" : leave.type}
                     </span>
                     {leave.isPastLeave && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-primary border border-blue-200">
                         Past
                       </span>
                     )}
@@ -147,7 +147,7 @@ export default function ApprovalLeaveTable({
                   <button
                     type="button"
                     onClick={() => onViewLeave && onViewLeave(leave)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#334499] font-semibold rounded-xl text-xs transition border border-blue-200 cursor-pointer shadow-2xs"
                     title={actionLabel === "View" ? "View leave request details" : "View full details and manage approval status"}
                   >
                     <Eye size={13} />

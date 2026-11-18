@@ -49,7 +49,7 @@ export default function EmployeeLeaveTable({
                   className="p-8 sm:p-12 text-center text-slate-400 font-medium"
                 >
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
                     <span className="text-xs">{loadingText}</span>
                   </div>
                 </td>
@@ -91,7 +91,7 @@ export default function EmployeeLeaveTable({
                         {item.type === "extra" ? "Extra Leave" : item.type}
                       </span>
                       {item.isPastLeave && (
-                        <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md bg-blue-50 text-primary border border-blue-200">
                           Past Leave
                         </span>
                       )}
@@ -196,7 +196,7 @@ export default function EmployeeLeaveTable({
 
                       <button
                         onClick={() => onViewLeave && onViewLeave(item)}
-                        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition border border-indigo-200 cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#334499] font-semibold rounded-xl text-xs transition border border-blue-200 cursor-pointer shadow-2xs"
                       >
                         <Eye size={14} />
                         <span>View</span>
