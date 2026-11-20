@@ -170,10 +170,13 @@ exports.restoreUser = async (req, res) => {
 };
 
 // 9. Manual Annual Leave Reset (Admins Only)
+// Always rolls over to the current IST year. The targetYear parameter is intentionally
+// ignored — the rollover destination is always getCurrentISTYear(), so accepting an
+// arbitrary year would silently do nothing useful or could cause harm.
 exports.resetAnnualLeaves = async (req, res) => {
   try {
-    const targetYear = req.body.targetYear ? parseInt(req.body.targetYear, 10) : null;
-    const result = await performAnnualResetAllUsers(targetYear);
+    const currentYear = getCurrentISTYear();
+    const result = await performAnnualResetAllUsers(currentYear);
     res.json({
       message: `Annual leave reset successfully executed for year ${result.targetYear}`,
       result

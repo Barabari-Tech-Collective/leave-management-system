@@ -1,5 +1,5 @@
 const express = require("express");
-const { ensureAuth, requireAdmin } = require("../middleware/authMiddleware");
+const { ensureAuth, requireAdmin, requireLeadOrAdmin } = require("../middleware/authMiddleware");
 const validateObjectId = require("../middleware/validateObjectId");
 const userController = require("../controllers/userController");
 
@@ -11,8 +11,8 @@ router.get("/leads", ensureAuth, userController.getLeads);
 // 2. GET current logged-in user profile
 router.get("/me", ensureAuth, userController.getMe);
 
-// 3. GET all active users (Excludes soft-deleted members & current logged-in user)
-router.get("/all", ensureAuth, userController.getAllUsers);
+// 3. GET all active users (Restricted to Vertical Leads and Admins)
+router.get("/all", ensureAuth, requireLeadOrAdmin, userController.getAllUsers);
 
 // 4. Update Vertical Lead Status (Admins Only)
 router.put("/update-lead/:id", ensureAuth, requireAdmin, validateObjectId, userController.updateLead);

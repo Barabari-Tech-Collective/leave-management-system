@@ -18,7 +18,7 @@ const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}
       adminEmails: [],
       financeEmails: finance,
       recipients: finance,
-      founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org"
+      founderEmails: process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || ""
     };
   }
 
@@ -60,7 +60,10 @@ const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}
 
   const adminEmails = Array.from(new Set([...dbAdminEmails, ...envAdmins].filter(Boolean)));
 
-  const founderEmails = process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org";
+  if (!process.env.FOUNDER_EMAILS && !process.env.FOUNDER_EMAIL) {
+    console.warn("⚠️ [Config Warning]: FOUNDER_EMAILS is not set. Founder will not receive leave notifications.");
+  }
+  const founderEmails = process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "";
 
   // 3. Finance team emails (included if this is an Extra Leave)
   const financeEmails = isExtraLeave ? getFinanceEmails() : [];

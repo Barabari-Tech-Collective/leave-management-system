@@ -46,9 +46,18 @@ app.use(cors({
 
 app.use(express.json());
 app.enable("trust proxy"); // Trust reverse proxies in Render / AWS
+
+// In production, refuse to boot if SESSION_SECRET is missing or left as default
+const sessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === "production" && (!sessionSecret || sessionSecret === "default_session_secret")) {
+  throw new Error("🚨 [FATAL SECURITY ERROR]: SESSION_SECRET must be set to a secure secret in production environments.");
+} else if (!sessionSecret) {
+  console.warn("⚠️ [SECURITY WARNING]: SESSION_SECRET is not set. Using temporary fallback in development mode only.");
+}
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "default_session_secret",
+    secret: sessionSecret || "default_session_secret",
     resave: false,
     saveUninitialized: false,
     proxy: true,

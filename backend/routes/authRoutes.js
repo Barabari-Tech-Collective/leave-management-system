@@ -1,6 +1,7 @@
 const express = require("express");
 const passport = require("passport");
 const { ensureAuth, requireLeadOrAdmin } = require("../middleware/authMiddleware");
+const { loginLimiter, resetPasswordLimiter } = require("../middleware/rateLimiters");
 const authController = require("../controllers/authController");
 
 const router = express.Router();
@@ -24,7 +25,7 @@ router.get(
 );
 
 // 3. Manual Email + Password Login
-router.post("/login", authController.login);
+router.post("/login", loginLimiter, authController.login);
 
 // 4. Create User (Accessible by Admin and Vertical Leads)
 router.post("/create-user", ensureAuth, requireLeadOrAdmin, authController.createUser);
@@ -33,7 +34,7 @@ router.post("/create-user", ensureAuth, requireLeadOrAdmin, authController.creat
 router.get("/me", ensureAuth, authController.getMe);
 
 // 6. Reset Password Route
-router.post("/reset-password", authController.resetPassword);
+router.post("/reset-password", resetPasswordLimiter, authController.resetPassword);
 
 // 7. Logout
 router.post("/logout", authController.logout);

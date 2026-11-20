@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const { DEFAULT_LEAVE_ALLOCATIONS, MIN_SYSTEM_YEAR } = require("../constants/leaveConstants");
 
 /**
  * Returns the current calendar year in Indian Standard Time (Asia/Kolkata).
@@ -21,10 +22,10 @@ const getCurrentISTYear = () => {
  * Generates default annual leave allocation object.
  */
 const getDefaultCategoryBalances = () => ({
-  casual: { total: 11, taken: 0 },
-  sick: { total: 10, taken: 0 },
-  flexible: { total: 5, taken: 0 },
-  national: { total: 4, taken: 0 },
+  casual: { total: DEFAULT_LEAVE_ALLOCATIONS.casual, taken: 0 },
+  sick: { total: DEFAULT_LEAVE_ALLOCATIONS.sick, taken: 0 },
+  flexible: { total: DEFAULT_LEAVE_ALLOCATIONS.flexible, taken: 0 },
+  national: { total: DEFAULT_LEAVE_ALLOCATIONS.national, taken: 0 },
   extra: { taken: 0 }
 });
 
@@ -141,8 +142,8 @@ const checkAndResetAnnualLeave = async (user, targetYearOverride = null) => {
   const freshUser = await User.findById(user._id);
   if (!freshUser) return user;
 
-  // Legacy production accounts default to year 2026 if leaveYear is uninitialized
-  const userYear = freshUser.leaveYear || 2026;
+  // Legacy production accounts default to MIN_SYSTEM_YEAR if leaveYear is uninitialized
+  const userYear = freshUser.leaveYear || MIN_SYSTEM_YEAR;
   const userYearKey = String(userYear);
   const currentYearKey = String(currentISTYear);
 

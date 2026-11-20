@@ -1,4 +1,5 @@
 const Leave = require("../models/Leave");
+const { MIN_SYSTEM_YEAR } = require("../constants/leaveConstants");
 
 /**
  * Builds a MongoDB filter object for querying leave records based on year, month, status, and a baseFilter.
@@ -103,7 +104,6 @@ const getAvailableLeaveYears = async (baseFilter = {}) => {
   } catch (e) {
     currentYear = new Date().getFullYear();
   }
-  const MIN_SYSTEM_YEAR = 2026;
   const targetMaxYear = currentYear + 1; // Extra upcoming advance year option
   for (let y = MIN_SYSTEM_YEAR; y <= targetMaxYear; y++) {
     yearsSet.add(y);

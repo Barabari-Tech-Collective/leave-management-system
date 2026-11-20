@@ -43,7 +43,7 @@ const sendLeaveEmail = async ({
   founderEmails
 }) => {
   const sender = getSenderEmail();
-  const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "harihar@barabaricollective.org";
+  const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "";
   const allEmails = sanitizeEmails([...recipients, effectiveFounder]);
 
   try {

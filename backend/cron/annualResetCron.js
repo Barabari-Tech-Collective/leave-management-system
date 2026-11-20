@@ -3,8 +3,8 @@ const { performAnnualResetAllUsers } = require("../utils/leaveResetUtils");
 
 /**
  * Scheduled Annual Leave Reset Cron.
- * Runs automatically on January 1st at 00:01:00 AM Indian Standard Time (Asia/Kolkata).
- * Cron pattern: "1 0 1 1 *" -> minute 1, hour 0 (00:01 IST), day 1, month 1 (January).
+ * Runs automatically on January 1st at 00:01 AM Indian Standard Time (Asia/Kolkata).
+ * Cron pattern: "1 0 1 1 *" -> minute=1, hour=0 → fires at 00:01 IST on Jan 1.
  */
 const initAnnualResetCron = () => {
   cron.schedule(
@@ -33,7 +33,7 @@ const initAnnualResetCron = () => {
     }
   );
 
-  console.log("⏱️ [Annual Reset Cron]: Registered schedule '1 0 1 1 *' (Jan 1 00:00:01 IST).");
+  console.log("⏱️ [Annual Reset Cron]: Registered schedule '1 0 1 1 *' (Jan 1 at 00:01 IST).");
 };
 
 module.exports = initAnnualResetCron;
