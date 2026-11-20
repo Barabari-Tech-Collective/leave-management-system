@@ -129,93 +129,110 @@ const getLeaveBalanceForYear = (user, targetYear) => {
 
 /**
  * Fail-safe Lazy Rollover Guard.
- * Checks if user's active leaveYear is behind current IST year.
- * If so, archives previous year's balance, initializes new year balance, and updates user.
- * Also handles backward compatibility migration for existing legacy records.
+ * Checks if user's active leaveYear is behind current IST year (or targetYear).
+ * If so, archives previous year's balance, initializes new year balance, and updates user atomically.
+ * Uses atomic conditional MongoDB operations ($set with leaveYear match) to prevent
+ * overwriting concurrent balance adjustments.
  */
-const checkAndResetAnnualLeave = async (user) => {
+const checkAndResetAnnualLeave = async (user, targetYearOverride = null) => {
   if (!user || !user._id) return user;
 
-  const currentISTYear = getCurrentISTYear();
+  const currentISTYear = targetYearOverride || getCurrentISTYear();
+  const freshUser = await User.findById(user._id);
+  if (!freshUser) return user;
+
   // Legacy production accounts default to year 2026 if leaveYear is uninitialized
-  const userYear = user.leaveYear || 2026;
-
-  // Initialize yearlyLeaveBalances map if missing
-  if (!user.yearlyLeaveBalances) {
-    user.yearlyLeaveBalances = new Map();
-  }
-
+  const userYear = freshUser.leaveYear || 2026;
   const userYearKey = String(userYear);
   const currentYearKey = String(currentISTYear);
 
-  let needsSave = false;
-
-  // Backward compatibility: ensure active year balance is stored in yearlyLeaveBalances
-  let existingActiveRecord = getYearMapRecord(user, userYearKey);
-  if (!existingActiveRecord && user.leaveBalance) {
-    const cleanActive = sanitizeBalanceObject(user.leaveBalance);
-    setYearMapRecord(user, userYearKey, cleanActive);
-    needsSave = true;
+  // Backward compatibility: legacy accounts with uninitialized leaveYear
+  if (!freshUser.leaveYear) {
+    const cleanBalance = sanitizeBalanceObject(freshUser.leaveBalance);
+    const updated = await User.findOneAndUpdate(
+      {
+        _id: freshUser._id,
+        $or: [{ leaveYear: { $exists: false } }, { leaveYear: null }]
+      },
+      {
+        $set: {
+          leaveYear: currentISTYear,
+          leaveBalance: cleanBalance,
+          [`yearlyLeaveBalances.${currentYearKey}`]: cleanBalance,
+          "leaveBalance.extra": freshUser.leaveBalance?.extra || { taken: 0 }
+        }
+      },
+      { new: true }
+    );
+    return updated || (await User.findById(freshUser._id)) || freshUser;
   }
 
-  // Backward compatibility: ensure legacy users have leaveYear initialized
-  if (!user.leaveYear) {
-    user.leaveYear = currentISTYear;
-    needsSave = true;
-  }
-
-  // Backward compatibility: ensure extra field is present in active leaveBalance
-  if (user.leaveBalance && (!user.leaveBalance.extra || typeof user.leaveBalance.extra.taken !== "number")) {
-    user.leaveBalance.extra = { taken: 0 };
-    needsSave = true;
-  }
-
-  // If user is already on current year, save if migrated and return
+  // If user is already on or ahead of target year
   if (userYear >= currentISTYear) {
-    if (needsSave) {
-      if (typeof user.markModified === "function") {
-        user.markModified("yearlyLeaveBalances");
-        user.markModified("leaveBalance");
+    const existingActiveRecord = getYearMapRecord(freshUser, userYearKey);
+    const hasExtra = Boolean(freshUser.leaveBalance?.extra && typeof freshUser.leaveBalance.extra.taken === "number");
+
+    if (!existingActiveRecord || !hasExtra) {
+      const cleanActive = sanitizeBalanceObject(freshUser.leaveBalance);
+      const updateFields = {};
+      if (!existingActiveRecord) {
+        updateFields[`yearlyLeaveBalances.${userYearKey}`] = cleanActive;
       }
-      await user.save({ validateBeforeSave: false });
+      if (!hasExtra) {
+        updateFields["leaveBalance.extra"] = { taken: 0 };
+      }
+      const updated = await User.findByIdAndUpdate(
+        freshUser._id,
+        { $set: updateFields },
+        { new: true }
+      );
+      return updated || freshUser;
     }
-    return user;
+    return freshUser;
   }
 
   // --- ANNUAL RESET TRIGGERED (Year has rolled over) ---
-  console.log(`🔄 [Annual Leave Reset]: Rolling over user ${user.email} from ${userYear} to ${currentISTYear}...`);
+  console.log(`🔄 [Annual Leave Reset]: Rolling over user ${freshUser.email} from ${userYear} to ${currentISTYear}...`);
 
-  // 1. Archive previous year balance into yearlyLeaveBalances
-  const archivedBalance = sanitizeBalanceObject(user.leaveBalance);
-  setYearMapRecord(user, userYearKey, archivedBalance);
+  // 1. Archive previous year balance
+  const archivedBalance = sanitizeBalanceObject(freshUser.leaveBalance);
 
   // 2. Prepare new year balance: check if advance leaves were booked for currentISTYear
-  let newYearBalance = getYearMapRecord(user, currentYearKey);
-  if (newYearBalance) {
-    newYearBalance = sanitizeBalanceObject(newYearBalance);
-  } else {
-    newYearBalance = getDefaultCategoryBalances();
+  const existingNewYearRecord = getYearMapRecord(freshUser, currentYearKey);
+  const newYearBalance = existingNewYearRecord
+    ? sanitizeBalanceObject(existingNewYearRecord)
+    : getDefaultCategoryBalances();
+
+  // 3. Atomically perform the rollover with a conditional update matching userYear (oldYear).
+  // This guarantees it only executes once and never overwrites concurrent $inc deductions.
+  const updatedUser = await User.findOneAndUpdate(
+    {
+      _id: freshUser._id,
+      leaveYear: userYear
+    },
+    {
+      $set: {
+        leaveYear: currentISTYear,
+        leaveBalance: newYearBalance,
+        [`yearlyLeaveBalances.${currentYearKey}`]: newYearBalance,
+        [`yearlyLeaveBalances.${userYearKey}`]: archivedBalance
+      }
+    },
+    { new: true }
+  );
+
+  if (updatedUser) {
+    console.log(`✅ [Annual Leave Reset]: User ${freshUser.email} successfully reset for year ${currentISTYear}.`);
+    return updatedUser;
   }
 
-  // Save new year record in yearly map
-  setYearMapRecord(user, currentYearKey, newYearBalance);
-
-  // 3. Reset active leaveBalance and set active leaveYear to currentISTYear
-  user.leaveBalance = newYearBalance;
-  user.leaveYear = currentISTYear;
-
-  if (typeof user.markModified === "function") {
-    user.markModified("yearlyLeaveBalances");
-    user.markModified("leaveBalance");
-  }
-  await user.save({ validateBeforeSave: false });
-  console.log(`✅ [Annual Leave Reset]: User ${user.email} successfully reset for year ${currentISTYear}.`);
-
-  return user;
+  // If update condition didn't match, another concurrent process already performed the reset
+  return (await User.findById(freshUser._id)) || freshUser;
 };
 
 /**
  * Ensures a user document has the yearlyLeaveBalances entry initialized for targetYear in MongoDB.
+ * Performs atomic conditional update with $exists: false to prevent race conditions.
  */
 const ensureUserYearBalanceExists = async (userId, targetYear) => {
   const user = await User.findById(userId);
@@ -231,12 +248,17 @@ const ensureUserYearBalanceExists = async (userId, targetYear) => {
       Object.assign(defaultBal, sanitizeBalanceObject(user.leaveBalance));
     }
 
-    setYearMapRecord(user, yearKey, defaultBal);
-
-    if (typeof user.markModified === "function") {
-      user.markModified("yearlyLeaveBalances");
-    }
-    await user.save({ validateBeforeSave: false });
+    const updated = await User.findOneAndUpdate(
+      {
+        _id: userId,
+        [`yearlyLeaveBalances.${yearKey}`]: { $exists: false }
+      },
+      {
+        $set: { [`yearlyLeaveBalances.${yearKey}`]: defaultBal }
+      },
+      { new: true }
+    );
+    return updated || user;
   }
 
   return user;
@@ -267,7 +289,7 @@ const performAnnualResetAllUsers = async (targetYear = null) => {
 
   for (const user of usersToReset) {
     try {
-      await checkAndResetAnnualLeave(user);
+      await checkAndResetAnnualLeave(user, currentISTYear);
       resetCount++;
     } catch (err) {
       console.error(`🚨 Failed to reset leaves for user ${user.email}:`, err);

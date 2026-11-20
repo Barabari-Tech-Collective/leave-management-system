@@ -499,42 +499,65 @@ exports.updateLeaveStatus = async (req, res) => {
 
     const previousStatus = leave.status;
 
-    // Balance adjustment atomically based on status transition to prevent race condition overdrafts
-    if (leave.user && leave.user._id) {
-      const targetYear = new Date(leave.fromDate).getUTCFullYear();
-      const yearKey = String(targetYear);
-      await ensureUserYearBalanceExists(leave.user._id, targetYear);
+    // 1. ATOMIC STATUS CLAIM:
+    // Transition status first in MongoDB so only ONE concurrent request can proceed.
+    // If another lead or admin approved/rejected at the same time, status will no longer match previousStatus.
+    const updatedLeave = await Leave.findOneAndUpdate(
+      {
+        _id: leave._id,
+        status: previousStatus
+      },
+      {
+        $set: {
+          status,
+          rejectionReason: status === "rejected" ? rejectionReason.trim() : ""
+        }
+      },
+      { new: true }
+    ).populate("user");
 
-      const freshUser = await User.findById(leave.user._id);
+    if (!updatedLeave) {
+      return res.status(400).json({
+        message: `This leave request is already updated or no longer in '${previousStatus}' status.`
+      });
+    }
+
+    // 2. BALANCE ADJUSTMENT (Executed only after atomic status change is claimed)
+    if (updatedLeave.user && updatedLeave.user._id) {
+      const targetYear = new Date(updatedLeave.fromDate).getUTCFullYear();
+      const yearKey = String(targetYear);
+      await ensureUserYearBalanceExists(updatedLeave.user._id, targetYear);
+
+      const freshUser = await User.findById(updatedLeave.user._id);
       const isActiveYear = !freshUser.leaveYear || freshUser.leaveYear === targetYear;
       const yearBalance = getLeaveBalanceForYear(freshUser, targetYear);
-      const typeBalance = yearBalance[leave.type] || { total: 0, taken: 0 };
+      const typeBalance = yearBalance[updatedLeave.type] || { total: 0, taken: 0 };
       const totalQuota = typeBalance.total || 0;
 
-      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+      const isExtraLeave = Boolean(updatedLeave.isExtraLeave || updatedLeave.type === "extra");
 
       // 1. Transitioning to approved from pending/rejected -> deduct balance atomically with condition
       if (previousStatus !== "approved" && status === "approved") {
         const { update: incUpdate } = buildAtomicBalanceDelta({
           targetYear,
           activeUserYear: freshUser.leaveYear,
-          type: leave.type,
+          type: updatedLeave.type,
           isExtra: isExtraLeave,
-          daysDelta: leave.days
+          daysDelta: updatedLeave.days
         });
 
         let updatedUser;
         if (isExtraLeave) {
           updatedUser = await User.findByIdAndUpdate(
-            leave.user._id,
+            updatedLeave.user._id,
             { $inc: incUpdate },
             { new: true }
           );
         } else {
           updatedUser = await User.findOneAndUpdate(
             {
-              _id: leave.user._id,
-              [`yearlyLeaveBalances.${yearKey}.${leave.type}.taken`]: { $lte: totalQuota - leave.days }
+              _id: updatedLeave.user._id,
+              [`yearlyLeaveBalances.${yearKey}.${updatedLeave.type}.taken`]: { $lte: totalQuota - updatedLeave.days }
             },
             { $inc: incUpdate },
             { new: true }
@@ -542,29 +565,37 @@ exports.updateLeaveStatus = async (req, res) => {
         }
 
         if (!updatedUser) {
-          const recheckedUser = await User.findById(leave.user._id);
+          // Revert leave status back to previousStatus if quota is insufficient
+          await Leave.findByIdAndUpdate(updatedLeave._id, {
+            $set: {
+              status: previousStatus,
+              rejectionReason: leave.rejectionReason || ""
+            }
+          });
+
+          const recheckedUser = await User.findById(updatedLeave.user._id);
           const currentBal = getLeaveBalanceForYear(recheckedUser, targetYear);
-          const freshTaken = currentBal[leave.type]?.taken || 0;
-          const freshTotal = currentBal[leave.type]?.total || 0;
+          const freshTaken = currentBal[updatedLeave.type]?.taken || 0;
+          const freshTotal = currentBal[updatedLeave.type]?.total || 0;
           const freshRemaining = Math.max(0, freshTotal - freshTaken);
           return res.status(400).json({
-            message: `Cannot approve: Employee only has ${freshRemaining} remaining in ${leave.type} leave for ${targetYear}, but this request requires ${leave.days} day(s).`
+            message: `Cannot approve: Employee only has ${freshRemaining} remaining in ${updatedLeave.type} leave for ${targetYear}, but this request requires ${updatedLeave.days} day(s).`
           });
         }
-        leave.user = updatedUser;
+        updatedLeave.user = updatedUser;
       }
       // 2. Transitioning from approved to rejected -> refund previously deducted balance atomically
       else if (previousStatus === "approved" && status !== "approved") {
         const { update: decUpdate, targetKey } = buildAtomicBalanceDelta({
           targetYear,
           activeUserYear: freshUser.leaveYear,
-          type: leave.type,
+          type: updatedLeave.type,
           isExtra: isExtraLeave,
-          daysDelta: -leave.days
+          daysDelta: -updatedLeave.days
         });
 
         const updatedUser = await User.findByIdAndUpdate(
-          leave.user._id,
+          updatedLeave.user._id,
           { $inc: decUpdate },
           { new: true }
         );
@@ -587,44 +618,46 @@ exports.updateLeaveStatus = async (req, res) => {
           if (needsClampingSave) {
             await updatedUser.save({ validateBeforeSave: false });
           }
-          leave.user = updatedUser;
+          updatedLeave.user = updatedUser;
         }
       }
     }
 
-    leave.status = status;
-    if (status === "rejected" && rejectionReason) {
-      leave.rejectionReason = rejectionReason.trim();
-    } else if (status === "approved") {
-      leave.rejectionReason = "";
-    }
-    await leave.save();
-
-    // Dispatch status notification email (Approved or Rejected)
+    // 3. Dispatch status notification email (Approved or Rejected)
     let emailResult = null;
-    if (leave.user && leave.user.email) {
-      const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
+    if (updatedLeave.user && updatedLeave.user.email) {
+      const isExtraLeave = Boolean(updatedLeave.isExtraLeave || updatedLeave.type === "extra");
       const financeRecipients = isExtraLeave ? getFinanceEmails() : [];
 
       emailResult = await sendApprovalEmail({
-        employeeEmail: leave.user.email,
-        employeeName: leave.user.name || "Team Member",
+        employeeEmail: updatedLeave.user.email,
+        employeeName: updatedLeave.user.name || "Team Member",
         status,
-        leave,
+        leave: updatedLeave,
         rejectionReason: status === "rejected" ? rejectionReason : "",
         additionalRecipients: financeRecipients
       });
     }
 
-    // Persist decision notification email status on the leave document
+    // 4. Persist decision notification email status atomically on the leave document
     const emailSent = Boolean(emailResult && emailResult.success);
     const emailError = (!emailSent && emailResult?.error) ? emailResult.error : "";
+    const decisionEmailStatus = emailSent ? "sent" : (emailResult ? "failed" : "none");
+    const lastDecisionEmailAttemptAt = new Date();
 
-    leave.decisionEmailStatus = emailSent ? "sent" : (emailResult ? "failed" : "none");
-    leave.decisionEmailError = emailError;
-    leave.decisionEmailAttempts = (leave.decisionEmailAttempts || 0) + 1;
-    leave.lastDecisionEmailAttemptAt = new Date();
-    await leave.save();
+    await Leave.findByIdAndUpdate(updatedLeave._id, {
+      $set: {
+        decisionEmailStatus,
+        decisionEmailError: emailError,
+        lastDecisionEmailAttemptAt
+      },
+      $inc: { decisionEmailAttempts: 1 }
+    });
+
+    updatedLeave.decisionEmailStatus = decisionEmailStatus;
+    updatedLeave.decisionEmailError = emailError;
+    updatedLeave.decisionEmailAttempts = (updatedLeave.decisionEmailAttempts || 0) + 1;
+    updatedLeave.lastDecisionEmailAttemptAt = lastDecisionEmailAttemptAt;
 
     const responseMessage = emailSent
       ? `Leave application ${status} successfully!`
@@ -632,7 +665,7 @@ exports.updateLeaveStatus = async (req, res) => {
 
     res.json({
       message: responseMessage,
-      leave,
+      leave: updatedLeave,
       emailSent,
       emailWarning: emailSent ? null : (emailError || "Notification email delivery failed")
     });
