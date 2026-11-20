@@ -2,35 +2,35 @@ import React from "react";
 
 export default function LeavePolicy() {
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 font-sans text-slate-800 space-y-8">
+    <div className="max-w-5xl mx-auto py-4 sm:py-8 px-2 sm:px-4 font-sans text-slate-800 space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="bg-linear-to-r from-primary via-indigo-600 to-indigo-800 text-white p-8 rounded-3xl shadow-lg">
+      <div className="bg-linear-to-r from-primary via-indigo-600 to-indigo-800 text-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-lg">
         <span className="bg-white/20 text-xs uppercase tracking-widest px-3 py-1 rounded-full font-semibold">
           Barabari Collective
         </span>
-        <h1 className="text-3xl font-extrabold mt-3">Company Leave Policy</h1>
-        <div className="flex flex-wrap gap-4 text-xs font-medium text-indigo-100 mt-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold mt-3">Company Leave Policy</h1>
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-xs font-medium text-indigo-100 mt-2">
           <span>📅 Effective Date: Jan 1, 2026 - Jan 1, 2027</span>
           <span>👥 Applicability: All Full-Time Employees</span>
         </div>
       </div>
 
       {/* Content Grid */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         {/* Entitlement Summary Cards */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase">Sick Leave</p>
           <h3 className="text-2xl font-black text-indigo-600 mt-1">10 Days</h3>
           <p className="text-xs text-slate-500 mt-2">For sudden or planned medical reasons.</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase">Casual Leave</p>
           <h3 className="text-2xl font-black text-indigo-600 mt-1">11 Days</h3>
           <p className="text-xs text-slate-500 mt-2">For personal commitments and rest.</p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-100 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase">Floating Cultural</p>
           <h3 className="text-2xl font-black text-indigo-600 mt-1">5 Days</h3>
           <p className="text-xs text-slate-500 mt-2">Choose based on personal culture/festivals.</p>
@@ -38,7 +38,7 @@ export default function LeavePolicy() {
       </div>
 
       {/* Main Document Sections */}
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xs space-y-8 text-sm">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs space-y-6 sm:space-y-8 text-sm">
         
         {/* 1. Objective */}
         <section className="space-y-2">

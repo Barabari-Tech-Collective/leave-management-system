@@ -2,25 +2,34 @@ const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const User = require("../models/User.js");
 
+const backendUrl = (process.env.BACKEND_URL || "http://localhost:3000").replace(/\/+$/, "");
+
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`
+      callbackURL: `${backendUrl}/auth/google/callback`
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log("Step - 1 PROFILE:", profile);
+        // console.log("Step - 1 PROFILE:", profile);
 
         const email = profile.emails[0].value.toLowerCase();
 
-        // Parse admin emails from .env
+        // Parse admin and founder emails from environment variables
         const adminList = (process.env.ADMIN_EMAILS || "")
           .split(",")
-          .map((e) => e.trim().toLowerCase());
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
+
+        const founderList = (process.env.FOUNDER_EMAILS || "")
+          .split(",")
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
 
         const isAllowlistedAdmin = adminList.includes(email);
+        const isAllowlistedFounder = founderList.includes(email);
 
         // Check if user exists by email or googleId
         let user = await User.findOne({ email });
@@ -32,8 +41,19 @@ passport.use(
           });
         }
 
-        // Elevate role if allowlisted admin
-        if (isAllowlistedAdmin && user.role !== "admin") {
+        // Guard: Block soft-deleted / deactivated employees from logging in via Google
+        if (user.isDeleted) {
+          return done(null, false, {
+            message: "Your account has been deactivated. Please contact your Admin."
+          });
+        }
+
+        // Elevate/preserve role appropriately: Never demote a Founder to Admin
+        if (isAllowlistedFounder) {
+          if (user.role !== "founder") {
+            user.role = "founder";
+          }
+        } else if (isAllowlistedAdmin && user.role !== "admin" && user.role !== "founder") {
           user.role = "admin";
         }
 
@@ -57,8 +77,13 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser(async (id, done) => {
-  console.log("Deserialize ID", id);
-  const user = await User.findById(id);
-  console.log("Deserialize User", user);
-  done(null, user);
+  try {
+    const user = await User.findById(id).select("-password");
+    if (!user || user.isDeleted) {
+      return done(null, false);
+    }
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
 });
