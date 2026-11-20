@@ -11,7 +11,10 @@ const loginLimiter = rateLimit({
     message: "Too many login attempts from this IP. Please try again after 15 minutes."
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: {
+    trustProxy: false
+  }
 });
 
 /**
@@ -25,7 +28,10 @@ const resetPasswordLimiter = rateLimit({
     message: "Too many password reset attempts. Please try again after 15 minutes."
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: {
+    trustProxy: false
+  }
 });
 
 module.exports = {

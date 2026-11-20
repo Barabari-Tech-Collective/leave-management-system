@@ -45,7 +45,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.enable("trust proxy"); // Trust reverse proxies in Render / AWS
+app.set("trust proxy", 1); // Trust first-hop reverse proxy (Render / AWS / Cloudflare)
 
 // In production, refuse to boot if SESSION_SECRET is missing or left as default
 const sessionSecret = process.env.SESSION_SECRET;
