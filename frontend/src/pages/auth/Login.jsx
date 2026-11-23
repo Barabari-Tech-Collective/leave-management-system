@@ -39,7 +39,15 @@ export default function Login() {
   // 1. Google OAuth Flow
   const handleGoogleLogin = () => {
     setAuthError("");
-    window.open(`${import.meta.env.VITE_API_URL}/auth/google`, "_self");
+    const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+    if (!apiUrl) {
+      const msg = "Backend URL is not configured. Please set VITE_API_URL in your Render frontend environment variables and rebuild.";
+      setAuthError(msg);
+      toast.error(msg, { duration: 6000 });
+      console.error("[Login] Cannot initiate Google Login because VITE_API_URL is missing.");
+      return;
+    }
+    window.open(`${apiUrl}/auth/google`, "_self");
   };
 
   // 2. Manual Email + Password Login Flow
@@ -53,17 +61,26 @@ export default function Login() {
         password: form.password,
       });
 
+      // Guard against receiving an HTML SPA shell when VITE_API_URL is missing or misconfigured
+      if (!res.data || typeof res.data !== "object" || !res.data.user) {
+        throw new Error(
+          "Received an HTML response instead of JSON. The frontend is requesting itself instead of the backend API. Please configure VITE_API_URL in Render frontend environment variables and rebuild."
+        );
+      }
+
       toast.success("Login Successful 🚀");
 
       const loggedUser = res.data.user;
 
-      if (loggedUser.role === "admin") {
+      if (loggedUser.role === "admin" || loggedUser.role === "founder") {
         window.location.href = "/admin";
+      } else if (loggedUser.isVerticalLead) {
+        window.location.href = "/employee/team";
       } else {
         window.location.href = "/employee";
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || "Invalid credentials or unauthorized account.";
+      const errMsg = err.response?.data?.message || err.message || "Invalid credentials or unauthorized account.";
       setAuthError(errMsg);
       toast.error(errMsg);
       setSubmitting(false);
@@ -98,17 +115,17 @@ export default function Login() {
   }
 
   if (user) {
-    if (user.role === "admin") return <Navigate to="/admin" replace />;
-    // if (user.isVerticalLead) return <Navigate to="/vertical-lead" replace />;
+    if (user.role === "admin" || user.role === "founder") return <Navigate to="/admin" replace />;
+    if (user.isVerticalLead) return <Navigate to="/employee/team" replace />;
     return <Navigate to="/employee" replace />;
   }
 
   return (
-    <div className="min-h-screen w-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-5 my-auto">
+    <div className="min-h-screen w-full overflow-y-auto py-6 sm:py-10 px-3 sm:px-4 flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100">
+      <div className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl border border-slate-100 w-full max-w-md text-center space-y-4 sm:space-y-5 my-auto">
         
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
             {isResetMode ? "Reset Password" : "Login to Leave System"}
           </h2>
           <p className="text-xs text-slate-500 mt-1 font-medium">
