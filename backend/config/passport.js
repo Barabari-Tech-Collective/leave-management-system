@@ -65,7 +65,7 @@ passport.use(
         await user.save();
         return done(null, user);
       } catch (error) {
-        console.log("PASSPORT ERROR:", error);
+        console.error("PASSPORT ERROR:", error);
         return done(error, null);
       }
     }

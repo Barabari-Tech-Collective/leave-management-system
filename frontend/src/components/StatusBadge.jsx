@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, XCircle, Ban } from "lucide-react";
 export default function StatusBadge({ status }) {
   const normStatus = String(status || "pending").trim().toLowerCase();
 
-  const isSuccess = normStatus === "approved" || normStatus === "success";
+  const isSuccess = normStatus === "approved";
   const isRejected = normStatus === "rejected";
   const isCancelled = normStatus === "cancelled";
 
@@ -12,7 +12,7 @@ export default function StatusBadge({ status }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-green-100 text-green-800 border border-green-300 shadow-2xs">
         <CheckCircle2 size={13} className="text-green-700" />
-        {normStatus === "success" ? "Success" : "Approved"}
+        Approved
       </span>
     );
   }

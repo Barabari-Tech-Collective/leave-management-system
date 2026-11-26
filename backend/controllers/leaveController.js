@@ -222,7 +222,7 @@ exports.applyLeave = async (req, res) => {
     }
 
     // Fetch Vertical Lead, teammates, admins, and finance (if extra leave)
-    const { recipients, founderEmails } = await getNotificationRecipients(user, {
+    const { recipients, verticalLeadEmails, adminEmails, founderEmails } = await getNotificationRecipients(user, {
       isExtraLeave: isExtraType
     });
 
@@ -338,6 +338,8 @@ exports.applyLeave = async (req, res) => {
           leave,
           employee: user,
           recipients,
+          verticalLeadEmails,
+          adminEmails,
           founderEmails
         });
       } catch (emailErr) {
@@ -397,7 +399,7 @@ exports.applyLeave = async (req, res) => {
       throw innerErr;
     }
   } catch (error) {
-    console.log("Error applying leave:", error);
+    console.error("Error applying leave:", error);
     res.status(500).json({ message: error.message });
   } finally {
     if (userIdStr) {
@@ -1153,7 +1155,7 @@ exports.resendLeaveEmail = async (req, res) => {
     }
 
     const isExtraLeave = Boolean(leave.isExtraLeave || leave.type === "extra");
-    const { recipients, founderEmails } = await getNotificationRecipients(employee, {
+    const { recipients, verticalLeadEmails, adminEmails, founderEmails } = await getNotificationRecipients(employee, {
       isExtraLeave
     });
 
@@ -1162,6 +1164,8 @@ exports.resendLeaveEmail = async (req, res) => {
       leave,
       employee,
       recipients,
+      verticalLeadEmails,
+      adminEmails,
       founderEmails
     });
 
@@ -1407,6 +1411,8 @@ exports.getLeadRequestsForAdmin = async (req, res) => {
 
     const [availableYears, pendingCount, totalFiltered, leadLeaves] = await Promise.all([
       getAvailableLeaveYears(baseFilter),
+      // Always count pending across ALL leads (not just the filtered vertical) so the
+      // badge on the admin dashboard reflects total pending lead approvals system-wide.
       Leave.countDocuments({ user: { $in: allLeadIds }, status: "pending" }),
       Leave.countDocuments(filter),
       query.exec()
@@ -1426,6 +1432,57 @@ exports.getLeadRequestsForAdmin = async (req, res) => {
       }
     });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 11. GET SINGLE LEAVE FOR REVIEW (Deep-link endpoint for Vertical Leads & Admins)
+exports.getLeaveForReview = async (req, res) => {
+  try {
+    const leave = await Leave.findById(req.params.id).populate(
+      "user",
+      "name email vertical isVerticalLead role"
+    );
+
+    if (!leave) {
+      return res.status(404).json({ message: "Leave record not found." });
+    }
+
+    const currentCaller = req.user;
+    const isPrivilegedAdmin = currentCaller.role === "admin" || currentCaller.role === "founder";
+    const isOwner = Boolean(leave.user && leave.user._id.toString() === currentCaller._id.toString());
+    const leaveVertical = leave.vertical || leave.user?.vertical;
+    const isTeamLead = Boolean(
+      currentCaller.isVerticalLead &&
+      currentCaller.vertical &&
+      currentCaller.vertical === leaveVertical
+    );
+
+    if (isOwner && !isPrivilegedAdmin) {
+      return res.status(403).json({
+        message: "Vertical Leads cannot approve or reject their own leave requests. Admin approval is required.",
+        isOwnLeave: true
+      });
+    }
+
+    if (!isPrivilegedAdmin && !isTeamLead) {
+      return res.status(403).json({
+        message: "Access denied. Only Admins, Founders, or the team's Vertical Lead can review this leave request."
+      });
+    }
+
+    let targetTab = null;
+    if (isPrivilegedAdmin) {
+      if (leave.user?.isVerticalLead) {
+        targetTab = "leadApprovals";
+      } else if (leaveVertical === "Operations") {
+        targetTab = "operations";
+      }
+    }
+
+    res.json({ leave, targetTab });
+  } catch (err) {
+    console.error("Error fetching leave for review:", err);
     res.status(500).json({ message: err.message });
   }
 };

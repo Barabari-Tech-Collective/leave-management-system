@@ -15,7 +15,7 @@ export default function LeaveFilterBar({
   showVerticalFilter = false,
   verticalFilter = "all",
   onVerticalChange = noop,
-  verticalOptions = ["Program", "EdTech", "Placement"],
+  verticalOptions = ["Program", "Placement", "EdTech", "Operations"],
   onReset = noop,
   hasActiveFilters = false,
   className = ""

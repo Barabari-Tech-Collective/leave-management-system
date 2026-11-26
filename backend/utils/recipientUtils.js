@@ -14,6 +14,7 @@ const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}
   if (!employee) {
     const finance = isExtraLeave ? getFinanceEmails() : [];
     return {
+      verticalLeadEmails: [],
       teamEmails: [],
       adminEmails: [],
       financeEmails: finance,
@@ -31,8 +32,17 @@ const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}
         vertical: employee.vertical,
         _id: { $ne: employee._id },
         isDeleted: { $ne: true }
-      }).select("email")
+      }).select("email isVerticalLead role")
     : [];
+
+  const verticalLeadEmails = Array.from(
+    new Set(
+      teamMembers
+        .filter((m) => m.isVerticalLead && m.role !== "admin" && m.role !== "founder")
+        .map((m) => (m.email || "").trim().toLowerCase())
+        .filter((e) => e && e !== applicantEmail)
+    )
+  );
 
   const teamEmails = Array.from(
     new Set(
@@ -72,6 +82,7 @@ const getNotificationRecipients = async (employee, { isExtraLeave = false } = {}
   const recipients = Array.from(new Set([...teamEmails, ...adminEmails, ...financeEmails]));
 
   return {
+    verticalLeadEmails,
     teamEmails,
     adminEmails,
     financeEmails,

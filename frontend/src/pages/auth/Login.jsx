@@ -207,12 +207,13 @@ export default function Login() {
               <span>🚀</span> Continue with Google
             </button>
 
-            <p
+            <button
+              type="button"
               onClick={() => setIsResetMode(true)}
               className="text-xs text-indigo-600 font-bold cursor-pointer hover:underline pt-1 inline-block"
             >
               First time login? Change temporary password
-            </p>
+            </button>
           </>
         ) : (
           /* Password Reset Form */

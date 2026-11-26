@@ -40,11 +40,27 @@ const sendLeaveEmail = async ({
   leave,
   employee,
   recipients = [],
+  verticalLeadEmails = [],
+  adminEmails = [],
   founderEmails
 }) => {
   const sender = getSenderEmail();
   const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "";
-  const allEmails = sanitizeEmails([...recipients, effectiveFounder]);
+  const applicantEmail = (employee?.email || "").trim().toLowerCase();
+
+  // Regular employee requests send Review & Approve button only to Vertical Lead(s);
+  // Vertical Lead requests send Review & Approve button only to Admins & Founders.
+  const reviewActionEmails = (
+    employee?.isVerticalLead
+      ? sanitizeEmails([...adminEmails, effectiveFounder])
+      : sanitizeEmails(verticalLeadEmails)
+  ).filter((email) => email !== applicantEmail);
+
+  const reviewActionSet = new Set(reviewActionEmails);
+  const otherEmails = sanitizeEmails([...recipients, effectiveFounder]).filter(
+    (email) => !reviewActionSet.has(email) && email !== applicantEmail
+  );
+  const allEmails = Array.from(new Set([...reviewActionEmails, ...otherEmails]));
 
   try {
     if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.trim() === "") {
@@ -57,14 +73,47 @@ const sendLeaveEmail = async ({
       return { success: false, error: "No valid recipient emails found." };
     }
 
-    const { subject, html } = buildLeaveRequestEmail({ leave, employee });
+    const emailPayloads = [];
+    if (leave?.isPastLeave) {
+      const { subject, html } = buildLeaveRequestEmail({
+        leave,
+        employee,
+        includeReviewAction: false
+      });
+      emailPayloads.push({ from: sender, to: allEmails, subject, html });
+    } else {
+      if (reviewActionEmails.length > 0) {
+        const approverTemplate = buildLeaveRequestEmail({
+          leave,
+          employee,
+          includeReviewAction: true
+        });
+        emailPayloads.push({
+          from: sender,
+          to: reviewActionEmails,
+          subject: approverTemplate.subject,
+          html: approverTemplate.html
+        });
+      }
+      if (otherEmails.length > 0) {
+        const generalTemplate = buildLeaveRequestEmail({
+          leave,
+          employee,
+          includeReviewAction: false
+        });
+        emailPayloads.push({
+          from: sender,
+          to: otherEmails,
+          subject: generalTemplate.subject,
+          html: generalTemplate.html
+        });
+      }
+    }
 
-    const { data, error } = await getResendClient().emails.send({
-      from: sender,
-      to: allEmails,
-      subject,
-      html
-    });
+    const client = getResendClient();
+    const { data, error } = emailPayloads.length === 1
+      ? await client.emails.send(emailPayloads[0])
+      : await client.batch.send(emailPayloads);
 
     if (error) {
       console.error("==================================================");
@@ -111,10 +160,15 @@ const sendLeaveEmail = async ({
       };
     }
 
-    console.log("[Resend Accepted]: Leave email accepted by provider. ID:", data?.id);
+    const messageId =
+      data?.id ||
+      data?.data?.[0]?.id ||
+      (Array.isArray(data) ? data[0]?.id : undefined);
+
+    console.log("[Resend Accepted]: Leave email accepted by provider. ID:", messageId);
     return {
       success: true,
-      messageId: data?.id
+      messageId
     };
   } catch (err) {
     console.error("==================================================");

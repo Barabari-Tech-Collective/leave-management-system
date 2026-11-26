@@ -227,7 +227,7 @@ export default function EmployeeHistoryModal({ isOpen, onClose, employee, initia
               </div>
             ) : historyData.leaves.length === 0 ? (
               <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 text-xs">
-                No leave requests found for this employee in ${selectedYear}.
+                {`No leave requests found for this employee in ${selectedYear}.`}
               </div>
             ) : (
               <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">

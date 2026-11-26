@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import API from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import { clearPendingReviewLeaveId } from "../utils/reviewRedirect";
 
 const AuthContext = createContext();
 
@@ -32,6 +33,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     // Immediately clear local user state so components (like Login) never see a stale user during transition
     setUser(null);
+    clearPendingReviewLeaveId();
     try {
       await API.post("/auth/logout");
     } catch (error) {
