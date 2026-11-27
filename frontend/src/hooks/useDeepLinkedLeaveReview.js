@@ -50,15 +50,32 @@ export default function useDeepLinkedLeaveReview(onLeaveLoaded) {
 
     inFlightIdRef.current = targetLeaveId;
 
+    const cleanupDeepLink = () => {
+      clearPendingReviewLeaveId();
+      if (queryLeaveId) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("leaveId");
+          return next;
+        }, { replace: true });
+      }
+    };
+
     API.get(`/leave/review/${targetLeaveId}`)
       .then((res) => {
         if (res.data?.leave) {
+          const { status } = res.data.leave;
+          if (status && status !== "pending") {
+            toast(`This request was already ${status}.`, { icon: "ℹ️" });
+          }
           onLeaveLoadedRef.current?.(res.data);
         }
+        cleanupDeepLink();
       })
       .catch((err) => {
-        // On 401, stay silent — the auth redirect will handle it
+        // On 401, keep stored leaveId and stay silent — the auth redirect will handle login
         if (err.response?.status === 401) return;
+        cleanupDeepLink();
         const data = err.response?.data;
         if (data?.isOwnLeave) {
           toast(data.message, { icon: "ℹ️" });
@@ -67,16 +84,6 @@ export default function useDeepLinkedLeaveReview(onLeaveLoaded) {
         }
         // Reset the ref so the user can retry if they navigate back
         inFlightIdRef.current = null;
-      })
-      .finally(() => {
-        clearPendingReviewLeaveId();
-        if (queryLeaveId) {
-          setSearchParams((prev) => {
-            const next = new URLSearchParams(prev);
-            next.delete("leaveId");
-            return next;
-          }, { replace: true });
-        }
       });
   }, [targetLeaveId, queryLeaveId, setSearchParams]);
 }

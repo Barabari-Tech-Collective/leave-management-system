@@ -14,11 +14,6 @@ export const savePendingReviewLeaveId = (leaveId) => {
   } catch {
     // Ignore storage errors in restricted browser modes
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, payload);
-  } catch {
-    // Ignore storage errors in restricted browser modes
-  }
 };
 
 const readStoredPayload = (storage) => {
@@ -38,17 +33,12 @@ const readStoredPayload = (storage) => {
 
 export const getPendingReviewLeaveId = () => {
   if (typeof window === "undefined") return null;
-  return readStoredPayload(window.sessionStorage) || readStoredPayload(window.localStorage);
+  return readStoredPayload(window.sessionStorage);
 };
 
 export const clearPendingReviewLeaveId = () => {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Ignore storage errors
-  }
-  try {
-    localStorage.removeItem(STORAGE_KEY);
   } catch {
     // Ignore storage errors
   }

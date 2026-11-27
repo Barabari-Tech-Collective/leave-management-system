@@ -84,6 +84,8 @@ const buildLeaveRequestEmail = ({ leave, employee, includeReviewAction = false }
   const safeVertical = escapeHtml(employee?.vertical || "General");
   const safeReason = escapeHtml(leave.reason || "N/A");
 
+  const canReviewInEmail = Boolean(includeReviewAction && !isPastLeave && leave?._id);
+  const actionPrefix = canReviewInEmail ? "[Action Needed] " : "";
   const extraPrefix = isExtraLeave ? "[EXTRA LEAVE] " : "";
   const emailTitle = isExtraLeave
     ? (isPastLeave ? "Extra Leave Recorded" : "Extra Leave Request")
@@ -91,7 +93,7 @@ const buildLeaveRequestEmail = ({ leave, employee, includeReviewAction = false }
   const emailSubtitle = isPastLeave
     ? `${safeVertical} Vertical • Past Leave Record`
     : `${safeVertical} Vertical`;
-  const emailSubject = `${extraPrefix}${isPastLeave ? "Past Leave Record" : "Leave Request"} (${safeVertical} Vertical) - ${safeEmpName}`;
+  const emailSubject = `${actionPrefix}${extraPrefix}${isPastLeave ? "Past Leave Record" : "Leave Request"} (${safeVertical} Vertical) - ${safeEmpName}`;
 
   const extraNoticeBox = isExtraLeave
     ? `
@@ -103,8 +105,6 @@ const buildLeaveRequestEmail = ({ leave, employee, includeReviewAction = false }
       </div>
     `
     : "";
-
-  const canReviewInEmail = Boolean(includeReviewAction && !isPastLeave && leave?._id);
 
   const contentHtml = isPastLeave
     ? `

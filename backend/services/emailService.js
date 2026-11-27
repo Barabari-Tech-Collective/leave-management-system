@@ -48,13 +48,19 @@ const sendLeaveEmail = async ({
   const effectiveFounder = founderEmails || process.env.FOUNDER_EMAILS || process.env.FOUNDER_EMAIL || "";
   const applicantEmail = (employee?.email || "").trim().toLowerCase();
 
-  // Regular employee requests send Review & Approve button only to Vertical Lead(s);
+  // Regular employee requests send Review & Approve button to Vertical Lead(s),
+  // falling back to Admins & Founders if the vertical has no eligible Vertical Lead;
   // Vertical Lead requests send Review & Approve button only to Admins & Founders.
-  const reviewActionEmails = (
-    employee?.isVerticalLead
-      ? sanitizeEmails([...adminEmails, effectiveFounder])
-      : sanitizeEmails(verticalLeadEmails)
-  ).filter((email) => email !== applicantEmail);
+  const sanitizedLeadEmails = sanitizeEmails(verticalLeadEmails).filter(
+    (email) => email !== applicantEmail
+  );
+  const sanitizedAdminEmails = sanitizeEmails([...adminEmails, effectiveFounder]).filter(
+    (email) => email !== applicantEmail
+  );
+  const reviewActionEmails =
+    employee?.isVerticalLead || sanitizedLeadEmails.length === 0
+      ? sanitizedAdminEmails
+      : sanitizedLeadEmails;
 
   const reviewActionSet = new Set(reviewActionEmails);
   const otherEmails = sanitizeEmails([...recipients, effectiveFounder]).filter(
@@ -73,14 +79,18 @@ const sendLeaveEmail = async ({
       return { success: false, error: "No valid recipient emails found." };
     }
 
-    const emailPayloads = [];
+    const leaveId = leave?._id ? String(leave._id) : null;
+    const emailJobs = [];
     if (leave?.isPastLeave) {
       const { subject, html } = buildLeaveRequestEmail({
         leave,
         employee,
         includeReviewAction: false
       });
-      emailPayloads.push({ from: sender, to: allEmails, subject, html });
+      emailJobs.push({
+        idempotencyKey: leaveId ? `leave-${leaveId}-past` : undefined,
+        payload: { from: sender, to: allEmails, subject, html }
+      });
     } else {
       if (reviewActionEmails.length > 0) {
         const approverTemplate = buildLeaveRequestEmail({
@@ -88,11 +98,14 @@ const sendLeaveEmail = async ({
           employee,
           includeReviewAction: true
         });
-        emailPayloads.push({
-          from: sender,
-          to: reviewActionEmails,
-          subject: approverTemplate.subject,
-          html: approverTemplate.html
+        emailJobs.push({
+          idempotencyKey: leaveId ? `leave-${leaveId}-approver` : undefined,
+          payload: {
+            from: sender,
+            to: reviewActionEmails,
+            subject: approverTemplate.subject,
+            html: approverTemplate.html
+          }
         });
       }
       if (otherEmails.length > 0) {
@@ -101,19 +114,28 @@ const sendLeaveEmail = async ({
           employee,
           includeReviewAction: false
         });
-        emailPayloads.push({
-          from: sender,
-          to: otherEmails,
-          subject: generalTemplate.subject,
-          html: generalTemplate.html
+        emailJobs.push({
+          idempotencyKey: leaveId ? `leave-${leaveId}-visibility` : undefined,
+          payload: {
+            from: sender,
+            to: otherEmails,
+            subject: generalTemplate.subject,
+            html: generalTemplate.html
+          }
         });
       }
     }
 
     const client = getResendClient();
-    const { data, error } = emailPayloads.length === 1
-      ? await client.emails.send(emailPayloads[0])
-      : await client.batch.send(emailPayloads);
+    const results = await Promise.all(
+      emailJobs.map(({ idempotencyKey, payload }) =>
+        client.emails.send(payload, idempotencyKey ? { idempotencyKey } : undefined)
+      )
+    );
+
+    const failedResult = results.find((res) => res?.error);
+    const error = failedResult?.error;
+    const data = results.map((res) => res?.data).filter(Boolean);
 
     if (error) {
       console.error("==================================================");
