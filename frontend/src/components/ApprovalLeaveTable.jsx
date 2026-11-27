@@ -8,6 +8,7 @@ export default function ApprovalLeaveTable({
   loading = false,
   showVertical = false,
   actionLabel = "View / Manage",
+  pendingActionLabel = "Review & Approve",
   memberColumnLabel = "Member",
   onViewLeave,
   onResendEmail,
@@ -144,15 +145,27 @@ export default function ApprovalLeaveTable({
                   )}
                 </td>
                 <td className="py-2.5 px-3 sm:py-3 sm:px-3.5 text-right whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() => onViewLeave && onViewLeave(leave)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#334499] font-semibold rounded-xl text-xs transition border border-blue-200 cursor-pointer shadow-2xs"
-                    title={actionLabel === "View" ? "View leave request details" : "View full details and manage approval status"}
-                  >
-                    <Eye size={13} />
-                    <span>{actionLabel}</span>
-                  </button>
+                  {leave.status === "pending" && !leave.isPastLeave ? (
+                    <button
+                      type="button"
+                      onClick={() => onViewLeave && onViewLeave(leave)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold rounded-xl text-xs transition border border-yellow-300 cursor-pointer shadow-2xs"
+                      title="Review full leave reason and approve or reject"
+                    >
+                      <CheckCircle2 size={13} className="text-yellow-700" />
+                      <span>{pendingActionLabel}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onViewLeave && onViewLeave(leave)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#334499] font-semibold rounded-xl text-xs transition border border-blue-200 cursor-pointer shadow-2xs"
+                      title={actionLabel === "View" ? "View leave request details" : "View full details and manage approval status"}
+                    >
+                      <Eye size={13} />
+                      <span>{actionLabel}</span>
+                    </button>
+                  )}
                 </td>
               </tr>
             );

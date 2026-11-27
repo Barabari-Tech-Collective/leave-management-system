@@ -120,7 +120,6 @@ export default function ApplyLeave() {
     Sick: "sick",
     "Flexible Cultural": "flexible",
     "Extra Leave": "extra",
-    "Extra Leave (Loss of Pay)": "extra",
   };
 
   const selectedTypeKey = form.type ? typeMap[form.type] : null;

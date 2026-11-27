@@ -9,6 +9,7 @@ import TablePagination from "../../components/TablePagination";
 import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
 import YearSelect from "../../components/YearSelect";
 import { useAuth } from "../../context/AuthContext";
+import useDeepLinkedLeaveReview from "../../hooks/useDeepLinkedLeaveReview";
 import { 
   UserPlus, 
   RotateCcw, 
@@ -173,6 +174,12 @@ export default function VerticalLeadDashboard() {
     fetchDashboardData(1, 25, "all", "all", "all", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useDeepLinkedLeaveReview(({ leave }) => {
+    if (leave) {
+      setSelectedLeaveForReview(leave);
+    }
+  });
 
   const handlePageSizeChange = (newSize) => {
     const size = parseInt(newSize);

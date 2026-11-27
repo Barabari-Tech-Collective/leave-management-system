@@ -10,10 +10,17 @@ const escapeHtml = (str) => {
 };
 
 // Fallback frontend URL in case process.env.FRONTEND_URL is missing
-const getFrontendUrl = () => process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org";
+const getFrontendUrl = () => (process.env.FRONTEND_URL || "https://leaveportal.barabaricollective.org").replace(/\/+$/, "");
 
 // Shared Barabari Collective Brand Layout Wrapper
-const wrapBarabariTemplate = ({ title, subtitle, content }) => `
+const wrapBarabariTemplate = ({
+  title,
+  subtitle,
+  content,
+  actionUrl = getFrontendUrl(),
+  actionLabel = "Open Leave Portal",
+  showActionButton = true
+}) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -46,10 +53,14 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
     
     <div class="body-content">
       ${content}
-      
+      ${
+        showActionButton
+          ? `
       <div style="text-align: center; margin-top: 24px;">
-        <a href="${getFrontendUrl()}" class="btn">Open Leave Portal</a>
-      </div>
+        <a href="${actionUrl}" class="btn">${escapeHtml(actionLabel)}</a>
+      </div>`
+          : ""
+      }
     </div>
     
     <div class="footer">
@@ -64,7 +75,7 @@ const wrapBarabariTemplate = ({ title, subtitle, content }) => `
 `;
 
 // 1. Leave Application Notification (Standard & Past Emergency Leaves & Extra Leaves)
-const buildLeaveRequestEmail = ({ leave, employee }) => {
+const buildLeaveRequestEmail = ({ leave, employee, includeReviewAction = false }) => {
   const fromStr = new Date(leave.fromDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const toStr = new Date(leave.toDate).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata" });
   const isPastLeave = Boolean(leave.isPastLeave);
@@ -73,6 +84,8 @@ const buildLeaveRequestEmail = ({ leave, employee }) => {
   const safeVertical = escapeHtml(employee?.vertical || "General");
   const safeReason = escapeHtml(leave.reason || "N/A");
 
+  const canReviewInEmail = Boolean(includeReviewAction && !isPastLeave && leave?._id);
+  const actionPrefix = canReviewInEmail ? "[Action Needed] " : "";
   const extraPrefix = isExtraLeave ? "[EXTRA LEAVE] " : "";
   const emailTitle = isExtraLeave
     ? (isPastLeave ? "Extra Leave Recorded" : "Extra Leave Request")
@@ -80,7 +93,7 @@ const buildLeaveRequestEmail = ({ leave, employee }) => {
   const emailSubtitle = isPastLeave
     ? `${safeVertical} Vertical • Past Leave Record`
     : `${safeVertical} Vertical`;
-  const emailSubject = `${extraPrefix}${isPastLeave ? "Past Leave Record" : "Leave Request"} (${safeVertical} Vertical) - ${safeEmpName}`;
+  const emailSubject = `${actionPrefix}${extraPrefix}${isPastLeave ? "Past Leave Record" : "Leave Request"} (${safeVertical} Vertical) - ${safeEmpName}`;
 
   const extraNoticeBox = isExtraLeave
     ? `
@@ -123,15 +136,30 @@ const buildLeaveRequestEmail = ({ leave, employee }) => {
         </ul>
       </div>
       
-      <p>Please log in to the portal to review or approve this request.</p>
+      <p>${
+        canReviewInEmail
+          ? "Click the button below to view full details and approve or reject this request on the portal."
+          : "This notification is shared with you for visibility."
+      }</p>
     `;
+
+  const showActionButton = Boolean(isPastLeave || canReviewInEmail);
+  const actionUrl = canReviewInEmail
+    ? `${getFrontendUrl()}/review-leave/${leave._id}`
+    : getFrontendUrl();
+  const actionLabel = canReviewInEmail
+    ? "Review & Approve Leave"
+    : "Open Leave Portal";
 
   return {
     subject: emailSubject,
     html: wrapBarabariTemplate({
       title: emailTitle,
       subtitle: emailSubtitle,
-      content: contentHtml
+      content: contentHtml,
+      actionUrl,
+      actionLabel,
+      showActionButton
     })
   };
 };

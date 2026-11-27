@@ -11,7 +11,8 @@ const {
   resendDecisionEmail,
   resendCancellationEmail,
   getEmployeeLeaveDetails,
-  getLeadRequestsForAdmin
+  getLeadRequestsForAdmin,
+  getLeaveForReview
 } = require("../controllers/leaveController");
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.put("/cancel/:id", ensureAuth, validateObjectId, cancelLeave);
 router.post("/resend-cancellation-email/:id", ensureAuth, validateObjectId, resendCancellationEmail);
 
 // Vertical Lead & Admin Review Routes
+router.get("/review/:id", ensureAuth, requireLeadOrAdmin, validateObjectId, getLeaveForReview);
 router.get("/employee/:id", ensureAuth, validateObjectId, getEmployeeLeaveDetails);
 router.put("/update-status/:id", ensureAuth, requireLeadOrAdmin, validateObjectId, updateLeaveStatus);
 router.post("/resend-decision-email/:id", ensureAuth, requireLeadOrAdmin, validateObjectId, resendDecisionEmail);

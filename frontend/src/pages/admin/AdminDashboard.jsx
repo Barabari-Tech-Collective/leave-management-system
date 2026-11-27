@@ -8,6 +8,7 @@ import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 import LeaveFilterBar from "../../components/LeaveFilterBar";
 import TablePagination from "../../components/TablePagination";
 import ApprovalLeaveTable from "../../components/ApprovalLeaveTable";
+import useDeepLinkedLeaveReview from "../../hooks/useDeepLinkedLeaveReview";
 import { 
   UserPlus, 
   Users, 
@@ -142,6 +143,15 @@ export default function AdminDashboard() {
     fetchAllDashboardData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useDeepLinkedLeaveReview(({ leave, targetTab }) => {
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
+    if (leave) {
+      setSelectedLeaveForDetails(leave);
+    }
+  });
 
   // Combined fetch function using Promise.all to prevent loading state flicker
   const fetchAllDashboardData = async () => {

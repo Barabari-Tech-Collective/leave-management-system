@@ -12,7 +12,7 @@ export default function Sidebar({ onClose }) {
   const linkInner = "flex items-center gap-2.5";
 
   const activeStyle =
-    "bg-primary/10 text-primary font-semibold shadow-[absolute_inset_0_0_10px_rgba(79,70,229,0.1)]";
+    "bg-primary/10 text-primary font-semibold";
 
   const handleLogout = async () => {
     onClose?.();

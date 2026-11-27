@@ -13,12 +13,14 @@ import ManageVerticals from "../pages/admin/ManageVerticals";
 import EmployeeDetail from "../pages/admin/EmployeeDetail";
 import ProtectedRoute from "./protectedRoutes";
 import AllEmployee from "../pages/admin/AllEmployee";
+import ReviewLeaveRedirect from "../components/ReviewLeaveRedirect";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Auth */}
       <Route path="/" element={<Login />} />
+      <Route path="/review-leave/:id" element={<ReviewLeaveRedirect />} />
 
       {/* Employee & Vertical Lead Shared Layout */}
       <Route
